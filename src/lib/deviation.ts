@@ -5,7 +5,9 @@ export type ComparisonWindow = "career" | "last5" | "last1";
 export type ComparisonTarget = "own" | "league";
 
 /** A season below this fraction of its year's scheduled games is "small sample" (D6).
-    25% ≈ 11 of a 44-game season — a ~10–13 game year counts, a handful of games doesn't. */
+    25% ≈ 11 of a 44-game season — a ~10–13 game year counts, a handful of games doesn't.
+    Must stay equal to wnba-data's SMALL_SAMPLE_FRACTION (scripts/compute-league.ts), which
+    uses the same bar to pick which players qualify for the league averages. Keep them paired. */
 const SMALL_SAMPLE_FRACTION = 0.25;
 /** A full-length deviation bar = the stat is this fraction above/below baseline (S1). */
 const BAR_FULL_SCALE = 0.5;
