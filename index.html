@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WNBA Arc — Player Career Arc Visualizer</title>
+    <!-- Apply the theme before first paint (stored choice, else OS) to avoid a flash. -->
+    <script>
+      (function () {
+        try {
+          var k = localStorage.getItem("arc-theme");
+          var t = k === "light" || k === "dark"
+            ? k
+            : (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+          document.documentElement.dataset.theme = t;
+        } catch (e) {}
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

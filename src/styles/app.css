@@ -1,0 +1,4 @@
+/* App-specific interaction styling not part of the ported design-system tokens. */
+.row-hover:hover {
+  background: color-mix(in srgb, var(--color-text) 4%, transparent);
+}

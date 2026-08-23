@@ -1,0 +1,331 @@
+import type { PlayerDetail } from "../data/api";
+import type { ComparisonTarget, StatDetail, StatTableRow } from "../lib/deviation";
+import { InfoTip } from "./InfoTip";
+
+interface StatDrilldownViewProps {
+  player: PlayerDetail;
+  stat: StatDetail;
+  target: ComparisonTarget;
+  onTargetChange: (target: ComparisonTarget) => void;
+  onBack: () => void;
+  onSelectYear: (year: number) => void;
+}
+
+const PLOT_H = 220; // px
+
+export function StatDrilldownView({ player, stat, target, onTargetChange, onBack, onSelectYear }: StatDrilldownViewProps) {
+  const bars = stat.bars;
+  const n = bars.length;
+  const colX = (i: number) => ((i + 0.5) / n) * 100; // column center, % from left
+
+  const renderRow = (r: StatTableRow) => (
+    <tr
+      key={r.year}
+      // Whole-row click is a mouse convenience; keyboard/SR use the year <button>.
+      onClick={r.missed ? undefined : () => onSelectYear(r.year)}
+      style={{
+        cursor: r.missed ? "default" : "pointer",
+        // Selected year: light-blue fill (overrides zebra stripe + hover). Others fall
+        // through to the CSS zebra striping in theme.css.
+        background: r.isSubject ? "color-mix(in srgb, var(--color-accent) 15%, transparent)" : undefined,
+      }}
+    >
+      <td style={{ fontWeight: r.isSubject ? 700 : 400 }}>
+        {r.missed ? (
+          r.year
+        ) : (
+          <button
+            onClick={() => onSelectYear(r.year)}
+            aria-label={`${r.year} — compare this season`}
+            style={{
+              appearance: "none",
+              background: "transparent",
+              border: 0,
+              padding: 0,
+              font: "inherit",
+              color: "inherit",
+              fontWeight: "inherit",
+              cursor: "pointer",
+            }}
+          >
+            {r.year}
+          </button>
+        )}
+        {r.smallSample && !r.missed && (
+          <span className="text-muted" style={{ fontSize: 10, marginLeft: 6 }}>
+            small sample
+          </span>
+        )}
+      </td>
+      <td style={{ textAlign: "right" }}>
+        {r.missed ? <span className="text-muted">DNP — {r.reason}</span> : r.valFmt}
+      </td>
+      <td style={{ textAlign: "right" }} className="text-muted">
+        {r.gp ?? "—"}
+      </td>
+      <td style={{ textAlign: "right" }} className="text-muted">
+        {r.min != null ? r.min.toFixed(1) : "—"}
+      </td>
+      <td style={{ textAlign: "right", color: r.missed ? undefined : r.deltaColor }}>
+        {r.deltaFmt}
+      </td>
+    </tr>
+  );
+
+  return (
+    <main id="main" style={{ maxWidth: "var(--app-width)", width: "100%", margin: "0 auto", padding: "18px 20px 40px" }}>
+      <button className="btn btn-ghost" style={{ marginBottom: 18, gap: 8 }} onClick={onBack}>
+        <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
+          <path d="M19 12H5M12 19l-7-7 7-7" />
+        </svg>
+        <span>{player.name}</span>
+      </button>
+
+      <div className="card-kicker" style={{ marginBottom: 4 }}>
+        {player.name} · career history
+      </div>
+      <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
+        <div>
+          <h1 style={{ margin: 0, fontSize: 28 }}>{stat.label}</h1>
+          {!stat.pct && (
+            <div className="text-muted" style={{ fontSize: 12, marginTop: 2 }}>
+              per game
+            </div>
+          )}
+        </div>
+        <div style={{ textAlign: "right" }}>
+          <div style={{ display: "flex", alignItems: "baseline", gap: 8, justifyContent: "flex-end" }}>
+            <span style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: 28, lineHeight: 1 }}>
+              {stat.curFmt}
+            </span>
+            <span style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: 18, color: stat.deltaColor }}>
+              {stat.rawFmt}
+            </span>
+          </div>
+          <div className="text-muted" style={{ fontSize: 12, marginTop: 2 }}>
+            {stat.year} · baseline {stat.baseFmt}
+          </div>
+        </div>
+      </div>
+      <p className="text-muted" style={{ fontSize: 13, margin: "8px 0 18px" }}>
+        {stat.caption}
+      </p>
+
+      {/* Legend + baseline toggle */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 10, marginBottom: 10 }}>
+        <div style={{ display: "flex", gap: 16, fontSize: 12 }}>
+          <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <span aria-hidden="true" style={{ width: 10, height: 10, borderRadius: "50%", background: "var(--color-accent)" }} />
+            {stat.label}
+          </span>
+          <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <span aria-hidden="true" style={{ width: 10, height: 10, borderRadius: "50%", background: "var(--color-neutral-600)" }} />
+            Baseline
+          </span>
+        </div>
+        <div role="radiogroup" aria-label="Compare against">
+          <div className="seg">
+            <label className="seg-opt">
+              <input type="radio" name="drilltgt" checked={target === "own"} onChange={() => onTargetChange("own")} />
+              <span>Her own</span>
+            </label>
+            <label className="seg-opt">
+              <input type="radio" name="drilltgt" checked={target === "league"} onChange={() => onTargetChange("league")} />
+              <span>League avg</span>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <div className="card" style={{ padding: "18px 18px 12px" }}>
+        <div style={{ position: "relative", height: PLOT_H, paddingLeft: 4 }}>
+          {/* Gridlines + y-axis labels */}
+          {stat.axisTicks.map((t) => (
+            <div
+              key={t.label + t.yPct}
+              aria-hidden="true"
+              style={{ position: "absolute", left: 0, right: 0, top: `${100 - t.yPct}%`, borderTop: "1px solid var(--color-divider)" }}
+            >
+              <span
+                style={{
+                  position: "absolute",
+                  left: 0,
+                  top: -7,
+                  fontSize: 10,
+                  color: "var(--color-neutral-700)",
+                  background: "var(--color-bg)",
+                  paddingRight: 4,
+                }}
+              >
+                {t.label}
+              </span>
+            </div>
+          ))}
+
+          {/* Vertical column dividers between seasons */}
+          {bars.map((_, i) =>
+            i > 0 ? (
+              <div
+                key={`vg-${i}`}
+                aria-hidden="true"
+                style={{ position: "absolute", top: 0, bottom: 0, left: `${(i / n) * 100}%`, borderLeft: "1px solid var(--color-divider)" }}
+              />
+            ) : null,
+          )}
+
+          {/* One column per season: the value dot and the baseline dot, joined by a
+              vertical connector (the gap = that season's deviation). The whole column is
+              the click/keyboard target. Dots are decorative; the table carries the data. */}
+          {bars.map((b, i) => {
+            if (b.hPct == null) return null;
+            const yVal = 100 - b.hPct;
+            const yBase = b.basePct != null ? 100 - b.basePct : null;
+            const sub = b.isSubject;
+            const dot = 10;
+            // Value dot is above the baseline dot (higher stat) → label on top; otherwise
+            // the value is the lower dot → label below, so it never lands on the dots/line.
+            const valueAbove = yBase == null || yVal <= yBase;
+            return (
+              <button
+                key={b.year}
+                onClick={() => onSelectYear(b.year)}
+                aria-label={`${b.year}: ${b.valFmt}${b.smallSample ? " (small sample)" : ""} — compare this season`}
+                title={b.smallSample ? "Small sample — excluded from baselines" : `Set ${b.year} as the compared season`}
+                style={{
+                  position: "absolute",
+                  left: `${colX(i)}%`,
+                  top: 0,
+                  height: "100%",
+                  width: `${100 / n}%`,
+                  transform: "translateX(-50%)",
+                  appearance: "none",
+                  // Selection = highlight the whole column, not resized dots.
+                  background: sub ? "color-mix(in srgb, var(--color-accent) 12%, transparent)" : "transparent",
+                  borderRadius: 4,
+                  border: 0,
+                  padding: 0,
+                  cursor: "pointer",
+                  zIndex: 3,
+                }}
+              >
+                {/* connector */}
+                {yBase != null && (
+                  <span
+                    aria-hidden="true"
+                    style={{
+                      position: "absolute",
+                      left: "50%",
+                      top: `${Math.min(yVal, yBase)}%`,
+                      height: `${Math.abs(yVal - yBase)}%`,
+                      width: 0,
+                      borderLeft: "1.5px solid var(--color-neutral-500)",
+                      transform: "translateX(-50%)",
+                    }}
+                  />
+                )}
+                {/* baseline dot (grey — the secondary series) */}
+                {yBase != null && (
+                  <span
+                    aria-hidden="true"
+                    style={{
+                      position: "absolute",
+                      left: "50%",
+                      top: `${yBase}%`,
+                      width: dot,
+                      height: dot,
+                      borderRadius: "50%",
+                      background: "var(--color-neutral-600)",
+                      transform: "translate(-50%, -50%)",
+                    }}
+                  />
+                )}
+                {/* value dot (the actual stat) */}
+                <span
+                  aria-hidden="true"
+                  style={{
+                    position: "absolute",
+                    left: "50%",
+                    top: `${yVal}%`,
+                    width: dot,
+                    height: dot,
+                    borderRadius: "50%",
+                    background: "var(--color-accent)",
+                    transform: "translate(-50%, -50%)",
+                  }}
+                />
+                {/* value number for the selected season, offset off the dot for breathing room */}
+                {sub && (
+                  <span
+                    style={{
+                      position: "absolute",
+                      left: "50%",
+                      top: `${yVal}%`,
+                      transform: valueAbove ? "translate(-50%, -50%) translateY(-18px)" : "translate(-50%, -50%) translateY(18px)",
+                      fontSize: 12,
+                      fontFamily: "var(--font-heading)",
+                      fontWeight: 700,
+                      color: "var(--color-text)",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {b.valFmt}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* X-axis year labels */}
+        <div style={{ display: "flex", marginTop: 6 }}>
+          {bars.map((b) => (
+            <div key={b.year} style={{ flex: 1, textAlign: "center", minWidth: 0 }}>
+              <span
+                className="text-muted"
+                title={b.missed ? b.reason : undefined}
+                style={{ fontSize: 10, fontWeight: b.isSubject ? 700 : 400, opacity: b.missed ? 0.6 : 1 }}
+              >
+                '{b.yy}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+      <p className="text-muted" style={{ fontSize: 12, marginTop: 14 }}>
+        Each season shows two dots — blue = her {stat.label.toLowerCase()}, grey = the baseline;
+        the gap between them is that season's deviation. Tap a season to compare it. Gaps are missed seasons.
+      </p>
+
+      {/* Yearly table (F2) — one full-width table, zebra-striped. table-layout: fixed
+          gives evenly-distributed columns and makes the table fit its container at any
+          width (no horizontal scroll needed → nothing clips the header tooltips). */}
+      <div style={{ marginTop: 22 }}>
+        <table className="table" style={{ tableLayout: "fixed" }} aria-label="Season stats">
+          <colgroup>
+            <col style={{ width: "24%" }} />
+            <col style={{ width: "19%" }} />
+            <col style={{ width: "19%" }} />
+            <col style={{ width: "19%" }} />
+            <col style={{ width: "19%" }} />
+          </colgroup>
+          <thead>
+            <tr>
+              <th>Season</th>
+              <th style={{ textAlign: "right" }}>{stat.short}</th>
+              <th style={{ textAlign: "right" }}>
+                <InfoTip label="GP" tip="Games played that season" />
+              </th>
+              <th style={{ textAlign: "right" }}>
+                <InfoTip label="Min" tip="Minutes played per game" />
+              </th>
+              <th style={{ textAlign: "right" }}>
+                <InfoTip label="vs base" tip="Difference from that season's baseline (her prior average, or the league)" />
+              </th>
+            </tr>
+          </thead>
+          <tbody>{stat.tableRows.map(renderRow)}</tbody>
+        </table>
+      </div>
+    </main>
+  );
+}
