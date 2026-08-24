@@ -523,8 +523,13 @@ textarea.input { min-height: 90px; resize: vertical; }
    End labels + arrows are the non-color cue for the encoding (1.4.1). */
 .hm-legend { width: 260px; max-width: 100%; }
 .hm-scale-grad {
-  height: 9px; border-radius: 3px;
+  height: 11px; border-radius: 3px;
   background: linear-gradient(to right, var(--hm-cool), var(--hm-base), var(--hm-warm));
+  /* Hairline border so the near-transparent midpoint doesn't fade into the page.
+     Clip the gradient to the padding box so it doesn't bleed under the (semi-transparent)
+     border and show stray colors at the edges/rounded corners. */
+  border: 1px solid var(--color-divider);
+  background-clip: padding-box;
 }
 .hm-scale-ends {
   display: flex; justify-content: space-between; align-items: center;
