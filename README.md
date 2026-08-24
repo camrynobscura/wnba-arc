@@ -67,7 +67,12 @@ Other scripts:
 npm run build     # type-check (tsc -b) + production build
 npm run preview   # serve the production build locally
 npm run lint      # type-check only
+npm run test      # run the unit tests (vitest) once
+npm run test:watch # re-run tests on change
 ```
+
+Tests cover the pure baseline logic in `src/lib/deviation.ts` (subject selection,
+small-sample gating, baseline-window rules) — see `src/lib/deviation.test.ts`.
 
 ## Data source
 
