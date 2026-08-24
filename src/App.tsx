@@ -168,20 +168,26 @@ export default function App() {
             ctx={ctx}
             rows={buildRows(ctx)}
             caption={buildCaption(ctx)}
+            players={players}
+            listError={loadError}
             onWinChange={setWin}
             onTargetChange={setTarget}
             onSubjectYearChange={setSubjectYear}
             onGoHome={goHome}
             onOpenStat={openStat}
+            onPick={pick}
           />
         ) : view === "stat" && statDetail ? (
           <StatDrilldownView
             player={detail}
             stat={statDetail}
             target={ctx.requestedTarget}
+            players={players}
+            listError={loadError}
             onTargetChange={setTarget}
             onBack={backToSummary}
             onSelectYear={setSubjectYear}
+            onPick={pick}
           />
         ) : null
       ) : (

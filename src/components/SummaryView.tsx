@@ -1,5 +1,6 @@
 import { photoUrl, type StatDef } from "../data/stats";
-import type { PlayerDetail } from "../data/api";
+import type { PlayerDetail, PlayerSummary } from "../data/api";
+import { PlayerSearch } from "./PlayerSearch";
 import { playedSeasons, type BaselineContext, type ComparisonTarget, type ComparisonWindow, type DeviationRow } from "../lib/deviation";
 import { PlayerPhoto } from "./PlayerPhoto";
 import { DeviationBlocks } from "./DeviationBlocks";
@@ -28,11 +29,15 @@ interface SummaryViewProps {
   ctx: BaselineContext;
   rows: DeviationRow[];
   caption: string;
+  /** Full roster + its load error, for the in-row "search more players" box. */
+  players: PlayerSummary[] | null;
+  listError: string | null;
   onWinChange: (win: ComparisonWindow) => void;
   onTargetChange: (target: ComparisonTarget) => void;
   onSubjectYearChange: (year: number) => void;
   onGoHome: () => void;
   onOpenStat: (key: StatDef["key"]) => void;
+  onPick: (espn: string) => void;
 }
 
 const WINDOW_LABEL: Record<ComparisonWindow, string> = {
@@ -57,11 +62,14 @@ export function SummaryView({
   ctx,
   rows,
   caption,
+  players,
+  listError,
   onWinChange,
   onTargetChange,
   onSubjectYearChange,
   onGoHome,
   onOpenStat,
+  onPick,
 }: SummaryViewProps) {
   const {
     subject,
@@ -90,12 +98,16 @@ export function SummaryView({
 
   return (
     <main id="main" style={{ maxWidth: "var(--app-width)", width: "100%", margin: "0 auto", padding: "18px 20px 16px" }}>
-      <button className="btn btn-ghost" style={{ marginBottom: 18, gap: 8 }} onClick={onGoHome}>
-        <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
-          <path d="M19 12H5M12 19l-7-7 7-7" />
-        </svg>
-        <span>All players</span>
-      </button>
+      {/* Top row: back to all players (left) + jump straight to another player (right). */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12, marginBottom: 18 }}>
+        <button className="btn btn-ghost" style={{ gap: 8 }} onClick={onGoHome}>
+          <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
+            <path d="M19 12H5M12 19l-7-7 7-7" />
+          </svg>
+          <span>All players</span>
+        </button>
+        <PlayerSearch variant="compact" players={players} listError={listError} onPick={onPick} />
+      </div>
 
       <div
         style={{

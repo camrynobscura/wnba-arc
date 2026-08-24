@@ -1,19 +1,24 @@
-import type { PlayerDetail } from "../data/api";
+import type { PlayerDetail, PlayerSummary } from "../data/api";
 import type { ComparisonTarget, StatDetail, StatTableRow } from "../lib/deviation";
 import { InfoTip } from "./InfoTip";
+import { PlayerSearch } from "./PlayerSearch";
 
 interface StatDrilldownViewProps {
   player: PlayerDetail;
   stat: StatDetail;
   target: ComparisonTarget;
+  /** Full roster + its load error, for the in-row "search more players" box. */
+  players: PlayerSummary[] | null;
+  listError: string | null;
   onTargetChange: (target: ComparisonTarget) => void;
   onBack: () => void;
   onSelectYear: (year: number) => void;
+  onPick: (espn: string) => void;
 }
 
 const PLOT_H = 220; // px
 
-export function StatDrilldownView({ player, stat, target, onTargetChange, onBack, onSelectYear }: StatDrilldownViewProps) {
+export function StatDrilldownView({ player, stat, target, players, listError, onTargetChange, onBack, onSelectYear, onPick }: StatDrilldownViewProps) {
   const bars = stat.bars;
   const n = bars.length;
   const colX = (i: number) => ((i + 0.5) / n) * 100; // column center, % from left
@@ -65,12 +70,16 @@ export function StatDrilldownView({ player, stat, target, onTargetChange, onBack
 
   return (
     <main id="main" style={{ maxWidth: "var(--app-width)", width: "100%", margin: "0 auto", padding: "18px 20px 16px" }}>
-      <button className="btn btn-ghost" style={{ marginBottom: 18, gap: 8 }} onClick={onBack}>
-        <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
-          <path d="M19 12H5M12 19l-7-7 7-7" />
-        </svg>
-        <span>{player.name}</span>
-      </button>
+      {/* Top row: back to this player's summary (left) + jump to another player (right). */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12, marginBottom: 18 }}>
+        <button className="btn btn-ghost" style={{ gap: 8 }} onClick={onBack}>
+          <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
+            <path d="M19 12H5M12 19l-7-7 7-7" />
+          </svg>
+          <span>{player.name}</span>
+        </button>
+        <PlayerSearch variant="compact" players={players} listError={listError} onPick={onPick} />
+      </div>
 
       <div className="card-kicker" style={{ marginBottom: 4 }}>
         {player.name} · career history

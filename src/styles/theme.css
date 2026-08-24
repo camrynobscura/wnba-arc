@@ -436,6 +436,25 @@ textarea.input { min-height: 90px; resize: vertical; }
 .nav a { color: inherit; text-decoration: none; font-size: 14px; }
 .nav a:hover, .nav a[aria-current='page'] { color: var(--color-accent); }
 
+/* Quiet "Search players" trigger on player pages (see components/PlayerSearch.tsx) —
+   a subtle underlined text+icon affordance instead of a boxed input. */
+.search-trigger {
+  display: inline-flex; align-items: center; gap: 6px;
+  color: var(--color-neutral-700); font-family: var(--font-body); font-size: 13px;
+  background: transparent; border: 0; padding: 0; cursor: pointer;
+}
+.search-trigger span { text-decoration: underline; text-underline-offset: 3px; }
+.search-trigger:hover { color: var(--color-accent); }
+.search-trigger:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 3px; }
+.search-trigger:disabled { opacity: 0.5; cursor: default; }
+/* The expanded compact input: underline only, no box. */
+.search-underline {
+  border: 0; border-bottom: 1px solid var(--color-divider);
+  background: transparent; border-radius: 0;
+}
+.search-underline:focus { outline: none; border-bottom-color: var(--color-accent); }
+.search-underline::placeholder { color: var(--color-neutral-600); }
+
 /* Light/dark switch — square hairline button, of a piece with the blueprint frame. */
 .theme-toggle {
   display: inline-flex; align-items: center; justify-content: center;
