@@ -19,7 +19,7 @@ export function PlayerPhoto({ src, name, size }: PlayerPhotoProps) {
 
   return (
     <div
-      className="duotone"
+      className="duotone player-photo"
       // Decorative: the name is always shown as text beside the photo, so an alt
       // here would just duplicate it (WCAG 1.1.1). Hide the whole avatar from SR.
       aria-hidden="true"
@@ -29,7 +29,6 @@ export function PlayerPhoto({ src, name, size }: PlayerPhotoProps) {
         flex: "none",
         borderRadius: "50%",
         overflow: "hidden",
-        background: "var(--color-neutral-300)",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
@@ -47,12 +46,8 @@ export function PlayerPhoto({ src, name, size }: PlayerPhotoProps) {
         />
       ) : (
         <span
-          style={{
-            fontFamily: "var(--font-heading)",
-            fontWeight: 600,
-            fontSize: size * 0.36,
-            color: "var(--color-neutral-700)",
-          }}
+          className="text-heading player-photo-initials"
+          style={{ fontSize: size * 0.36 }}
         >
           {initials}
         </span>

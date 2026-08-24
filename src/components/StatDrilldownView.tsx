@@ -35,18 +35,9 @@ export function StatDrilldownView({ player, stat, target, onTargetChange, onBack
           r.year
         ) : (
           <button
+            className="btn-reset"
             onClick={() => onSelectYear(r.year)}
             aria-label={`${r.year} — compare this season`}
-            style={{
-              appearance: "none",
-              background: "transparent",
-              border: 0,
-              padding: 0,
-              font: "inherit",
-              color: "inherit",
-              fontWeight: "inherit",
-              cursor: "pointer",
-            }}
           >
             {r.year}
           </button>
@@ -95,10 +86,10 @@ export function StatDrilldownView({ player, stat, target, onTargetChange, onBack
         </div>
         <div style={{ textAlign: "right" }}>
           <div style={{ display: "flex", alignItems: "baseline", gap: 8, justifyContent: "flex-end" }}>
-            <span style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: 28, lineHeight: 1 }}>
+            <span className="text-heading" style={{ fontSize: 28, lineHeight: 1 }}>
               {stat.curFmt}
             </span>
-            <span style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: 18, color: stat.deltaColor }}>
+            <span className="text-heading" style={{ fontSize: 18, color: stat.deltaColor }}>
               {stat.rawFmt}
             </span>
           </div>
@@ -256,14 +247,14 @@ export function StatDrilldownView({ player, stat, target, onTargetChange, onBack
                 {/* value number for the selected season, offset off the dot for breathing room */}
                 {sub && (
                   <span
+                    className="text-heading"
                     style={{
                       position: "absolute",
                       left: "50%",
                       top: `${yVal}%`,
                       transform: valueAbove ? "translate(-50%, -50%) translateY(-18px)" : "translate(-50%, -50%) translateY(18px)",
                       fontSize: 12,
-                      fontFamily: "var(--font-heading)",
-                      fontWeight: 700,
+                      fontWeight: 700, // heavier than the utility's default for the on-chart value label
                       color: "var(--color-text)",
                       whiteSpace: "nowrap",
                     }}

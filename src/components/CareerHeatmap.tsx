@@ -10,16 +10,18 @@ interface CareerHeatmapProps {
   subjectYear: number;
 }
 
-// Diverging scale endpoints (fixed hues; the neutral midpoint is a theme token so it
-// adapts to light/dark). Warm = above her career average, cool = below.
-const WARM = "#c0492a";
-const COOL = "#3f6d99";
+// Diverging scale endpoints + base are theme tokens (see --hm-* in theme.css), so the
+// scale adapts light/dark — dark uses brighter, more saturated hues on a lifted base.
+// Warm = above her career average, cool = below.
+const WARM = "var(--hm-warm)";
+const COOL = "var(--hm-cool)";
+const HM_BASE = "var(--hm-base)";
 
-// Max saturation a cell reaches (% toward the hue, away from the neutral base). Capped
-// below 100% so the in-cell number — drawn in var(--color-text), which flips with the
-// theme — keeps ≥4.5:1 contrast on every cell in BOTH themes. A continuous light→hue
-// gradient at full saturation passes through a mid-luminance band where neither dark nor
-// white text can reach AA; 75% keeps the worst cell at ~4.9:1 while staying vivid.
+// Max saturation a cell reaches (% toward the hue, away from the base). Capped below 100%
+// so the in-cell number — drawn in var(--color-text), which flips with the theme — keeps
+// ≥4.5:1 contrast on every cell in BOTH themes. A continuous base→hue gradient at full
+// saturation passes through a mid-luminance band where neither dark nor white text can
+// reach AA; 75% keeps the worst cell at ~4.7:1 while staying vivid.
 const MAX_INTENSITY = 75;
 
 const clamp = (x: number, a: number, b: number) => Math.max(a, Math.min(b, x));
@@ -66,7 +68,7 @@ export function CareerHeatmap({ player, league, subjectYear }: CareerHeatmapProp
       <section aria-label="Career Trend" style={{ margin: "4px 0 2px" }}>
         <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "flex-end", gap: "10px 20px", marginBottom: 18 }}>
           <div>
-            <h2 style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: 20, margin: 0 }}>Career Trend</h2>
+            <h2 style={{ fontSize: 20, margin: 0 }}>Career Trend</h2>
             <div className="text-muted" style={{ fontSize: 12, marginTop: 3 }}>each cell vs her career average</div>
           </div>
           {/* Diverging color key — sits in the title row (compact) rather than below the grid. */}
@@ -125,7 +127,7 @@ export function CareerHeatmap({ player, league, subjectYear }: CareerHeatmapProp
                 }
                 const t = clamp((v - avg) / maxDev, -1, 1);
                 const intensity = Math.abs(t) * MAX_INTENSITY;
-                const bg = `color-mix(in srgb, ${t >= 0 ? WARM : COOL} ${intensity}%, var(--color-neutral-100))`;
+                const bg = `color-mix(in srgb, ${t >= 0 ? WARM : COOL} ${intensity}%, ${HM_BASE})`;
                 return (
                   <div
                     key={key}

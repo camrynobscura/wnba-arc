@@ -18,19 +18,12 @@ export function Header({ onGoHome, onAbout }: HeaderProps) {
       }}
     >
       <button
-        className="nav-brand"
+        className="btn-reset nav-brand"
         aria-label="ARC WNBA — back to all players"
         style={{
-          appearance: "none",
-          background: "transparent",
-          border: 0,
-          font: "inherit",
-          color: "inherit",
-          padding: 0,
           display: "flex",
           alignItems: "baseline",
           gap: 10,
-          cursor: "pointer",
         }}
         onClick={onGoHome}
       >

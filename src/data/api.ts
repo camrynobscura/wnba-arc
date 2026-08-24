@@ -47,6 +47,11 @@ export interface SeasonMissed {
   reason: string;
 }
 
+/** Dataset freshness — mirrors the API's `/meta`. */
+export interface Meta {
+  lastScrapedAt: string | null; // ISO 8601 UTC of the latest successful scrape; null if none
+}
+
 /** Per-year league context — averages + real slate length. */
 export interface LeagueSeason {
   year: number;
@@ -94,4 +99,9 @@ export function getPlayer(id: string): Promise<PlayerDetail> {
 /** Per-year league averages + slate length. */
 export function getLeague(): Promise<LeagueSeason[]> {
   return fetchJson<LeagueSeason[]>("/league");
+}
+
+/** Dataset freshness (latest successful scrape time). */
+export function getMeta(): Promise<Meta> {
+  return fetchJson<Meta>("/meta");
 }

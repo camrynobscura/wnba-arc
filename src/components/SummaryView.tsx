@@ -117,7 +117,7 @@ export function SummaryView({
 
       <CareerHeatmap player={player} league={league} subjectYear={subject.year} />
 
-      <h2 style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: 20, margin: "0 0 14px" }}>Season Breakdown</h2>
+      <h2 style={{ fontSize: 20, margin: "0 0 14px" }}>Season Breakdown</h2>
 
       {/* Controls (.sb-* in theme.css). Desktop: comparison controls left, season picker
           right. Mobile: a single left-aligned column — season+games first (it's first in
@@ -130,6 +130,8 @@ export function SummaryView({
             <span className="select-wrap">
               <select
                 id="season-select"
+                // Font kept inline (not .text-heading): the .input class sets `font: inherit`,
+                // which is later in the cascade and would override a class-set font-family.
                 className="input select-reset"
                 style={{ width: "auto", fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: 15 }}
                 value={subject.year}
@@ -144,7 +146,7 @@ export function SummaryView({
             </span>
           </div>
           <div className="sb-games">
-            <span style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: 13, whiteSpace: "nowrap" }}>
+            <span className="text-heading" style={{ fontSize: 13, whiteSpace: "nowrap" }}>
               {subject.gp} of {scheduled}{" "}
               <span className="text-muted" style={{ fontSize: 13, fontWeight: 400 }}>games played</span>
             </span>
@@ -262,14 +264,9 @@ export function SummaryView({
         {rows.map((row, idx) => (
           <button
             key={row.key}
-            className="row-hover"
+            className="btn-reset row-hover"
             aria-label={`${row.label} — open year-by-year history`}
             style={{
-              appearance: "none",
-              background: "transparent",
-              border: 0,
-              font: "inherit",
-              color: "inherit",
               textAlign: "left",
               width: "100%",
               display: "grid",
@@ -281,19 +278,18 @@ export function SummaryView({
               gap: 10,
               padding: "14px 8px",
               borderBottom: "1px solid var(--color-divider)",
-              cursor: "pointer",
             }}
             onClick={() => onOpenStat(row.key)}
           >
             <div style={{ lineHeight: 1.05 }}>
-              <div style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: 19 }}>{row.label}</div>
+              <div className="text-heading" style={{ fontSize: 19 }}>{row.label}</div>
               <div className="text-muted" style={{ fontSize: 11 }}>
                 baseline {row.baseFmt}
               </div>
             </div>
             <DeviationBlocks up={row.up} barPct={row.barPct} barColor={row.barColor} showBaselineLabel={idx === 0} />
             <div style={{ textAlign: "right", display: "flex", flexDirection: "column", alignItems: "flex-end", lineHeight: 1.05 }}>
-              <span style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: 19 }}>{row.curFmt}</span>
+              <span className="text-heading" style={{ fontSize: 19 }}>{row.curFmt}</span>
               <span style={{ fontSize: 11, color: row.deltaColor }}>{row.rawFmt}</span>
             </div>
           </button>

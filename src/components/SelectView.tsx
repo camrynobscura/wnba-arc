@@ -24,18 +24,6 @@ function fold(s: string): string {
     .toLowerCase();
 }
 
-/** Reset styles so a <button> can act as a full-width list row without button chrome. */
-const rowButtonReset: React.CSSProperties = {
-  appearance: "none",
-  background: "transparent",
-  border: 0,
-  font: "inherit",
-  color: "inherit",
-  textAlign: "left",
-  width: "100%",
-  cursor: "pointer",
-};
-
 export function SelectView({ featured, players, listError, onPick }: SelectViewProps) {
   const [query, setQuery] = useState("");
 
@@ -120,7 +108,7 @@ export function SelectView({ featured, players, listError, onPick }: SelectViewP
                 }}
                 onClick={() => onPick(p.espn)}
               >
-                <span style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: 15 }}>{p.name}</span>
+                <span className="text-heading" style={{ fontSize: 15 }}>{p.name}</span>
                 <span
                   className="text-muted"
                   style={{ fontFamily: "var(--font-body)", fontSize: 12, marginLeft: "auto" }}
@@ -168,9 +156,10 @@ export function SelectView({ featured, players, listError, onPick }: SelectViewP
             return (
               <button
                 key={f.espn}
-                className="row-hover"
+                className="btn-reset row-hover"
                 style={{
-                  ...rowButtonReset,
+                  textAlign: "left",
+                  width: "100%",
                   display: "flex",
                   alignItems: "center",
                   gap: 14,
@@ -181,7 +170,7 @@ export function SelectView({ featured, players, listError, onPick }: SelectViewP
               >
                 <PlayerPhoto src={photoUrl(f.espn)} name={f.name} size={40} />
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: 16 }}>{f.name}</div>
+                  <div className="text-heading" style={{ fontSize: 16 }}>{f.name}</div>
                   <div className="text-muted" style={{ fontSize: 12 }}>
                     {[f.team, f.pos].filter(Boolean).join(" · ")}
                   </div>

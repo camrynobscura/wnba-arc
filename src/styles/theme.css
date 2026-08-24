@@ -43,6 +43,13 @@
   --color-accent-2-800: #314457;
   --color-accent-2-900: #1f2d3a;
 
+  /* Career-heatmap diverging scale — warm = above career avg, cool = below; each cell
+     mixes its hue toward --hm-base by the deviation magnitude. Dark mode overrides these
+     brighter + more saturated (and lifts the base) so cells read on the dark ground. */
+  --hm-warm: #c0492a;
+  --hm-cool: #3f6d99;
+  --hm-base: var(--color-neutral-100);
+
   /* Max content width for every view (App shell, select, summary, drill-down). */
   --app-width: 600px;
 
@@ -81,9 +88,9 @@
    works in both themes with no per-component overrides. All values contrast-checked
    ≥4.5:1 for text / ≥3:1 for graphics on their own ground. */
 :root[data-theme="dark"] {
-  --color-bg: #131519;
+  --color-bg: #17191e;
   --color-surface: #1c1f24;
-  --color-text: #e6e8ec;
+  --color-text: #dfe1e7;
   --color-accent: #7ea6cf;       /* brightened so dark text reads on it (buttons) */
   --color-accent-2: #93aecb;
   --color-divider: color-mix(in srgb, #e6e8ec 15%, transparent);
@@ -117,6 +124,13 @@
   --color-accent-2-700: #a0b6cd;
   --color-accent-2-800: #c4d3e2;
   --color-accent-2-900: #e3eaf2;
+
+  /* Heatmap scale, brightened for the dark ground: more saturated warm/cool hues and a
+     lifted (non-black) base so low-deviation tiles are visible and mid cells pop. Cell
+     numbers (var(--color-text)) still clear 4.5:1 at MAX_INTENSITY — worst case ~4.7. */
+  --hm-warm: #d94e28;
+  --hm-cool: #3f7fc4;
+  --hm-base: #1e2229;
 
   /* Elevation on a dark ground: deeper, near-black ambient shadow. */
   --shadow-sm: 0 1px 2px color-mix(in srgb, #000 40%, transparent);
@@ -159,6 +173,17 @@ h1, h2, h3, h4 { font-family: var(--font-heading); font-weight: var(--font-headi
 .duotone::after{content:"";position:absolute;inset:0;pointer-events:none;
   background:var(--color-accent);mix-blend-mode:color}
 
+/* Avatar backdrop shown through ESPN's transparent cutout headshots. Kept light in
+   both themes — the default neutral-300 flips near-black in dark mode and swallowed
+   dark hair/uniforms; neutral-700 (a mid-light grey in the reversed dark ramp) keeps
+   the player readable. */
+.player-photo { background: var(--color-neutral-300); }
+:root[data-theme="dark"] .player-photo { background: var(--color-neutral-700); }
+/* Initials fallback (shown when the headshot 404s) — dark on the light backdrop in
+   both themes; neutral-700 alone would match the dark-mode backdrop and vanish. */
+.player-photo-initials { color: var(--color-neutral-700); }
+:root[data-theme="dark"] .player-photo-initials { color: var(--color-neutral-300); }
+
 /* ══════════════════════════════════════════════════════════════════════════
    Components — built with the tokens above. Plain CSS on plain HTML.
    ══════════════════════════════════════════════════════════════════════ */
@@ -186,6 +211,10 @@ figcaption {
 }
 /* 68% ink meets WCAG 1.4.3 (~5:1 on the page ground); 55% read ~3.6:1 and failed. */
 .text-muted { color: color-mix(in srgb, var(--color-text) 68%, transparent); }
+/* Condensed display face for ad-hoc titley labels/values that aren't <h*> elements
+   (headings already get this from the h1–h6 rule). Size stays at the call site; a
+   heavier weight (e.g. 700) can still be set inline to override. */
+.text-heading { font-family: var(--font-heading); font-weight: var(--font-heading-weight); }
 :focus { outline: none; }
 :focus-visible { outline: 2px solid var(--color-accent-700); outline-offset: 2px; }
 ::selection { background: color-mix(in srgb, var(--color-accent) 30%, transparent); }
@@ -322,6 +351,7 @@ textarea.input { min-height: 90px; resize: vertical; }
 .radio input:focus-visible + .dot { outline: 2px solid var(--color-accent); outline-offset: 2px; }
 .seg {
   display: inline-flex; overflow: hidden;
+  background: var(--color-surface);
   border: 1px solid var(--color-divider); border-radius: var(--radius-md);
 }
 .seg-opt {
@@ -494,7 +524,7 @@ textarea.input { min-height: 90px; resize: vertical; }
 .hm-legend { width: 260px; max-width: 100%; }
 .hm-scale-grad {
   height: 9px; border-radius: 3px;
-  background: linear-gradient(to right, #3f6d99, var(--color-neutral-100), #c0492a);
+  background: linear-gradient(to right, var(--hm-cool), var(--hm-base), var(--hm-warm));
 }
 .hm-scale-ends {
   display: flex; justify-content: space-between; align-items: center;

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { STATS, type StatDef } from "./data/stats";
-import { getLeague, getPlayer, getPlayers, type LeagueSeason, type PlayerDetail, type PlayerSummary } from "./data/api";
+import { getLeague, getMeta, getPlayer, getPlayers, type LeagueSeason, type PlayerDetail, type PlayerSummary } from "./data/api";
 import { FEATURED } from "./data/featured";
 import {
   buildCaption,
@@ -17,6 +17,7 @@ import { SelectView } from "./components/SelectView";
 import { SummaryView } from "./components/SummaryView";
 import { StatDrilldownView } from "./components/StatDrilldownView";
 import { AboutView } from "./components/AboutView";
+import { Footer } from "./components/Footer";
 import { Spinner } from "./components/Spinner";
 
 type View = "select" | "summary" | "stat" | "about";
@@ -26,6 +27,7 @@ export default function App() {
   const [players, setPlayers] = useState<PlayerSummary[] | null>(null);
   const [leagueData, setLeagueData] = useState<LeagueSeason[] | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [lastScrapedAt, setLastScrapedAt] = useState<string | null>(null);
 
   // ── the selected player, fetched on demand (lazy). Keyed on the STABLE espn id,
   //    not the DB id (surrogate ids change on a rebuild), resolved to an id at fetch. ──
@@ -48,6 +50,14 @@ export default function App() {
         setLeagueData(lg);
       })
       .catch((e) => setLoadError(String(e)));
+  }, []);
+
+  // Dataset freshness, fetched separately so a missing/failed /meta (e.g. before
+  // the deployed API exposes it) never blanks the app — the footer just hides.
+  useEffect(() => {
+    getMeta()
+      .then((m) => setLastScrapedAt(m.lastScrapedAt))
+      .catch(() => setLastScrapedAt(null));
   }, []);
 
   // Fetch the full history when a player is selected. Selection is by the stable
@@ -170,6 +180,8 @@ export default function App() {
       ) : (
         <SelectView featured={FEATURED} players={players} listError={loadError} onPick={pick} />
       )}
+
+      <Footer lastScrapedAt={lastScrapedAt} />
     </div>
   );
 }
@@ -190,7 +202,7 @@ function Notice({ title, detail, onBack }: { title: string; detail?: string; onB
           <Spinner />
         </div>
       )}
-      <p style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: 18, marginBottom: 8 }}>{title}</p>
+      <p className="text-heading" style={{ fontSize: 18, marginBottom: 8 }}>{title}</p>
       {detail && (
         <p className="text-muted" style={{ fontSize: 13, wordBreak: "break-word" }}>
           {detail}
