@@ -2,6 +2,7 @@ import type { PlayerDetail, PlayerSummary } from "../data/api";
 import type { ComparisonTarget, StatDetail, StatTableRow } from "../lib/deviation";
 import { InfoTip } from "./InfoTip";
 import { PlayerSearch } from "./PlayerSearch";
+import { LabeledSelect } from "./Select";
 
 interface StatDrilldownViewProps {
   player: PlayerDetail;
@@ -132,18 +133,15 @@ export function StatDrilldownView({ player, stat, target, players, listError, on
             Baseline
           </span>
         </div>
-        <div role="radiogroup" aria-label="Compare against">
-          <div className="seg">
-            <label className="seg-opt">
-              <input type="radio" name="drilltgt" checked={target === "own"} onChange={() => onTargetChange("own")} />
-              <span>Their own</span>
-            </label>
-            <label className="seg-opt">
-              <input type="radio" name="drilltgt" checked={target === "league"} onChange={() => onTargetChange("league")} />
-              <span>League avg</span>
-            </label>
-          </div>
-        </div>
+        <LabeledSelect
+          ariaLabel="Compare against"
+          value={target}
+          options={[
+            { value: "own", label: "Their own" },
+            { value: "league", label: "League avg" },
+          ]}
+          onChange={(v) => onTargetChange(v as ComparisonTarget)}
+        />
       </div>
 
       <div className="card" style={{ padding: "18px 18px 12px" }}>

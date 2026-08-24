@@ -343,39 +343,6 @@ select.select-reset {
   height: 36px; min-height: 36px; padding: 0 30px 0 10px; line-height: 34px;
 }
 textarea.input { min-height: 90px; resize: vertical; }
-.radio { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; font-size: 14px; }
-.radio input, .seg-opt input {
-  position: absolute; opacity: 0; width: 0; height: 0; pointer-events: none;
-}
-.radio .dot {
-  width: 16px; height: 16px; flex: none; border-radius: 50%;
-  border: 1.5px solid var(--color-divider);
-}
-.radio:hover .dot { border-color: var(--color-accent); }
-.radio input:checked + .dot {
-  border-color: var(--color-accent); background: var(--color-accent);
-  box-shadow: inset 0 0 0 4px var(--color-bg);
-}
-.radio input:focus-visible + .dot { outline: 2px solid var(--color-accent); outline-offset: 2px; }
-.seg {
-  display: inline-flex; overflow: hidden;
-  background: var(--color-surface);
-  border: 1px solid var(--color-divider); border-radius: var(--radius-md);
-}
-.seg-opt {
-  display: inline-flex; align-items: center; gap: 6px;
-  padding: 7px 12px; font-size: 13px; cursor: pointer;
-}
-.seg-opt + .seg-opt { border-left: 1px solid var(--color-divider); }
-/* accent-700 so the white-on-fill label clears 4.5:1 (plain accent read ~3.7:1). */
-.seg-opt:has(input:checked) { background: var(--color-accent-700); color: var(--color-bg); }
-.seg-opt:not(:has(input:checked)):hover { background: color-mix(in srgb, var(--color-text) 7%, transparent); }
-.seg-opt:has(input:focus-visible) { outline: 2px solid var(--color-accent-700); outline-offset: -2px; }
-
-/* High Contrast Mode overrides background, so mark the checked segment with a border too (WCAG 1.4.1). */
-@media (forced-colors: active) {
-  .seg-opt:has(input:checked) { outline: 2px solid; outline-offset: -2px; }
-}
 
 /* — Season Breakdown controls (SummaryView) —
    Mobile-first: one left-aligned column, season+games (first in DOM) on top, then the
@@ -576,7 +543,7 @@ textarea.input { min-height: 90px; resize: vertical; }
 
 /* — blueprint frame: components are wireframe objects (see .blueprint
      and .corner above) — square, transparent, hairline-bordered — */
-.card, .btn, .input, .tag, .seg, .dialog { border-radius: 0; }
+.card, .btn, .input, .tag, .dialog { border-radius: 0; }
 .card, .dialog { background: transparent; border: 1px solid var(--color-divider); }
 .btn { border: 1px solid var(--color-divider); }
 .btn-primary { border-color: var(--color-accent); }

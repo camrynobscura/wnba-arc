@@ -6,6 +6,7 @@ import { PlayerPhoto } from "./PlayerPhoto";
 import { DeviationBlocks } from "./DeviationBlocks";
 import { CareerHeatmap } from "./CareerHeatmap";
 import { ScaleKey } from "./ScaleKey";
+import { LabeledSelect } from "./Select";
 
 /** "2019, 2021–2024" — collapse consecutive years into ranges for a compact list. */
 function compressYears(years: number[]): string {
@@ -44,17 +45,6 @@ const WINDOW_LABEL: Record<ComparisonWindow, string> = {
   career: "Career",
   last5: "Last 5 years",
   last1: "Last year",
-};
-
-// A <fieldset> groups the radios so the group has an accessible name (its <legend>),
-// but its default chrome (border/padding/min-inline-size) must be reset to keep the layout.
-const fieldsetReset: React.CSSProperties = { margin: 0, padding: 0, border: 0, minInlineSize: 0 };
-// Match the look of `.field > label` (which no longer applies to a <legend>).
-const legendStyle: React.CSSProperties = {
-  padding: 0,
-  fontSize: 12,
-  marginBottom: 5,
-  color: "color-mix(in srgb, var(--color-text) 70%, transparent)",
 };
 
 export function SummaryView({
@@ -134,64 +124,42 @@ export function SummaryView({
           right. Mobile: a single left-aligned column — season+games first (it's first in
           the DOM; row-reverse flips it to the right on desktop), then the compare controls. */}
       <div className="sb-controls">
-        {/* Season picker (labelled like the comparison controls) + that season's games-played. */}
+        {/* Season picker — the prominent control (bold heading font); it drives the bars. */}
         <div className="sb-picker">
-          <div className="field" style={{ margin: 0 }}>
-            <label htmlFor="season-select">Season</label>
-            <span className="select-wrap">
-              <select
-                id="season-select"
-                // Font kept inline (not .text-heading): the .input class sets `font: inherit`,
-                // which is later in the cascade and would override a class-set font-family.
-                className="input select-reset"
-                style={{ width: "auto", fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: 15 }}
-                value={subject.year}
-                onChange={(e) => onSubjectYearChange(Number(e.target.value))}
-              >
-                {years.map((y) => (
-                  <option key={y} value={y}>
-                    {y}
-                  </option>
-                ))}
-              </select>
-            </span>
-          </div>
+          <LabeledSelect
+            label="Season"
+            id="season-select"
+            value={String(subject.year)}
+            options={years.map((y) => ({ value: String(y), label: String(y) }))}
+            onChange={(v) => onSubjectYearChange(Number(v))}
+            selectStyle={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: 15 }}
+          />
         </div>
 
-        {/* Comparison window + baseline, with the caption of what's compared under them. */}
+        {/* Comparison window + baseline, with the caption of what's compared under them.
+            An unavailable window (one that would collapse to a narrower one — the distinctness
+            rule) is passed as a disabled option so it still shows but can't be chosen. */}
         <div className="sb-compare">
           <div className="sb-segs">
-            <fieldset className="field" style={fieldsetReset}>
-              <legend style={legendStyle}>Comparison window</legend>
-              <div className="seg">
-                {(Object.keys(WINDOW_LABEL) as ComparisonWindow[]).map((w) => (
-                  <label key={w} className="seg-opt" style={{ opacity: windowAvailable[w] ? 1 : 0.4 }}>
-                    <input
-                      type="radio"
-                      name="win"
-                      value={w}
-                      checked={effectiveWindow === w}
-                      disabled={!windowAvailable[w]}
-                      onChange={() => onWinChange(w)}
-                    />
-                    <span>{WINDOW_LABEL[w]}</span>
-                  </label>
-                ))}
-              </div>
-            </fieldset>
-            <fieldset className="field" style={fieldsetReset}>
-              <legend style={legendStyle}>Baseline</legend>
-              <div className="seg">
-                <label className="seg-opt" style={{ opacity: ownAvailable ? 1 : 0.4 }}>
-                  <input type="radio" name="tgt" value="own" checked={effectiveTarget === "own"} disabled={!ownAvailable} onChange={() => onTargetChange("own")} />
-                  <span>Their own</span>
-                </label>
-                <label className="seg-opt">
-                  <input type="radio" name="tgt" value="league" checked={effectiveTarget === "league"} onChange={() => onTargetChange("league")} />
-                  <span>League avg</span>
-                </label>
-              </div>
-            </fieldset>
+            <LabeledSelect
+              label="Comparison window"
+              value={effectiveWindow}
+              options={(Object.keys(WINDOW_LABEL) as ComparisonWindow[]).map((w) => ({
+                value: w,
+                label: WINDOW_LABEL[w],
+                disabled: !windowAvailable[w],
+              }))}
+              onChange={(v) => onWinChange(v as ComparisonWindow)}
+            />
+            <LabeledSelect
+              label="Baseline"
+              value={effectiveTarget}
+              options={[
+                { value: "own", label: "Their own", disabled: !ownAvailable },
+                { value: "league", label: "League avg" },
+              ]}
+              onChange={(v) => onTargetChange(v as ComparisonTarget)}
+            />
           </div>
           <p className="text-muted" style={{ fontSize: 13, margin: 0 }}>
             {caption}
