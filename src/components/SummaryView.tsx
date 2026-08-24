@@ -1,7 +1,7 @@
 import { photoUrl, type StatDef } from "../data/stats";
 import type { PlayerDetail, PlayerSummary } from "../data/api";
 import { PlayerSearch } from "./PlayerSearch";
-import { playedSeasons, type BaselineContext, type ComparisonTarget, type ComparisonWindow, type DeviationRow } from "../lib/deviation";
+import { type BaselineContext, type ComparisonTarget, type ComparisonWindow, type DeviationRow } from "../lib/deviation";
 import { PlayerPhoto } from "./PlayerPhoto";
 import { DeviationBlocks } from "./DeviationBlocks";
 import { CareerHeatmap } from "./CareerHeatmap";
@@ -79,13 +79,10 @@ export function SummaryView({
     fallbackActive,
     ownAvailable,
     windowAvailable,
-    scheduled,
-    subjectSmallSample,
-    skippedSmallSampleSeasons,
+    selectableYears,
+    nonSelectableSmallSample,
     missedSeasons,
   } = ctx;
-  // Skipped-baseline note only makes sense when baselines ARE her own seasons.
-  const skipped = effectiveTarget === "own" ? skippedSmallSampleSeasons : [];
   // Group missed (no-data) seasons by reason so a player with several gaps gets one
   // compact line ("No seasons on record for 2019, 2021–2024") rather than many.
   const missedByReason = new Map<string, number[]>();
@@ -94,7 +91,8 @@ export function SummaryView({
     missedByReason.set(reason, [...(missedByReason.get(reason) ?? []), m.year]);
   }
   const missedGroups = [...missedByReason.entries()];
-  const years = playedSeasons(player).map((s) => s.year).reverse();
+  // Only full (non-small-sample) seasons are offered; the context handles the fallback.
+  const years = selectableYears;
 
   return (
     <main id="main" style={{ maxWidth: "var(--app-width)", width: "100%", margin: "0 auto", padding: "18px 20px 16px" }}>
@@ -158,17 +156,6 @@ export function SummaryView({
               </select>
             </span>
           </div>
-          <div className="sb-games">
-            <span className="text-heading" style={{ fontSize: 13, whiteSpace: "nowrap" }}>
-              {subject.gp} of {scheduled}{" "}
-              <span className="text-muted" style={{ fontSize: 13, fontWeight: 400 }}>games played</span>
-            </span>
-            {subjectSmallSample && (
-              <span className="tag tag-neutral" title="Below 25% of the season — treated as a small sample and left out of baselines.">
-                small sample
-              </span>
-            )}
-          </div>
         </div>
 
         {/* Comparison window + baseline, with the caption of what's compared under them. */}
@@ -217,7 +204,7 @@ export function SummaryView({
         </span>
       )}
 
-      {(skipped.length > 0 || missedGroups.length > 0) && (
+      {(nonSelectableSmallSample.length > 0 || missedGroups.length > 0) && (
         <div
           role="note"
           style={{
@@ -234,12 +221,14 @@ export function SummaryView({
             borderRadius: "0 var(--radius-md) var(--radius-md) 0",
           }}
         >
-          {skipped.map((s) => (
-            <div key={`ss-${s.year}`}>
-              <strong style={{ fontWeight: 600 }}>{s.year} isn't used as a baseline</strong> — small sample (
-              {s.gp} of {ctx.league.scheduled(s.year)} games played).
+          {nonSelectableSmallSample.length > 0 && (
+            <div>
+              <strong style={{ fontWeight: 600 }}>
+                {compressYears(nonSelectableSmallSample.map((s) => s.year))} not shown
+              </strong>{" "}
+              — too few games played.
             </div>
-          ))}
+          )}
           {missedGroups.map(([reason, years]) => (
             <div key={`ms-${reason}`}>
               <strong style={{ fontWeight: 600 }}>
@@ -251,9 +240,9 @@ export function SummaryView({
         </div>
       )}
 
-      {/* Same diverging gradient key as the Career Trend heatmap, right-aligned above the
-          bars — the bars now gradate, so a matching scale reads more consistently than swatches. */}
-      <div style={{ width: 240, maxWidth: "100%", marginLeft: "auto", marginTop: 18, marginBottom: 6 }}>
+      {/* Same diverging gradient key as the Career Trend heatmap, placed identically —
+          left-aligned directly above the bars it describes. */}
+      <div className="scale-legend" style={{ marginTop: 18, marginBottom: 10 }}>
         <ScaleKey noun="baseline" />
       </div>
 

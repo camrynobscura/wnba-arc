@@ -383,14 +383,12 @@ textarea.input { min-height: 90px; resize: vertical; }
    picker right, pushed apart with space-between. */
 .sb-controls { display: flex; flex-direction: column; align-items: flex-start; gap: 16px; margin-bottom: 8px; }
 .sb-picker { display: flex; flex-direction: column; align-items: flex-start; gap: 5px; }
-.sb-games { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
 .sb-compare { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
 .sb-segs { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 16px; }
 @media (min-width: 600px) {
   .sb-controls { flex-direction: row-reverse; justify-content: space-between; align-items: flex-start; }
   .sb-picker { align-items: flex-end; }
   .sb-picker .field { text-align: right; }
-  .sb-games { justify-content: flex-end; }
 }
 
 /* — cards — */
@@ -436,18 +434,8 @@ textarea.input { min-height: 90px; resize: vertical; }
 .nav a { color: inherit; text-decoration: none; font-size: 14px; }
 .nav a:hover, .nav a[aria-current='page'] { color: var(--color-accent); }
 
-/* Quiet "Search players" trigger on player pages (see components/PlayerSearch.tsx) —
-   a subtle underlined text+icon affordance instead of a boxed input. */
-.search-trigger {
-  display: inline-flex; align-items: center; gap: 6px;
-  color: var(--color-neutral-700); font-family: var(--font-body); font-size: 13px;
-  background: transparent; border: 0; padding: 0; cursor: pointer;
-}
-.search-trigger span { text-decoration: underline; text-underline-offset: 3px; }
-.search-trigger:hover { color: var(--color-accent); }
-.search-trigger:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 3px; }
-.search-trigger:disabled { opacity: 0.5; cursor: default; }
-/* The expanded compact input: underline only, no box. */
+/* The compact, always-visible player-page search (see components/PlayerSearch.tsx):
+   underline only, no box. */
 .search-underline {
   border: 0; border-bottom: 1px solid var(--color-divider);
   background: transparent; border-radius: 0;
@@ -548,8 +536,9 @@ textarea.input { min-height: 90px; resize: vertical; }
 }
 /* Diverging scale key — shared by the Career Trend heatmap and the Season Breakdown bars
    (see components/ScaleKey.tsx). End labels + arrows are the non-color cue for the
-   encoding (1.4.1). .hm-legend is the heatmap's title-row wrapper around it. */
-.hm-legend { width: 260px; max-width: 100%; }
+   encoding (1.4.1). .scale-legend is the fixed-width wrapper, placed directly above the
+   grid / bars in both sections so the two keys sit identically. */
+.scale-legend { width: 100%; }
 .scale-grad {
   height: 11px; border-radius: 3px;
   background: linear-gradient(to right, var(--hm-below), var(--hm-base), var(--hm-above));

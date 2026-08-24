@@ -72,8 +72,15 @@ export interface WindowAvailability {
 export interface BaselineContext {
   /** The league lookup this context was built with — downstream fns read it for averages. */
   league: League;
-  /** The season under examination (the "subject"), defaulting to the latest played. */
+  /** The season under examination (the "subject"), defaulting to the latest *selectable*
+      (full, non-small-sample) season. */
   subject: SeasonPlayed;
+  /** Years offered in the season picker, newest first — full seasons only (small-sample
+      seasons are excluded). Falls back to every played year if the player has no full season. */
+  selectableYears: number[];
+  /** Small-sample seasons excluded from selection, shown as a "not selectable" note.
+      Empty in the fallback case (player has only small-sample seasons, so they stay selectable). */
+  nonSelectableSmallSample: SeasonPlayed[];
   /** All played seasons before the subject, oldest first (includes small-sample ones). */
   history: SeasonPlayed[];
   /** History with small-sample seasons removed — what baseline averages are computed from. */
@@ -96,12 +103,6 @@ export interface BaselineContext {
   windowedYears: number[];
   /** Human label of the span the current baseline covers, e.g. "2018–2024 · 7 seasons". */
   baselineSpanLabel: string;
-  /** Season-length context for the games-played indicator (D6). */
-  scheduled: number;
-  subjectSmallSample: boolean;
-  /** Prior played seasons excluded from baselines because they're small samples
-      (shown as a disclaimer so a skipped year — e.g. a 13-game season — isn't confusing). */
-  skippedSmallSampleSeasons: SeasonPlayed[];
   /** Gaps in the player's timeline (no data for that year). */
   missedSeasons: SeasonMissed[];
 }
@@ -124,12 +125,17 @@ function spanLabel(years: number[]): string {
 export function getBaselineContext(
   player: PlayerDetail,
   league: League,
-  subjectYear: number,
+  subjectYear: number | null,
   target: ComparisonTarget,
   window: ComparisonWindow,
 ): BaselineContext {
   const played = playedSeasons(player);
-  const subject = played.find((s) => s.year === subjectYear) ?? played[played.length - 1];
+  // Only full (non-small-sample) seasons are selectable as the subject — a handful of
+  // games makes a misleading analysis. Fall back to every played season if the player has
+  // no full season at all, so their page still renders.
+  const fullSeasons = played.filter((s) => !isSmallSample(s, league));
+  const selectable = fullSeasons.length > 0 ? fullSeasons : played;
+  const subject = selectable.find((s) => s.year === subjectYear) ?? selectable[selectable.length - 1];
   const history = played.filter((s) => s.year < subject.year);
   const eligibleHistory = history.filter((s) => !isSmallSample(s, league));
   const priorCount = eligibleHistory.length;
@@ -158,6 +164,8 @@ export function getBaselineContext(
   return {
     league,
     subject,
+    selectableYears: [...selectable].map((s) => s.year).reverse(),
+    nonSelectableSmallSample: fullSeasons.length > 0 ? played.filter((s) => isSmallSample(s, league)) : [],
     history,
     eligibleHistory,
     effectiveTarget,
@@ -170,9 +178,6 @@ export function getBaselineContext(
     windowedSeasons,
     windowedYears,
     baselineSpanLabel: spanLabel(windowedYears),
-    scheduled: league.scheduled(subject.year),
-    subjectSmallSample: isSmallSample(subject, league),
-    skippedSmallSampleSeasons: history.filter((s) => isSmallSample(s, league)),
     missedSeasons: player.seasons.filter((s): s is SeasonMissed => !s.played),
   };
 }
@@ -273,6 +278,9 @@ export interface StatBar {
       baseline for this season (e.g. a rookie year with no prior history to average). */
   basePct?: number;
   smallSample?: boolean;
+  /** Whether this season can be selected as the subject — false for small-sample seasons
+      (unless the player has no full season, the fallback, where they stay selectable). */
+  selectable?: boolean;
   color?: string;
   /** Played season with no value for THIS stat (e.g. 0 three-point attempts) — render an empty slot. */
   noValue?: boolean;
@@ -287,6 +295,8 @@ export interface StatTableRow {
   deltaColor: string;
   missed: boolean;
   smallSample: boolean;
+  /** Whether this season can be selected as the subject (see StatBar.selectable). */
+  selectable: boolean;
   isSubject: boolean;
   reason?: string;
 }
@@ -314,6 +324,9 @@ export function buildStatDetail(player: PlayerDetail, stat: StatDef, ctx: Baseli
   const cur = subject[stat.key];
 
   const allPlayed = playedSeasons(player);
+  // A season is selectable as the subject unless it's a small sample — mirrors the summary
+  // picker. If the player has no full season at all, they all stay selectable (fallback).
+  const anyFull = allPlayed.some((s) => !isSmallSample(s, ctx.league));
   // Use the REQUESTED target/window (not the subject-level effective fallback) so that
   // selecting a rookie season keeps the whole chart on "her own" instead of flipping to
   // league. Each season's baseline still handles its own no-history case (uses its value).
@@ -362,10 +375,11 @@ export function buildStatDetail(player: PlayerDetail, stat: StatDef, ctx: Baseli
     }
     const v = x[stat.key];
     const small = isSmallSample(x, ctx.league);
+    const selectable = !small || !anyFull;
     const isSubject = x.year === subject.year;
     if (v == null) {
       // Played, but no value for THIS stat — empty slot, distinct from a missed season.
-      return { year: x.year, yy, missed: false, played: true, isSubject, smallSample: small, noValue: true, valFmt: "—" };
+      return { year: x.year, yy, missed: false, played: true, isSubject, smallSample: small, selectable, noValue: true, valFmt: "—" };
     }
     const b = baselineByYear.get(x.year) ?? null;
     return {
@@ -375,6 +389,7 @@ export function buildStatDetail(player: PlayerDetail, stat: StatDef, ctx: Baseli
       played: true,
       isSubject,
       smallSample: small,
+      selectable,
       valFmt: fmtV(v, stat.pct),
       hPct: +((v / maxVal) * 100).toFixed(2),
       basePct: b != null ? +((b / maxVal) * 100).toFixed(2) : undefined,
@@ -397,6 +412,7 @@ export function buildStatDetail(player: PlayerDetail, stat: StatDef, ctx: Baseli
         deltaColor: "var(--color-neutral-700)",
         missed: true,
         smallSample: false,
+        selectable: false,
         isSubject: false,
         reason: x.reason,
       };
@@ -405,6 +421,7 @@ export function buildStatDetail(player: PlayerDetail, stat: StatDef, ctx: Baseli
     const rowBase = baselineByYear.get(x.year) ?? null;
     const rowHasDelta = v != null && rowBase != null;
     const rowUp = rowHasDelta ? v - rowBase >= 0 : false;
+    const small = isSmallSample(x, ctx.league);
     return {
       year: x.year,
       min: x.min,
@@ -413,7 +430,8 @@ export function buildStatDetail(player: PlayerDetail, stat: StatDef, ctx: Baseli
       deltaFmt: rowHasDelta ? fmtRaw(v - rowBase, stat.pct) : "—",
       deltaColor: rowUp ? "var(--hm-above-text)" : "var(--hm-below-text)",
       missed: false,
-      smallSample: isSmallSample(x, ctx.league),
+      smallSample: small,
+      selectable: !small || !anyFull,
       isSubject: x.year === subject.year,
     };
   });

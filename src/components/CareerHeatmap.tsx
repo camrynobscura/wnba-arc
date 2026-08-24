@@ -67,20 +67,18 @@ export function CareerHeatmap({ player, league, subjectYear }: CareerHeatmapProp
   return (
     <>
       <section aria-label="Career Trend" style={{ margin: "4px 0 2px" }}>
-        <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "flex-end", gap: "10px 20px", marginBottom: 18 }}>
-          <div>
-            <h2 style={{ fontSize: 20, margin: 0 }}>Career Trend</h2>
-            <div className="text-muted" style={{ fontSize: 12, marginTop: 3 }}>each cell vs the player's career average</div>
-          </div>
-          {/* Diverging color key — sits in the title row (compact) rather than below the grid. */}
-          <div className="hm-legend">
-            <ScaleKey noun="average" />
-            {anySmall && (
-              <div className="hm-legend-key text-muted">
-                <span className="hm-legend-dot" aria-hidden="true" /> small sample (few games)
-              </div>
-            )}
-          </div>
+        <div style={{ marginBottom: 12 }}>
+          <h2 style={{ fontSize: 20, margin: 0 }}>Career Trend</h2>
+          <div className="text-muted" style={{ fontSize: 12, marginTop: 3 }}>each cell vs the player's career average</div>
+        </div>
+        {/* Diverging color key — sits directly above the grid it describes. */}
+        <div className="scale-legend" style={{ marginBottom: 14 }}>
+          <ScaleKey noun="baseline" />
+          {anySmall && (
+            <div className="hm-legend-key text-muted">
+              <span className="hm-legend-dot" aria-hidden="true" /> small sample (few games)
+            </div>
+          )}
         </div>
 
         {/* No overflow wrapper: with 7 fixed columns the grid fits from ~300px up, and an

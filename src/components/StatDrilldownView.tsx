@@ -23,22 +23,24 @@ export function StatDrilldownView({ player, stat, target, players, listError, on
   const n = bars.length;
   const colX = (i: number) => ((i + 0.5) / n) * 100; // column center, % from left
 
-  const renderRow = (r: StatTableRow) => (
+  const renderRow = (r: StatTableRow) => {
+    // Small-sample seasons aren't selectable (unless it's the fallback where a player has no
+    // full season — then r.selectable is true). Missed seasons are never clickable.
+    const clickable = !r.missed && r.selectable;
+    return (
     <tr
       key={r.year}
       // Whole-row click is a mouse convenience; keyboard/SR use the year <button>.
-      onClick={r.missed ? undefined : () => onSelectYear(r.year)}
+      onClick={clickable ? () => onSelectYear(r.year) : undefined}
       style={{
-        cursor: r.missed ? "default" : "pointer",
+        cursor: clickable ? "pointer" : "default",
         // Selected year: light-blue fill (overrides zebra stripe + hover). Others fall
         // through to the CSS zebra striping in theme.css.
         background: r.isSubject ? "color-mix(in srgb, var(--color-accent) 15%, transparent)" : undefined,
       }}
     >
       <td style={{ fontWeight: r.isSubject ? 700 : 400 }}>
-        {r.missed ? (
-          r.year
-        ) : (
+        {clickable ? (
           <button
             className="btn-reset"
             onClick={() => onSelectYear(r.year)}
@@ -46,6 +48,8 @@ export function StatDrilldownView({ player, stat, target, players, listError, on
           >
             {r.year}
           </button>
+        ) : (
+          r.year
         )}
         {r.smallSample && !r.missed && (
           <span className="text-muted" style={{ fontSize: 10, marginLeft: 6 }}>
@@ -66,7 +70,8 @@ export function StatDrilldownView({ player, stat, target, players, listError, on
         {r.deltaFmt}
       </td>
     </tr>
-  );
+    );
+  };
 
   return (
     <main id="main" style={{ maxWidth: "var(--app-width)", width: "100%", margin: "0 auto", padding: "18px 20px 16px" }}>
@@ -189,12 +194,16 @@ export function StatDrilldownView({ player, stat, target, players, listError, on
             // Value dot is above the baseline dot (higher stat) → label on top; otherwise
             // the value is the lower dot → label below, so it never lands on the dots/line.
             const valueAbove = yBase == null || yVal <= yBase;
+            // Small-sample seasons can't be made the subject (unless the fallback keeps them
+            // selectable); render the column but disable selecting it.
+            const selectable = b.selectable !== false;
             return (
               <button
                 key={b.year}
-                onClick={() => onSelectYear(b.year)}
-                aria-label={`${b.year}: ${b.valFmt}${b.smallSample ? " (small sample)" : ""} — compare this season`}
-                title={b.smallSample ? "Small sample — excluded from baselines" : `Set ${b.year} as the compared season`}
+                onClick={selectable ? () => onSelectYear(b.year) : undefined}
+                disabled={!selectable}
+                aria-label={`${b.year}: ${b.valFmt}${b.smallSample ? " (small sample)" : ""}${selectable ? " — compare this season" : " — too few games to compare"}`}
+                title={selectable ? `Set ${b.year} as the compared season` : "Too few games to compare"}
                 style={{
                   position: "absolute",
                   left: `${colX(i)}%`,
@@ -208,7 +217,7 @@ export function StatDrilldownView({ player, stat, target, players, listError, on
                   borderRadius: 4,
                   border: 0,
                   padding: 0,
-                  cursor: "pointer",
+                  cursor: selectable ? "pointer" : "default",
                   zIndex: 3,
                 }}
               >

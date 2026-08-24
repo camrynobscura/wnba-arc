@@ -39,9 +39,7 @@ export function PlayerSearch({ players, listError, onPick, variant = "hero" }: P
   const hero = variant === "hero";
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false); // dropdown (results) visible
-  const [active, setActive] = useState(false); // compact: expanded into an input
   const rootRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
 
   const filtered = useMemo(() => {
     const q = fold(query);
@@ -63,30 +61,21 @@ export function PlayerSearch({ players, listError, onPick, variant = "hero" }: P
         ? "No matching players"
         : "";
 
-  const collapse = () => {
-    setOpen(false);
-    setActive(false);
-    setQuery("");
-  };
   const pick = (espn: string) => {
     onPick(espn);
-    collapse();
+    setQuery("");
+    setOpen(false);
   };
 
-  // Focus the compact input the moment it expands.
+  // Close the dropdown on an outside click (the input itself stays put).
   useEffect(() => {
-    if (active) inputRef.current?.focus();
-  }, [active]);
-
-  // Close the dropdown (and collapse the compact input) on an outside click.
-  useEffect(() => {
-    if (!open && !active) return;
+    if (!open) return;
     const onDoc = (e: MouseEvent) => {
-      if (rootRef.current && !rootRef.current.contains(e.target as Node)) collapse();
+      if (rootRef.current && !rootRef.current.contains(e.target as Node)) setOpen(false);
     };
     document.addEventListener("mousedown", onDoc);
     return () => document.removeEventListener("mousedown", onDoc);
-  }, [open, active]);
+  }, [open]);
 
   const resultButtons = filtered.map((p) => (
     <button
@@ -111,59 +100,41 @@ export function PlayerSearch({ players, listError, onPick, variant = "hero" }: P
 
   const srStatus = <p role="status" aria-live="polite" className="sr-only">{searchStatus}</p>;
 
-  // ── Compact: a quiet underlined trigger that expands into an underline-only input ──
+  // ── Compact: a quiet, always-visible underline-only input on player pages ──
   if (!hero) {
     return (
-      <div ref={rootRef} style={{ position: "relative", display: "inline-flex", justifyContent: "flex-end" }}>
-        {active ? (
-          <div style={{ position: "relative", width: 200, maxWidth: "100%" }}>
-            <span aria-hidden="true" style={{ position: "absolute", left: 2, top: "50%", transform: "translateY(-50%)", color: "var(--color-neutral-600)", display: "flex", pointerEvents: "none" }}>
-              <Magnifier size={15} />
-            </span>
-            <input
-              ref={inputRef}
-              className="search-underline"
-              aria-label="Search players or teams"
-              style={{ width: "100%", height: 30, paddingLeft: 24, fontSize: 14, color: "var(--color-text)", fontFamily: "var(--font-body)" }}
-              placeholder={listError ? "Search unavailable" : players ? "Search players…" : "Loading roster…"}
-              disabled={listError != null}
-              value={query}
-              onChange={(e) => {
-                setQuery(e.target.value);
-                setOpen(true);
-              }}
-              onFocus={() => setOpen(true)}
-              onBlur={() => {
-                if (fold(query).length === 0) collapse();
-              }}
-              onKeyDown={(e) => {
-                if (e.key === "Escape") collapse();
-              }}
-            />
-            {(showDrop || searchPending || noMatches) && (
-              <div className="elev-md" style={{ position: "absolute", top: 36, right: 0, zIndex: 20, background: "var(--color-surface)", border: "1px solid var(--color-divider)", minWidth: 260, maxWidth: "min(320px, calc(100vw - 32px))", maxHeight: 300, overflowY: "auto" }}>
-                {searchPending ? (
-                  <div className="text-muted" style={{ padding: "12px 14px", fontSize: 13, display: "flex", alignItems: "center", gap: 8 }}>
-                    <Spinner /> Loading roster…
-                  </div>
-                ) : noMatches ? (
-                  <div className="text-muted" style={{ padding: "12px 14px", fontSize: 13 }}>No players match “{query}”.</div>
-                ) : (
-                  resultButtons
-                )}
+      <div ref={rootRef} style={{ position: "relative", width: 200, maxWidth: "100%" }}>
+        <span aria-hidden="true" style={{ position: "absolute", left: 2, top: "50%", transform: "translateY(-50%)", color: "var(--color-neutral-600)", display: "flex", pointerEvents: "none" }}>
+          <Magnifier size={15} />
+        </span>
+        <input
+          className="search-underline"
+          aria-label="Search players or teams"
+          style={{ width: "100%", height: 30, paddingLeft: 24, fontSize: 14, color: "var(--color-text)", fontFamily: "var(--font-body)" }}
+          placeholder={listError ? "Search unavailable" : players ? "Search players…" : "Loading roster…"}
+          disabled={listError != null}
+          value={query}
+          onChange={(e) => {
+            setQuery(e.target.value);
+            setOpen(true);
+          }}
+          onFocus={() => setOpen(true)}
+          onKeyDown={(e) => {
+            if (e.key === "Escape") setOpen(false);
+          }}
+        />
+        {(showDrop || searchPending || noMatches) && (
+          <div className="elev-md" style={{ position: "absolute", top: 36, right: 0, zIndex: 20, background: "var(--color-surface)", border: "1px solid var(--color-divider)", minWidth: 260, maxWidth: "min(320px, calc(100vw - 32px))", maxHeight: 300, overflowY: "auto" }}>
+            {searchPending ? (
+              <div className="text-muted" style={{ padding: "12px 14px", fontSize: 13, display: "flex", alignItems: "center", gap: 8 }}>
+                <Spinner /> Loading roster…
               </div>
+            ) : noMatches ? (
+              <div className="text-muted" style={{ padding: "12px 14px", fontSize: 13 }}>No players match “{query}”.</div>
+            ) : (
+              resultButtons
             )}
           </div>
-        ) : (
-          <button
-            type="button"
-            className="search-trigger"
-            disabled={listError != null}
-            onClick={() => setActive(true)}
-          >
-            <Magnifier size={15} />
-            <span>Search players</span>
-          </button>
         )}
         {srStatus}
       </div>

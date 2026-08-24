@@ -8,7 +8,6 @@ import {
   buildStatDetail,
   getBaselineContext,
   makeLeague,
-  playedSeasons,
   type ComparisonTarget,
   type ComparisonWindow,
 } from "./lib/deviation";
@@ -75,8 +74,9 @@ export default function App() {
       .then((d) => {
         if (cancelled) return;
         setDetail(d);
-        const played = playedSeasons(d);
-        setSubjectYear(played[played.length - 1]?.year ?? null);
+        // Leave the subject unset — the baseline context defaults it to the latest
+        // *selectable* (full) season, so a small-sample latest year isn't the default.
+        setSubjectYear(null);
         setView("summary");
       })
       .catch((e) => !cancelled && setDetailError(String(e)));
@@ -98,7 +98,7 @@ export default function App() {
 
   const statDef = useMemo(() => STATS.find((st) => st.key === statKey) ?? null, [statKey]);
   const ctx = useMemo(
-    () => (detail && league && subjectYear != null ? getBaselineContext(detail, league, subjectYear, target, win) : null),
+    () => (detail && league ? getBaselineContext(detail, league, subjectYear, target, win) : null),
     [detail, league, subjectYear, target, win],
   );
   const statDetail = useMemo(
