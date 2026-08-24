@@ -6,7 +6,7 @@
  */
 
 export interface StatDef {
-  key: "pts" | "reb" | "ast" | "stl" | "blk" | "fgp" | "tpp";
+  key: "pts" | "reb" | "ast" | "stl" | "blk" | "fgp" | "tpp" | "tsPct";
   short: string;
   label: string;
   /** Whether the stat is a percentage (rendered as e.g. "43.2%") vs. a raw count. */
@@ -21,6 +21,9 @@ export const STATS: StatDef[] = [
   { key: "blk", short: "BLK", label: "Blocks", pct: false },
   { key: "fgp", short: "FG%", label: "Field Goal %", pct: true },
   { key: "tpp", short: "3P%", label: "3-Point %", pct: true },
+  // Advanced (data already on the wire; see api.ts). Higher = better, and it has a
+  // league baseline, so it fits the deviation model in both own/league modes.
+  { key: "tsPct", short: "TS%", label: "True Shooting %", pct: true },
 ];
 
 /** ESPN headshot URL for a player, built from their espn id. */

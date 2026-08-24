@@ -39,6 +39,8 @@ export interface SeasonPlayed {
   blk: number;
   fgp: number | null; // decimal (0.466 = 46.6%); null on 0 attempts
   tpp: number | null;
+  // Advanced (added to the displayed set). A decimal like the other percentage stats.
+  tsPct: number | null; // true shooting %
 }
 
 export interface SeasonMissed {
@@ -63,6 +65,7 @@ export interface LeagueSeason {
   blk: number;
   fgp: number;
   tpp: number;
+  tsPct: number; // league TS% — the baseline for the displayed TS%
 }
 
 // ── fetch plumbing ───────────────────────────────────────────────────────────
