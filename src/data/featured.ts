@@ -41,4 +41,5 @@ export const FEATURED: FeaturedPlayer[] = [
   { espn: "3065570", name: "Kelsey Plum", pos: "G", team: "Phoenix Mercury" },
   { espn: "3058901", name: "Allisha Gray", pos: "G", team: "Atlanta Dream" },
   { espn: "4398674", name: "Rhyne Howard", pos: "G", team: "Atlanta Dream" },
+  { espn: "4066533", name: "Sabrina Ionescu", pos: "G", team: "New York Liberty" },
 ];
