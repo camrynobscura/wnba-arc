@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import type { PlayerSummary } from "../data/api";
 import { Spinner } from "./Spinner";
 
@@ -17,7 +17,7 @@ interface PlayerSearchProps {
   /** Set if the roster fetch failed; search is then unavailable. */
   listError: string | null;
   onPick: (espn: string) => void;
-  /** "hero" = the big landing search box; "compact" = a quiet underlined trigger on player pages. */
+  /** "hero" = the big landing search box; "compact" = the quiet underline input on player pages. */
   variant?: "hero" | "compact";
 }
 
@@ -29,17 +29,21 @@ const Magnifier = ({ size }: { size: number }) => (
 );
 
 /**
- * Player/team autocomplete. Shared by the landing hero and the compact in-row search on
- * player pages, so the folded matching lives in exactly one place. The hero is a full input
- * box; the compact variant is a quiet underlined "Search players" trigger that expands into
- * an underline-only input on click. Closes on Escape / outside click / empty blur; picking
- * clears and collapses.
+ * Player/team autocomplete, shared by the landing hero and the compact in-row search on
+ * player pages, so the folded matching lives in exactly one place. Implements the ARIA
+ * combobox pattern: the input is the single tab stop, ↑/↓ move a highlight through the
+ * results (wrapping), Enter opens the highlighted result (or the top match if none is
+ * highlighted), Escape / an outside click closes the list. Mouse hover drives the same
+ * highlight so keyboard and pointer stay in sync.
  */
 export function PlayerSearch({ players, listError, onPick, variant = "hero" }: PlayerSearchProps) {
   const hero = variant === "hero";
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false); // dropdown (results) visible
+  const [highlight, setHighlight] = useState(-1); // active option index, -1 = none
   const rootRef = useRef<HTMLDivElement>(null);
+  const listId = useId();
+  const optionId = (i: number) => `${listId}-opt-${i}`;
 
   const filtered = useMemo(() => {
     const q = fold(query);
@@ -65,6 +69,7 @@ export function PlayerSearch({ players, listError, onPick, variant = "hero" }: P
     onPick(espn);
     setQuery("");
     setOpen(false);
+    setHighlight(-1);
   };
 
   // Close the dropdown on an outside click (the input itself stays put).
@@ -77,26 +82,106 @@ export function PlayerSearch({ players, listError, onPick, variant = "hero" }: P
     return () => document.removeEventListener("mousedown", onDoc);
   }, [open]);
 
-  const resultButtons = filtered.map((p) => (
-    <button
-      key={p.espn}
-      className="btn btn-block"
-      style={{
-        justifyContent: "flex-start",
-        border: 0,
-        borderBottom: "1px solid var(--color-divider)",
-        padding: "12px 14px",
-        gap: 12,
-        marginTop: 0,
-      }}
-      onClick={() => pick(p.espn)}
-    >
-      <span className="text-heading" style={{ fontSize: 15 }}>{p.name}</span>
-      <span className="text-muted" style={{ fontFamily: "var(--font-body)", fontSize: 12, marginLeft: "auto" }}>
-        {[p.team, p.pos].filter(Boolean).join(" · ")}
-      </span>
-    </button>
-  ));
+  // Keep the highlighted option scrolled into view when navigating a long list by keyboard.
+  useEffect(() => {
+    if (highlight >= 0 && showDrop) {
+      document.getElementById(optionId(highlight))?.scrollIntoView({ block: "nearest" });
+    }
+    // optionId is derived from a stable useId; only highlight/showDrop drive this.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [highlight, showDrop]);
+
+  const onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Escape") {
+      setOpen(false);
+      return;
+    }
+    if (e.key === "ArrowDown") {
+      if (!filtered.length) return;
+      e.preventDefault();
+      setOpen(true);
+      setHighlight((h) => (h + 1) % filtered.length);
+    } else if (e.key === "ArrowUp") {
+      if (!filtered.length) return;
+      e.preventDefault();
+      setOpen(true);
+      setHighlight((h) => (h <= 0 ? filtered.length - 1 : h - 1));
+    } else if (e.key === "Enter") {
+      // Enter opens the highlighted result, or the top match if nothing is highlighted yet.
+      const idx = highlight >= 0 ? highlight : 0;
+      if (showDrop && filtered[idx]) {
+        e.preventDefault();
+        pick(filtered[idx].espn);
+      }
+    }
+  };
+
+  // Shared ARIA + handlers for the input, spread into either variant's <input>.
+  const comboProps = {
+    role: "combobox" as const,
+    "aria-expanded": showDrop,
+    "aria-controls": listId,
+    "aria-autocomplete": "list" as const,
+    "aria-activedescendant": showDrop && highlight >= 0 ? optionId(highlight) : undefined,
+    "aria-label": "Search players or teams",
+    value: query,
+    onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
+      setQuery(e.target.value);
+      setOpen(true);
+      setHighlight(-1);
+    },
+    onFocus: () => setOpen(true),
+    onKeyDown,
+  };
+
+  // The results listbox (or a loading / no-match message), positioned by the caller.
+  const listbox = (posStyle: React.CSSProperties) =>
+    (showDrop || searchPending || noMatches) && (
+      <div
+        id={listId}
+        role="listbox"
+        aria-label="Player results"
+        className="elev-md"
+        style={{ position: "absolute", zIndex: 20, background: "var(--color-surface)", border: "1px solid var(--color-divider)", overflowY: "auto", ...posStyle }}
+      >
+        {searchPending ? (
+          <div className="text-muted" style={{ padding: "12px 14px", fontSize: 13, display: "flex", alignItems: "center", gap: 8 }}>
+            <Spinner /> Loading roster…
+          </div>
+        ) : noMatches ? (
+          <div className="text-muted" style={{ padding: "12px 14px", fontSize: 13 }}>No players match “{query}”.</div>
+        ) : (
+          filtered.map((p, i) => (
+            <div
+              key={p.espn}
+              id={optionId(i)}
+              role="option"
+              aria-selected={i === highlight}
+              className="btn btn-block"
+              style={{
+                justifyContent: "flex-start",
+                border: 0,
+                borderBottom: "1px solid var(--color-divider)",
+                padding: "12px 14px",
+                gap: 12,
+                marginTop: 0,
+                cursor: "pointer",
+                background: i === highlight ? "color-mix(in srgb, var(--color-accent) 14%, transparent)" : undefined,
+              }}
+              // Keep focus on the input (so typing continues) while still registering the click.
+              onMouseDown={(e) => e.preventDefault()}
+              onMouseEnter={() => setHighlight(i)}
+              onClick={() => pick(p.espn)}
+            >
+              <span className="text-heading" style={{ fontSize: 15 }}>{p.name}</span>
+              <span className="text-muted" style={{ fontFamily: "var(--font-body)", fontSize: 12, marginLeft: "auto" }}>
+                {[p.team, p.pos].filter(Boolean).join(" · ")}
+              </span>
+            </div>
+          ))
+        )}
+      </div>
+    );
 
   const srStatus = <p role="status" aria-live="polite" className="sr-only">{searchStatus}</p>;
 
@@ -108,34 +193,13 @@ export function PlayerSearch({ players, listError, onPick, variant = "hero" }: P
           <Magnifier size={15} />
         </span>
         <input
+          {...comboProps}
           className="search-underline"
-          aria-label="Search players or teams"
           style={{ width: "100%", height: 30, paddingLeft: 24, fontSize: 14, color: "var(--color-text)", fontFamily: "var(--font-body)" }}
           placeholder={listError ? "Search unavailable" : players ? "Search players…" : "Loading roster…"}
           disabled={listError != null}
-          value={query}
-          onChange={(e) => {
-            setQuery(e.target.value);
-            setOpen(true);
-          }}
-          onFocus={() => setOpen(true)}
-          onKeyDown={(e) => {
-            if (e.key === "Escape") setOpen(false);
-          }}
         />
-        {(showDrop || searchPending || noMatches) && (
-          <div className="elev-md" style={{ position: "absolute", top: 36, right: 0, zIndex: 20, background: "var(--color-surface)", border: "1px solid var(--color-divider)", minWidth: 260, maxWidth: "min(320px, calc(100vw - 32px))", maxHeight: 300, overflowY: "auto" }}>
-            {searchPending ? (
-              <div className="text-muted" style={{ padding: "12px 14px", fontSize: 13, display: "flex", alignItems: "center", gap: 8 }}>
-                <Spinner /> Loading roster…
-              </div>
-            ) : noMatches ? (
-              <div className="text-muted" style={{ padding: "12px 14px", fontSize: 13 }}>No players match “{query}”.</div>
-            ) : (
-              resultButtons
-            )}
-          </div>
-        )}
+        {listbox({ top: 36, right: 0, minWidth: 260, maxWidth: "min(320px, calc(100vw - 32px))", maxHeight: 300 })}
         {srStatus}
       </div>
     );
@@ -149,25 +213,12 @@ export function PlayerSearch({ players, listError, onPick, variant = "hero" }: P
           <Magnifier size={18} />
         </div>
         <input
+          {...comboProps}
           className="input"
-          aria-label="Search players or teams"
           style={{ paddingLeft: 38, height: 48, fontSize: 16 }}
           placeholder={players ? "Search a player or team…" : "Loading roster for search…"}
-          value={query}
-          onChange={(e) => {
-            setQuery(e.target.value);
-            setOpen(true);
-          }}
-          onFocus={() => setOpen(true)}
-          onKeyDown={(e) => {
-            if (e.key === "Escape") setOpen(false);
-          }}
         />
-        {showDrop && (
-          <div className="elev-md" style={{ position: "absolute", left: 0, right: 0, top: 54, zIndex: 10, background: "var(--color-surface)", border: "1px solid var(--color-divider)", maxHeight: 360, overflowY: "auto" }}>
-            {resultButtons}
-          </div>
-        )}
+        {listbox({ left: 0, right: 0, top: 54, maxHeight: 360 })}
       </div>
 
       {srStatus}
