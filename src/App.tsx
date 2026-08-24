@@ -141,6 +141,13 @@ export default function App() {
     else setView("select");
   };
 
+  // Hide the freshness footer while a selected player is still loading (or errored):
+  // the Notice screen is nearly empty, so a static "Data current as of…" chip floating
+  // beneath it reads as a glitch. About and the landing page show real content, so the
+  // footer stays there.
+  const playerPending =
+    selectedEspn != null && view !== "about" && (detailError != null || detail == null || ctx == null);
+
   return (
     <div style={{ minHeight: "100%", display: "flex", flexDirection: "column" }}>
       <a href="#main" className="skip-link">
@@ -181,7 +188,7 @@ export default function App() {
         <SelectView featured={FEATURED} players={players} listError={loadError} onPick={pick} />
       )}
 
-      <Footer lastScrapedAt={lastScrapedAt} />
+      {!playerPending && <Footer lastScrapedAt={lastScrapedAt} />}
     </div>
   );
 }

@@ -23,18 +23,27 @@ export function Footer({ lastScrapedAt }: FooterProps) {
   return (
     <footer
       style={{
-        marginTop: "auto",
         width: "100%",
         maxWidth: "var(--app-width)",
         marginLeft: "auto",
         marginRight: "auto",
-        padding: "20px",
-        borderTop: "1px solid var(--color-divider)",
+        padding: "0 20px 24px",
       }}
     >
-      <p className="text-muted" style={{ fontSize: 12, letterSpacing: "0.02em" }}>
+      {/* A small bordered chip echoing the nav's About / theme boxes, so it reads
+          as part of the app chrome rather than a separated page footer. */}
+      <span
+        className="text-muted"
+        style={{
+          display: "inline-block",
+          fontSize: 12,
+          letterSpacing: "0.02em",
+          padding: "6px 10px",
+          border: "1px solid var(--color-divider)",
+        }}
+      >
         Data current as of {asOf}
-      </p>
+      </span>
     </footer>
   );
 }

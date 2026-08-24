@@ -64,7 +64,7 @@ export function StatDrilldownView({ player, stat, target, onTargetChange, onBack
   );
 
   return (
-    <main id="main" style={{ maxWidth: "var(--app-width)", width: "100%", margin: "0 auto", padding: "18px 20px 40px" }}>
+    <main id="main" style={{ maxWidth: "var(--app-width)", width: "100%", margin: "0 auto", padding: "18px 20px 16px" }}>
       <button className="btn btn-ghost" style={{ marginBottom: 18, gap: 8 }} onClick={onBack}>
         <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
           <path d="M19 12H5M12 19l-7-7 7-7" />
@@ -104,10 +104,14 @@ export function StatDrilldownView({ player, stat, target, onTargetChange, onBack
 
       {/* Legend + baseline toggle */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 10, marginBottom: 10 }}>
-        <div style={{ display: "flex", gap: 16, fontSize: 12 }}>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "6px 16px", fontSize: 12 }}>
           <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <span aria-hidden="true" style={{ width: 10, height: 10, borderRadius: "50%", background: "var(--color-accent)" }} />
-            {stat.label}
+            <span aria-hidden="true" style={{ width: 10, height: 10, borderRadius: "50%", background: "var(--hm-above)" }} />
+            Above baseline
+          </span>
+          <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <span aria-hidden="true" style={{ width: 10, height: 10, borderRadius: "50%", background: "var(--hm-below)" }} />
+            Below baseline
           </span>
           <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
             <span aria-hidden="true" style={{ width: 10, height: 10, borderRadius: "50%", background: "var(--color-neutral-600)" }} />
@@ -240,7 +244,9 @@ export function StatDrilldownView({ player, stat, target, onTargetChange, onBack
                     width: dot,
                     height: dot,
                     borderRadius: "50%",
-                    background: "var(--color-accent)",
+                    // Colored by direction like the rest of the app: red above the season's
+                    // baseline, blue below (the baseline dot below stays neutral grey).
+                    background: valueAbove ? "var(--hm-above)" : "var(--hm-below)",
                     transform: "translate(-50%, -50%)",
                   }}
                 />
@@ -283,8 +289,9 @@ export function StatDrilldownView({ player, stat, target, onTargetChange, onBack
         </div>
       </div>
       <p className="text-muted" style={{ fontSize: 12, marginTop: 14 }}>
-        Each season shows two dots — blue = the player's {stat.label.toLowerCase()}, grey = the baseline;
-        the gap between them is that season's deviation. Tap a season to compare it. Gaps are missed seasons.
+        Each season shows two dots — the player's {stat.label.toLowerCase()} (red above the baseline, blue
+        below) and grey = the baseline; the gap between them is that season's deviation. Tap a season to
+        compare it. Gaps are missed seasons.
       </p>
 
       {/* Yearly table (F2) — one full-width table, zebra-striped. table-layout: fixed

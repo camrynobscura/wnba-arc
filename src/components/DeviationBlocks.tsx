@@ -15,6 +15,14 @@ interface DeviationBlocksProps {
 const N = 8;
 
 /**
+ * Color intensity (% opacity of the hue) of the block nearest the baseline. Blocks ramp
+ * from this up to 100% at the tip, so the bar gradates like the heatmap — pale near the
+ * centre line, full hue furthest out. Fades toward transparent (not --hm-base like the
+ * heatmap) so each block's own outline stays visible at low intensity.
+ */
+const CENTER_MIN = 45;
+
+/**
  * Segmented "video-game" deviation bar: discrete blocks fill outward from a central
  * baseline — right/accent for above, left/grey for below. The block *count* is a second
  * cue on top of color; the last lit block partial-fills so exact magnitude is preserved.
@@ -44,11 +52,14 @@ function Half({ side, mag, active, color }: { side: "left" | "right"; mag: numbe
         const amt = active ? Math.max(0, Math.min(1, mag - (dist - 1))) : 0; // fill fraction of this block
         let fill: CSSProperties | undefined;
         if (amt > 0) {
+          // Ramp the hue's intensity with distance from the baseline (pale centre → full tip).
+          const pct = CENTER_MIN + ((dist - 1) / (N - 1)) * (100 - CENTER_MIN);
+          const c = `color-mix(in srgb, ${color} ${pct}%, transparent)`;
           const dir = side === "left" ? "to left" : "to right";
           fill =
             amt >= 1
-              ? { background: color }
-              : { background: `linear-gradient(${dir}, ${color} ${amt * 100}%, transparent ${amt * 100}%)` };
+              ? { background: c }
+              : { background: `linear-gradient(${dir}, ${c} ${amt * 100}%, transparent ${amt * 100}%)` };
         }
         return (
           <div key={i} className="dev-cell">

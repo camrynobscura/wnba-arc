@@ -3,6 +3,7 @@ import type { PlayerDetail } from "../data/api";
 import { STATS } from "../data/stats";
 import { isSmallSample, playedSeasons, type League } from "../lib/deviation";
 import { InfoTip } from "./InfoTip";
+import { ScaleKey } from "./ScaleKey";
 
 interface CareerHeatmapProps {
   player: PlayerDetail;
@@ -11,10 +12,10 @@ interface CareerHeatmapProps {
 }
 
 // Diverging scale endpoints + base are theme tokens (see --hm-* in theme.css), so the
-// scale adapts light/dark — dark uses brighter, more saturated hues on a lifted base.
-// Warm = above her career average, cool = below.
-const WARM = "var(--hm-warm)";
-const COOL = "var(--hm-cool)";
+// scale adapts light/dark. Red = above the player's career average, blue = below; each cell
+// mixes its hue toward the base by the deviation magnitude.
+const ABOVE = "var(--hm-above)";
+const BELOW = "var(--hm-below)";
 const HM_BASE = "var(--hm-base)";
 
 // Max saturation a cell reaches (% toward the hue, away from the base). Capped below 100%
@@ -73,11 +74,7 @@ export function CareerHeatmap({ player, league, subjectYear }: CareerHeatmapProp
           </div>
           {/* Diverging color key — sits in the title row (compact) rather than below the grid. */}
           <div className="hm-legend">
-            <div className="hm-scale-grad" aria-hidden="true" />
-            <div className="hm-scale-ends text-muted">
-              <span>&larr; <b>below</b> average</span>
-              <span><b>above</b> average &rarr;</span>
-            </div>
+            <ScaleKey noun="average" />
             {anySmall && (
               <div className="hm-legend-key text-muted">
                 <span className="hm-legend-dot" aria-hidden="true" /> small sample (few games)
@@ -127,7 +124,7 @@ export function CareerHeatmap({ player, league, subjectYear }: CareerHeatmapProp
                 }
                 const t = clamp((v - avg) / maxDev, -1, 1);
                 const intensity = Math.abs(t) * MAX_INTENSITY;
-                const bg = `color-mix(in srgb, ${t >= 0 ? WARM : COOL} ${intensity}%, ${HM_BASE})`;
+                const bg = `color-mix(in srgb, ${t >= 0 ? ABOVE : BELOW} ${intensity}%, ${HM_BASE})`;
                 return (
                   <div
                     key={key}

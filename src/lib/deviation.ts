@@ -239,8 +239,8 @@ export function buildRows(ctx: BaselineContext): DeviationRow[] {
       up,
       barPct,
       leftPct,
-      barColor: up ? "var(--color-accent)" : "var(--color-neutral-600)",
-      deltaColor: up ? "var(--color-accent-700)" : "var(--color-neutral-700)",
+      barColor: up ? "var(--hm-above)" : "var(--hm-below)",
+      deltaColor: up ? "var(--hm-above-text)" : "var(--hm-below-text)",
     };
   });
 }
@@ -411,7 +411,7 @@ export function buildStatDetail(player: PlayerDetail, stat: StatDef, ctx: Baseli
       valFmt: fmtV(v, stat.pct),
       gp: x.gp,
       deltaFmt: rowHasDelta ? fmtRaw(v - rowBase, stat.pct) : "—",
-      deltaColor: rowUp ? "var(--color-accent-700)" : "var(--color-neutral-700)",
+      deltaColor: rowUp ? "var(--hm-above-text)" : "var(--hm-below-text)",
       missed: false,
       smallSample: isSmallSample(x, ctx.league),
       isSubject: x.year === subject.year,
@@ -427,7 +427,7 @@ export function buildStatDetail(player: PlayerDetail, stat: StatDef, ctx: Baseli
     baseFmt: fmtV(base, stat.pct),
     rawFmt: hasDelta ? fmtRaw(cur - base, stat.pct) : "—",
     up,
-    deltaColor: up ? "var(--color-accent-700)" : "var(--color-neutral-700)",
+    deltaColor: up ? "var(--hm-above-text)" : "var(--hm-below-text)",
     caption: buildCaption(ctx),
     bars,
     // Table lists newest season first; the chart above stays left-to-right chronological.

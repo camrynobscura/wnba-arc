@@ -43,11 +43,15 @@
   --color-accent-2-800: #314457;
   --color-accent-2-900: #1f2d3a;
 
-  /* Career-heatmap diverging scale — warm = above career avg, cool = below; each cell
-     mixes its hue toward --hm-base by the deviation magnitude. Dark mode overrides these
-     brighter + more saturated (and lifts the base) so cells read on the dark ground. */
-  --hm-warm: #c0492a;
-  --hm-cool: #3f6d99;
+  /* Career-heatmap + deviation-bar diverging scale — red = above the reference, blue =
+     below; each cell/bar mixes toward --hm-base by the deviation magnitude. The *-text
+     tokens are the readable shades for small delta text (≥4.5:1); the plain --hm-above /
+     --hm-below are the vivid graphic fills (bars/dots/cells, ≥3:1). Dark mode overrides
+     all of these for the dark ground. */
+  --hm-above: #c0492a;
+  --hm-above-text: #9e3a1f;
+  --hm-below: #3f6d99;
+  --hm-below-text: #3a6188;
   --hm-base: var(--color-neutral-100);
 
   /* Max content width for every view (App shell, select, summary, drill-down). */
@@ -125,11 +129,14 @@
   --color-accent-2-800: #c4d3e2;
   --color-accent-2-900: #e3eaf2;
 
-  /* Heatmap scale, brightened for the dark ground: more saturated warm/cool hues and a
-     lifted (non-black) base so low-deviation tiles are visible and mid cells pop. Cell
-     numbers (var(--color-text)) still clear 4.5:1 at MAX_INTENSITY — worst case ~4.7. */
-  --hm-warm: #d94e28;
-  --hm-cool: #3f7fc4;
+  /* Heatmap + bar scale on the dark ground: brighter red/blue graphic fills, light readable
+     shades for delta text, and a lifted (non-black) base so low-deviation tiles stay
+     visible. The below-blue is nudged slightly deeper than light mode so cell numbers
+     (var(--color-text)) clear 4.5:1 at MAX_INTENSITY (worst blue cell ~5.1, verified). */
+  --hm-above: #d94e28;
+  --hm-above-text: #e07a60;
+  --hm-below: #3a72b4;
+  --hm-below-text: #84b0e0;
   --hm-base: #1e2229;
 
   /* Elevation on a dark ground: deeper, near-black ambient shadow. */
@@ -520,23 +527,24 @@ textarea.input { min-height: 90px; resize: vertical; }
   content: ""; position: absolute; top: 3px; right: 3px;
   width: 5px; height: 5px; border-radius: 50%; background: currentColor; opacity: 0.7;
 }
-/* Legend: a compact diverging scale that sits in the Career Trend title row.
-   End labels + arrows are the non-color cue for the encoding (1.4.1). */
+/* Diverging scale key — shared by the Career Trend heatmap and the Season Breakdown bars
+   (see components/ScaleKey.tsx). End labels + arrows are the non-color cue for the
+   encoding (1.4.1). .hm-legend is the heatmap's title-row wrapper around it. */
 .hm-legend { width: 260px; max-width: 100%; }
-.hm-scale-grad {
+.scale-grad {
   height: 11px; border-radius: 3px;
-  background: linear-gradient(to right, var(--hm-cool), var(--hm-base), var(--hm-warm));
+  background: linear-gradient(to right, var(--hm-below), var(--hm-base), var(--hm-above));
   /* Hairline border so the near-transparent midpoint doesn't fade into the page.
      Clip the gradient to the padding box so it doesn't bleed under the (semi-transparent)
      border and show stray colors at the edges/rounded corners. */
   border: 1px solid var(--color-divider);
   background-clip: padding-box;
 }
-.hm-scale-ends {
+.scale-ends {
   display: flex; justify-content: space-between; align-items: center;
   margin-top: 5px; font-size: 11px;
 }
-.hm-scale-ends b { font-weight: 600; }
+.scale-ends b { font-weight: 600; }
 .hm-legend-key { display: inline-flex; align-items: center; gap: 6px; margin-top: 8px; font-size: 11px; }
 .hm-legend-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--color-neutral-600); }
 

@@ -4,6 +4,7 @@ import { playedSeasons, type BaselineContext, type ComparisonTarget, type Compar
 import { PlayerPhoto } from "./PlayerPhoto";
 import { DeviationBlocks } from "./DeviationBlocks";
 import { CareerHeatmap } from "./CareerHeatmap";
+import { ScaleKey } from "./ScaleKey";
 
 /** "2019, 2021–2024" — collapse consecutive years into ranges for a compact list. */
 function compressYears(years: number[]): string {
@@ -88,7 +89,7 @@ export function SummaryView({
   const years = playedSeasons(player).map((s) => s.year).reverse();
 
   return (
-    <main id="main" style={{ maxWidth: "var(--app-width)", width: "100%", margin: "0 auto", padding: "18px 20px 40px" }}>
+    <main id="main" style={{ maxWidth: "var(--app-width)", width: "100%", margin: "0 auto", padding: "18px 20px 16px" }}>
       <button className="btn btn-ghost" style={{ marginBottom: 18, gap: 8 }} onClick={onGoHome}>
         <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
           <path d="M19 12H5M12 19l-7-7 7-7" />
@@ -238,26 +239,10 @@ export function SummaryView({
         </div>
       )}
 
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "flex-end",
-          gap: 20,
-          fontSize: 11,
-          letterSpacing: "0.06em",
-          textTransform: "uppercase",
-          color: "var(--color-neutral-700)",
-          margin: "18px 0 6px",
-        }}
-      >
-        <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          <span style={{ width: 12, height: 12, background: "var(--color-neutral-600)", display: "inline-block" }} />
-          Below baseline
-        </span>
-        <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          <span style={{ width: 12, height: 12, background: "var(--color-accent)", display: "inline-block" }} />
-          Above baseline
-        </span>
+      {/* Same diverging gradient key as the Career Trend heatmap, right-aligned above the
+          bars — the bars now gradate, so a matching scale reads more consistently than swatches. */}
+      <div style={{ width: 240, maxWidth: "100%", marginLeft: "auto", marginTop: 18, marginBottom: 6 }}>
+        <ScaleKey noun="baseline" />
       </div>
 
       <div style={{ borderTop: "2px solid var(--color-divider)", paddingTop: 14, paddingBottom: 10 }}>
@@ -273,7 +258,9 @@ export function SummaryView({
               // Side columns sized tight to their content (label / number) so the bar
               // track (1fr) spreads as wide as possible in both directions. Columns are
               // uniform across rows so every bar's center baseline stays vertically aligned.
-              gridTemplateColumns: "100px 1fr 56px",
+              // Label column is wide enough to keep the longest label ("True Shooting %")
+              // on one line in the condensed heading font.
+              gridTemplateColumns: "120px 1fr 56px",
               alignItems: "center",
               gap: 10,
               padding: "14px 8px",
@@ -287,7 +274,10 @@ export function SummaryView({
                 baseline {row.baseFmt}
               </div>
             </div>
-            <DeviationBlocks up={row.up} barPct={row.barPct} barColor={row.barColor} showBaselineLabel={idx === 0} />
+            {/* A little breathing room between the label and where the bar track starts. */}
+            <div style={{ paddingLeft: 12 }}>
+              <DeviationBlocks up={row.up} barPct={row.barPct} barColor={row.barColor} showBaselineLabel={idx === 0} />
+            </div>
             <div style={{ textAlign: "right", display: "flex", flexDirection: "column", alignItems: "flex-end", lineHeight: 1.05 }}>
               <span className="text-heading" style={{ fontSize: 19 }}>{row.curFmt}</span>
               <span style={{ fontSize: 11, color: row.deltaColor }}>{row.rawFmt}</span>
