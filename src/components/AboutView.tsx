@@ -52,8 +52,9 @@ export function AboutView({ onBack }: AboutViewProps) {
           own, the season you're viewing is left out, so a big year always looks like one.
         </p>
         <p style={{ marginBottom: 12 }}>
-          <strong>Window.</strong> Choose how much history counts: their whole career, the last five years, or just
-          last year. Options that wouldn't change anything are hidden, so what you see always matters.
+          <strong>Window.</strong> Choose what the baseline covers: their whole career, the previous five years, the
+          previous year, or — for a league or same-position comparison — just this season. Options that wouldn't
+          change anything are hidden, so what you see always matters.
         </p>
         <p style={{ margin: 0 }}>
           Each player has two views. <strong>Career Trend</strong> grids every season against their career average

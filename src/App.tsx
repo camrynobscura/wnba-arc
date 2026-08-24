@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { STATS, type StatDef } from "./data/stats";
-import { getLeague, getMeta, getPlayer, getPlayers, type LeagueSeason, type PlayerDetail, type PlayerSummary } from "./data/api";
+import { getLeague, getMeta, getPlayer, getPlayers, getPositions, type LeagueSeason, type PlayerDetail, type PlayerSummary, type PositionSeason } from "./data/api";
 import { FEATURED } from "./data/featured";
 import {
   buildCaption,
@@ -8,6 +8,7 @@ import {
   buildStatDetail,
   getBaselineContext,
   makeLeague,
+  makePositionLookup,
   type ComparisonTarget,
   type ComparisonWindow,
 } from "./lib/deviation";
@@ -25,6 +26,7 @@ export default function App() {
   // ── loaded once on startup: the player list + per-year league data ──
   const [players, setPlayers] = useState<PlayerSummary[] | null>(null);
   const [leagueData, setLeagueData] = useState<LeagueSeason[] | null>(null);
+  const [positionData, setPositionData] = useState<PositionSeason[] | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [lastScrapedAt, setLastScrapedAt] = useState<string | null>(null);
 
@@ -57,6 +59,15 @@ export default function App() {
     getMeta()
       .then((m) => setLastScrapedAt(m.lastScrapedAt))
       .catch(() => setLastScrapedAt(null));
+  }, []);
+
+  // Position averages, also fetched separately (same reasoning as /meta): a failed or
+  // not-yet-deployed /positions must never blank the app. When it's absent, the position
+  // baseline simply isn't offered — own/league still work.
+  useEffect(() => {
+    getPositions()
+      .then((p) => setPositionData(p))
+      .catch(() => setPositionData(null));
   }, []);
 
   // Fetch the full history when a player is selected. Selection is by the stable
@@ -95,11 +106,13 @@ export default function App() {
 
   // League lookup (per-year averages + slate lengths) built from the fetched data.
   const league = useMemo(() => (leagueData ? makeLeague(leagueData) : null), [leagueData]);
+  // Position lookup — null until /positions loads (then position mode is offered).
+  const positions = useMemo(() => (positionData ? makePositionLookup(positionData) : null), [positionData]);
 
   const statDef = useMemo(() => STATS.find((st) => st.key === statKey) ?? null, [statKey]);
   const ctx = useMemo(
-    () => (detail && league ? getBaselineContext(detail, league, subjectYear, target, win) : null),
-    [detail, league, subjectYear, target, win],
+    () => (detail && league ? getBaselineContext(detail, league, positions, subjectYear, target, win) : null),
+    [detail, league, positions, subjectYear, target, win],
   );
   const statDetail = useMemo(
     () => (detail && ctx && statDef ? buildStatDetail(detail, statDef, ctx) : null),
@@ -119,6 +132,13 @@ export default function App() {
     setStatKey(null);
     setWin("career");
     setTarget("own");
+  };
+
+  // "This season" only applies to the external baselines; switching to "Their own" while it's
+  // selected would be a meaningless self-comparison, so snap the window back to career.
+  const changeTarget = (t: ComparisonTarget) => {
+    setTarget(t);
+    if (t === "own" && win === "thisYear") setWin("career");
   };
 
   const backToSummary = () => {
@@ -171,7 +191,7 @@ export default function App() {
             players={players}
             listError={loadError}
             onWinChange={setWin}
-            onTargetChange={setTarget}
+            onTargetChange={changeTarget}
             onSubjectYearChange={setSubjectYear}
             onGoHome={goHome}
             onOpenStat={openStat}
@@ -182,9 +202,10 @@ export default function App() {
             player={detail}
             stat={statDetail}
             target={ctx.requestedTarget}
+            positionAvailable={ctx.positionAvailable}
             players={players}
             listError={loadError}
-            onTargetChange={setTarget}
+            onTargetChange={changeTarget}
             onBack={backToSummary}
             onSelectYear={setSubjectYear}
             onPick={pick}

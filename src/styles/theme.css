@@ -344,19 +344,11 @@ select.select-reset {
 }
 textarea.input { min-height: 90px; resize: vertical; }
 
-/* — Season Breakdown controls (SummaryView) —
-   Mobile-first: one left-aligned column, season+games (first in DOM) on top, then the
-   comparison controls. ≥600px: row-reverse so comparison controls sit left and the season
-   picker right, pushed apart with space-between. */
-.sb-controls { display: flex; flex-direction: column; align-items: flex-start; gap: 16px; margin-bottom: 8px; }
-.sb-picker { display: flex; flex-direction: column; align-items: flex-start; gap: 5px; }
-.sb-compare { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
-.sb-segs { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 16px; }
-@media (min-width: 600px) {
-  .sb-controls { flex-direction: row-reverse; justify-content: space-between; align-items: flex-start; }
-  .sb-picker { align-items: flex-end; }
-  .sb-picker .field { text-align: right; }
-}
+/* — Season Breakdown controls (SummaryView) — Season / Baseline / Window as one row of
+   matching dropdowns, with the caption of what's being compared full-width beneath. The row
+   wraps to multiple lines on a narrow viewport (order preserved). */
+.sb-controls { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; margin-bottom: 8px; }
+.sb-selectors { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 16px; }
 
 /* — cards — */
 .card {

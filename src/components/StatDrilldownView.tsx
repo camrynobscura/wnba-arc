@@ -1,5 +1,5 @@
 import type { PlayerDetail, PlayerSummary } from "../data/api";
-import type { ComparisonTarget, StatDetail, StatTableRow } from "../lib/deviation";
+import { positionNoun, type ComparisonTarget, type StatDetail, type StatTableRow } from "../lib/deviation";
 import { InfoTip } from "./InfoTip";
 import { PlayerSearch } from "./PlayerSearch";
 import { LabeledSelect } from "./Select";
@@ -8,6 +8,8 @@ interface StatDrilldownViewProps {
   player: PlayerDetail;
   stat: StatDetail;
   target: ComparisonTarget;
+  /** Whether the same-position baseline is offered (position known + /positions loaded). */
+  positionAvailable: boolean;
   /** Full roster + its load error, for the in-row "search more players" box. */
   players: PlayerSummary[] | null;
   listError: string | null;
@@ -19,7 +21,7 @@ interface StatDrilldownViewProps {
 
 const PLOT_H = 220; // px
 
-export function StatDrilldownView({ player, stat, target, players, listError, onTargetChange, onBack, onSelectYear, onPick }: StatDrilldownViewProps) {
+export function StatDrilldownView({ player, stat, target, positionAvailable, players, listError, onTargetChange, onBack, onSelectYear, onPick }: StatDrilldownViewProps) {
   const bars = stat.bars;
   const n = bars.length;
   const colX = (i: number) => ((i + 0.5) / n) * 100; // column center, % from left
@@ -113,9 +115,14 @@ export function StatDrilldownView({ player, stat, target, players, listError, on
           </div>
         </div>
       </div>
-      <p className="text-muted" style={{ fontSize: 13, margin: "8px 0 18px" }}>
+      <p className="text-muted" style={{ fontSize: 13, margin: stat.positionNote ? "8px 0 8px" : "8px 0 18px" }}>
         {stat.caption}
       </p>
+      {stat.positionNote && (
+        <p role="note" className="text-muted" style={{ fontSize: 12.5, lineHeight: 1.4, margin: "0 0 18px", paddingLeft: 10, borderLeft: "2px solid var(--color-divider)" }}>
+          {stat.positionNote}
+        </p>
+      )}
 
       {/* Legend + baseline toggle */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 10, marginBottom: 10 }}>
@@ -138,6 +145,7 @@ export function StatDrilldownView({ player, stat, target, players, listError, on
           value={target}
           options={[
             { value: "own", label: "Their own" },
+            ...(positionAvailable ? [{ value: "position", label: `Other ${positionNoun(player.pos)}` }] : []),
             { value: "league", label: "League avg" },
           ]}
           onChange={(v) => onTargetChange(v as ComparisonTarget)}

@@ -1,8 +1,12 @@
 import { STATS, type StatDef } from "../data/stats";
-import type { LeagueSeason, PlayerDetail, SeasonMissed, SeasonPlayed } from "../data/api";
+import type { LeagueSeason, PlayerDetail, PositionSeason, SeasonMissed, SeasonPlayed } from "../data/api";
 
-export type ComparisonWindow = "career" | "last5" | "last1";
-export type ComparisonTarget = "own" | "league";
+// "thisYear" compares the subject season to that SAME year's league/position peers (e.g.
+// 2026 vs. other 2026 forwards). It's meaningful only for the external baselines — comparing
+// a season to itself under "own" is always zero — so it's offered only when the target is
+// league or position.
+export type ComparisonWindow = "career" | "last5" | "last1" | "thisYear";
+export type ComparisonTarget = "own" | "league" | "position";
 
 /** A season below this fraction of its year's scheduled games is "small sample" (D6).
     25% ≈ 11 of a 44-game season — a ~10–13 game year counts, a handful of games doesn't.
@@ -38,6 +42,34 @@ export function makeLeague(seasons: LeagueSeason[]): League {
   };
 }
 
+/** Per-(year, position) average lookup, built from the API's /positions data. */
+export interface PositionLookup {
+  /** Average of a stat for players at `position` in `year`; null if that (year, position)
+      bucket has no row (too small a sample — the API omits it). */
+  avg(year: number, position: string, key: StatKey): number | null;
+}
+
+export function makePositionLookup(seasons: PositionSeason[]): PositionLookup {
+  const byKey = new Map(seasons.map((s) => [`${s.year}|${s.position}`, s]));
+  return {
+    avg: (year, position, key) => byKey.get(`${year}|${position}`)?.[key] ?? null,
+  };
+}
+
+/** The plain-language plural for a position code, for labels/captions ("other guards"). */
+export function positionNoun(position: string | null): string {
+  switch (position) {
+    case "G":
+      return "guards";
+    case "F":
+      return "forwards";
+    case "C":
+      return "centers";
+    default:
+      return "players at the same position";
+  }
+}
+
 export function fmtV(v: number | null | undefined, pct: boolean): string {
   if (v == null) return "—";
   return pct ? (v * 100).toFixed(1) + "%" : v.toFixed(1);
@@ -67,11 +99,24 @@ export interface WindowAvailability {
   career: boolean;
   last5: boolean;
   last1: boolean;
+  /** The subject season vs. the same year's peers — league/position only. */
+  thisYear: boolean;
 }
 
 export interface BaselineContext {
   /** The league lookup this context was built with — downstream fns read it for averages. */
   league: League;
+  /** The per-(year, position) lookup — the source for the position baseline. Null until
+      /positions loads (or if it failed), in which case position mode isn't offered. */
+  positions: PositionLookup | null;
+  /** The player's position code (G/F/C), or null if unknown — whose peers the position
+      baseline compares against. */
+  playerPosition: string | null;
+  /** Whether the position baseline can be offered at all (the player has a known position). */
+  positionAvailable: boolean;
+  /** True in position mode when the subject's windowed baseline has no same-position sample
+      (every windowed year's bucket is absent) — the UI shows a "no sample" note. */
+  positionSampleMissing: boolean;
   /** The season under examination (the "subject"), defaulting to the latest *selectable*
       (full, non-small-sample) season. */
   subject: SeasonPlayed;
@@ -108,12 +153,19 @@ export interface BaselineContext {
 }
 
 function pickWindow(seasons: SeasonPlayed[], window: ComparisonWindow): SeasonPlayed[] {
+  // "thisYear" isn't a span of prior seasons — it resolves to the subject year alone, which
+  // the caller handles by falling back to [subject.year] when this returns nothing.
+  if (window === "thisYear") return [];
   if (window === "career") return seasons;
   if (window === "last5") return seasons.slice(-LAST5_WINDOW_SIZE);
   return seasons.slice(-1);
 }
 
-const WINDOW_FALLBACK_ORDER: ComparisonWindow[] = ["career", "last5", "last1"];
+// Fallback order when the requested window isn't available for the subject. "thisYear" is
+// last so a broad request (e.g. last5 with too few priors) drops to a narrower prior-based
+// window before ever collapsing to a single year — it's only reached when nothing else fits
+// (an external baseline for a first-season player).
+const WINDOW_FALLBACK_ORDER: ComparisonWindow[] = ["career", "last5", "last1", "thisYear"];
 
 function spanLabel(years: number[]): string {
   if (years.length === 0) return "—";
@@ -125,6 +177,7 @@ function spanLabel(years: number[]): string {
 export function getBaselineContext(
   player: PlayerDetail,
   league: League,
+  positions: PositionLookup | null,
   subjectYear: number | null,
   target: ComparisonTarget,
   window: ComparisonWindow,
@@ -141,19 +194,30 @@ export function getBaselineContext(
   const priorCount = eligibleHistory.length;
 
   const ownAvailable = priorCount >= 1;
+  // "own" is the only target that can fall back (to league) when there's no prior season;
+  // "league" and "position" pass through unchanged (position never auto-falls back — a
+  // missing same-position sample shows a note instead, per product decision).
   const effectiveTarget: ComparisonTarget = target === "own" && !ownAvailable ? "league" : target;
   const fallbackActive = target === "own" && !ownAvailable;
 
-  // Only offer a window if it selects a *different* set of seasons than a narrower
-  // one — otherwise two windows show the identical number. With N prior seasons:
+  const playerPosition = player.pos;
+  const positionAvailable = playerPosition != null && positions != null;
+
+  // Only offer a prior-based window if it selects a *different* set of seasons than a
+  // narrower one — otherwise two windows show the identical number. With N prior seasons:
   //   last year = 1 season       → needs N ≥ 1
   //   career    = all N seasons  → duplicates "last year" at N = 1, so needs N ≥ 2
   //   last 5    = 5 seasons      → duplicates "career" until N > 5, so needs N ≥ 6
-  // League mode with no prior season still needs one option: the subject year itself.
-  const windowAvailable: WindowAvailability =
-    effectiveTarget === "league" && priorCount === 0
-      ? { career: true, last5: false, last1: false }
-      : { career: priorCount >= 2, last5: priorCount >= LAST5_WINDOW_SIZE + 1, last1: priorCount >= 1 };
+  // "This season" is a different axis — the subject year vs. that year's peers — so it's
+  // offered whenever the baseline is external (league/position), regardless of prior count.
+  // It also covers the first-season case that would otherwise have no external option.
+  const usesExternalBaseline = effectiveTarget === "league" || effectiveTarget === "position";
+  const windowAvailable: WindowAvailability = {
+    career: priorCount >= 2,
+    last5: priorCount >= LAST5_WINDOW_SIZE + 1,
+    last1: priorCount >= 1,
+    thisYear: usesExternalBaseline,
+  };
   const effectiveWindow: ComparisonWindow = windowAvailable[window]
     ? window
     : (WINDOW_FALLBACK_ORDER.find((w) => windowAvailable[w]) ?? window);
@@ -161,8 +225,20 @@ export function getBaselineContext(
   const windowedSeasons = pickWindow(eligibleHistory, effectiveWindow);
   const windowedYears = windowedSeasons.length ? windowedSeasons.map((s) => s.year) : [subject.year];
 
+  // In position mode, is there actually a same-position sample for the subject's window?
+  // (Uses "pts" as a witness — if the (year, position) row exists, all its stats do.)
+  const positionBaseline =
+    effectiveTarget === "position" && playerPosition != null && positions != null
+      ? average(windowedYears.map((y) => positions.avg(y, playerPosition, "pts")))
+      : null;
+  const positionSampleMissing = effectiveTarget === "position" && positionBaseline == null;
+
   return {
     league,
+    positions,
+    playerPosition,
+    positionAvailable,
+    positionSampleMissing,
     subject,
     selectableYears: [...selectable].map((s) => s.year).reverse(),
     nonSelectableSmallSample: fullSeasons.length > 0 ? played.filter((s) => isSmallSample(s, league)) : [],
@@ -192,6 +268,12 @@ function average(vals: (number | null)[]): number | null {
 export function getBaselineValue(statKey: StatDef["key"], ctx: BaselineContext): number | null {
   if (ctx.effectiveTarget === "league") {
     return average(ctx.windowedYears.map((y) => ctx.league.avg(y, statKey)));
+  }
+  if (ctx.effectiveTarget === "position") {
+    const pos = ctx.playerPosition;
+    const lookup = ctx.positions;
+    if (pos == null || lookup == null) return null;
+    return average(ctx.windowedYears.map((y) => lookup.avg(y, pos, statKey)));
   }
   const arr = ctx.windowedSeasons;
   if (arr.length === 0) return ctx.league.avg(ctx.subject.year, statKey);
@@ -252,16 +334,19 @@ export function buildRows(ctx: BaselineContext): DeviationRow[] {
 
 const WINDOW_LABEL: Record<ComparisonWindow, string> = {
   career: "career",
-  last5: "last 5 seasons",
-  last1: "last season",
+  last5: "previous 5 seasons",
+  last1: "previous season",
+  thisYear: "this season",
 };
 
 export function buildCaption(ctx: BaselineContext): string {
-  const { subject, effectiveTarget, effectiveWindow, baselineSpanLabel } = ctx;
+  const { subject, effectiveTarget, effectiveWindow, baselineSpanLabel, playerPosition } = ctx;
   const win = WINDOW_LABEL[effectiveWindow];
-  return effectiveTarget === "league"
-    ? `Comparing ${subject.year} against the WNBA league average — ${win} (${baselineSpanLabel}).`
-    : `Comparing ${subject.year} against the player's own ${win} (${baselineSpanLabel}).`;
+  if (effectiveTarget === "league")
+    return `Comparing ${subject.year} against the WNBA league average — ${win} (${baselineSpanLabel}).`;
+  if (effectiveTarget === "position")
+    return `Comparing ${subject.year} against other ${positionNoun(playerPosition)} — ${win} (${baselineSpanLabel}).`;
+  return `Comparing ${subject.year} against the player's own ${win} (${baselineSpanLabel}).`;
 }
 
 export interface StatBar {
@@ -313,6 +398,9 @@ export interface StatDetail {
   up: boolean;
   deltaColor: string;
   caption: string;
+  /** Set in position mode when the subject season has no same-position sample — the view
+      shows it as a note (values still render "—" / no baseline tick). */
+  positionNote?: string;
   bars: StatBar[];
   tableRows: StatTableRow[];
   /** Y-axis gridline levels: yPct (0 = bottom, 100 = top of scale) + formatted label. */
@@ -346,6 +434,13 @@ export function buildStatDetail(player: PlayerDetail, stat: StatDef, ctx: Baseli
     if (target === "league") {
       const years = windowed.length ? windowed.map((w) => w.year) : [s.year];
       b = average(years.map((y) => ctx.league.avg(y, stat.key)));
+    } else if (target === "position") {
+      // Same shape as league, but the same-position average per year. A year with no
+      // same-position sample contributes null and drops out (or leaves no tick).
+      const pos = ctx.playerPosition;
+      const lookup = ctx.positions;
+      const years = windowed.length ? windowed.map((w) => w.year) : [s.year];
+      b = pos == null || lookup == null ? null : average(years.map((y) => lookup.avg(y, pos, stat.key)));
     } else {
       // Own baseline. A first season has no prior history to average → use its own value,
       // so its baseline dot sits on its value dot (zero deviation) rather than being absent.
@@ -447,6 +542,9 @@ export function buildStatDetail(player: PlayerDetail, stat: StatDef, ctx: Baseli
     up,
     deltaColor: up ? "var(--hm-above-text)" : "var(--hm-below-text)",
     caption: buildCaption(ctx),
+    positionNote: ctx.positionSampleMissing
+      ? `No same-position baseline for ${subject.year} — too few ${positionNoun(ctx.playerPosition)} on record that season.`
+      : undefined,
     bars,
     // Table lists newest season first; the chart above stays left-to-right chronological.
     tableRows: [...tableRows].reverse(),

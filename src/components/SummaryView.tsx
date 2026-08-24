@@ -1,7 +1,7 @@
 import { photoUrl, type StatDef } from "../data/stats";
 import type { PlayerDetail, PlayerSummary } from "../data/api";
 import { PlayerSearch } from "./PlayerSearch";
-import { type BaselineContext, type ComparisonTarget, type ComparisonWindow, type DeviationRow } from "../lib/deviation";
+import { positionNoun, type BaselineContext, type ComparisonTarget, type ComparisonWindow, type DeviationRow } from "../lib/deviation";
 import { PlayerPhoto } from "./PlayerPhoto";
 import { DeviationBlocks } from "./DeviationBlocks";
 import { CareerHeatmap } from "./CareerHeatmap";
@@ -41,10 +41,14 @@ interface SummaryViewProps {
   onPick: (espn: string) => void;
 }
 
+// Dropdown order = smallest span to biggest: this season → previous year → previous 5 → career.
+// "Previous" (not "last") because the subject can be a past season — the years before 2019
+// aren't naturally "last year" / "last 5 years".
 const WINDOW_LABEL: Record<ComparisonWindow, string> = {
+  thisYear: "This season",
+  last1: "Previous year",
+  last5: "Previous 5 years",
   career: "Career",
-  last5: "Last 5 years",
-  last1: "Last year",
 };
 
 export function SummaryView({
@@ -72,6 +76,9 @@ export function SummaryView({
     selectableYears,
     nonSelectableSmallSample,
     missedSeasons,
+    positionAvailable,
+    playerPosition,
+    positionSampleMissing,
   } = ctx;
   // Group missed (no-data) seasons by reason so a player with several gaps gets one
   // compact line ("No seasons on record for 2019, 2021–2024") rather than many.
@@ -123,48 +130,43 @@ export function SummaryView({
       {/* Controls (.sb-* in theme.css). Desktop: comparison controls left, season picker
           right. Mobile: a single left-aligned column — season+games first (it's first in
           the DOM; row-reverse flips it to the right on desktop), then the compare controls. */}
+      {/* Season / Baseline / Window as one row of matching dropdowns; the caption of what's
+          being compared spans full-width beneath. An unavailable window (one that would collapse
+          to a narrower one — the distinctness rule) is a disabled option: shown but not choosable. */}
       <div className="sb-controls">
-        {/* Season picker — the prominent control (bold heading font); it drives the bars. */}
-        <div className="sb-picker">
+        <div className="sb-selectors">
           <LabeledSelect
             label="Season"
             id="season-select"
             value={String(subject.year)}
             options={years.map((y) => ({ value: String(y), label: String(y) }))}
             onChange={(v) => onSubjectYearChange(Number(v))}
-            selectStyle={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: 15 }}
+          />
+          <LabeledSelect
+            label="Baseline"
+            value={effectiveTarget}
+            options={[
+              { value: "own", label: "Their own", disabled: !ownAvailable },
+              // Offered only once /positions has loaded and the player has a known position.
+              ...(positionAvailable ? [{ value: "position", label: `Other ${positionNoun(playerPosition)}` }] : []),
+              { value: "league", label: "League avg" },
+            ]}
+            onChange={(v) => onTargetChange(v as ComparisonTarget)}
+          />
+          <LabeledSelect
+            label="Window"
+            value={effectiveWindow}
+            options={(Object.keys(WINDOW_LABEL) as ComparisonWindow[]).map((w) => ({
+              value: w,
+              label: WINDOW_LABEL[w],
+              disabled: !windowAvailable[w],
+            }))}
+            onChange={(v) => onWinChange(v as ComparisonWindow)}
           />
         </div>
-
-        {/* Comparison window + baseline, with the caption of what's compared under them.
-            An unavailable window (one that would collapse to a narrower one — the distinctness
-            rule) is passed as a disabled option so it still shows but can't be chosen. */}
-        <div className="sb-compare">
-          <div className="sb-segs">
-            <LabeledSelect
-              label="Comparison window"
-              value={effectiveWindow}
-              options={(Object.keys(WINDOW_LABEL) as ComparisonWindow[]).map((w) => ({
-                value: w,
-                label: WINDOW_LABEL[w],
-                disabled: !windowAvailable[w],
-              }))}
-              onChange={(v) => onWinChange(v as ComparisonWindow)}
-            />
-            <LabeledSelect
-              label="Baseline"
-              value={effectiveTarget}
-              options={[
-                { value: "own", label: "Their own", disabled: !ownAvailable },
-                { value: "league", label: "League avg" },
-              ]}
-              onChange={(v) => onTargetChange(v as ComparisonTarget)}
-            />
-          </div>
-          <p className="text-muted" style={{ fontSize: 13, margin: 0 }}>
-            {caption}
-          </p>
-        </div>
+        <p className="text-muted" style={{ fontSize: 13, margin: 0 }}>
+          {caption}
+        </p>
       </div>
       {fallbackActive && (
         <span className="tag tag-accent" style={{ marginBottom: 8 }}>
@@ -172,7 +174,7 @@ export function SummaryView({
         </span>
       )}
 
-      {(nonSelectableSmallSample.length > 0 || missedGroups.length > 0) && (
+      {(nonSelectableSmallSample.length > 0 || missedGroups.length > 0 || positionSampleMissing) && (
         <div
           role="note"
           style={{
@@ -189,6 +191,12 @@ export function SummaryView({
             borderRadius: "0 var(--radius-md) var(--radius-md) 0",
           }}
         >
+          {positionSampleMissing && (
+            <div>
+              <strong style={{ fontWeight: 600 }}>No same-position baseline for {subject.year}</strong>{" "}
+              — too few {positionNoun(playerPosition)} on record that season to compare.
+            </div>
+          )}
           {nonSelectableSmallSample.length > 0 && (
             <div>
               <strong style={{ fontWeight: 600 }}>

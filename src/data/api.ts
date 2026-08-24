@@ -68,6 +68,23 @@ export interface LeagueSeason {
   tsPct: number; // league TS% — the baseline for the displayed TS%
 }
 
+/** Per-year, per-position averages — the "compare to same position" baseline. A (year,
+ *  position) with too small a sample is simply absent from the array (the API omits it),
+ *  which reads as "no same-position sample that season". Trimmed to the displayed stats,
+ *  like LeagueSeason (the API also returns advanced/count fields we don't type here). */
+export interface PositionSeason {
+  year: number;
+  position: string; // G / F / C
+  pts: number;
+  reb: number;
+  ast: number;
+  stl: number;
+  blk: number;
+  fgp: number;
+  tpp: number;
+  tsPct: number;
+}
+
 // ── fetch plumbing ───────────────────────────────────────────────────────────
 
 /** Where the wnba-data read API lives. Set `VITE_API_BASE` at build time (e.g. in the
@@ -102,6 +119,11 @@ export function getPlayer(id: string): Promise<PlayerDetail> {
 /** Per-year league averages + slate length. */
 export function getLeague(): Promise<LeagueSeason[]> {
   return fetchJson<LeagueSeason[]>("/league");
+}
+
+/** Per-year, per-position averages (the same-position baseline). */
+export function getPositions(): Promise<PositionSeason[]> {
+  return fetchJson<PositionSeason[]>("/positions");
 }
 
 /** Dataset freshness (latest successful scrape time). */
