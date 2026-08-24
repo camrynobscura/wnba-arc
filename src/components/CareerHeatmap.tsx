@@ -94,7 +94,7 @@ export function CareerHeatmap({ player, league, subjectYear }: CareerHeatmapProp
           <div />
           {STATS.map((st) => (
             <div key={`h-${st.key}`} className="hm-colhead">
-              <InfoTip label={st.short} tip={st.label} />
+              <InfoTip label={st.short} tip={st.desc} />
             </div>
           ))}
 

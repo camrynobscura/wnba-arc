@@ -264,7 +264,8 @@ figcaption {
   background: var(--color-surface); border: 1px solid var(--color-divider);
   border-radius: var(--radius-md); box-shadow: var(--shadow-md); white-space: normal;
 }
-.infotip:hover .infotip-bubble, .infotip:focus-within .infotip-bubble { display: block; }
+/* Open state is JS-driven (see InfoTip.tsx) so only one bubble shows at a time. */
+.infotip-bubble.is-open { display: block; }
 
 /* Skip-to-content link: off-screen until focused (WCAG 2.4.1). */
 .skip-link {
