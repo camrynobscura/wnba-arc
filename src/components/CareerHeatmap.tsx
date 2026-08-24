@@ -1,7 +1,7 @@
 import { Fragment } from "react";
 import type { PlayerDetail } from "../data/api";
 import { STATS } from "../data/stats";
-import { isSmallSample, playedSeasons, type League } from "../lib/deviation";
+import { firstName, isSmallSample, playedSeasons, type League } from "../lib/deviation";
 import { InfoTip } from "./InfoTip";
 import { ScaleKey } from "./ScaleKey";
 
@@ -69,7 +69,7 @@ export function CareerHeatmap({ player, league, subjectYear }: CareerHeatmapProp
       <section aria-label="Career Trend" style={{ margin: "4px 0 2px" }}>
         <div style={{ marginBottom: 12 }}>
           <h2 style={{ fontSize: 20, margin: 0 }}>Career Trend</h2>
-          <div className="text-muted" style={{ fontSize: 12, marginTop: 3 }}>each cell vs the player's career average</div>
+          <div className="text-muted" style={{ fontSize: 12, marginTop: 3 }}>each cell vs {firstName(player.name)}'s career average</div>
         </div>
         {/* Diverging color key — sits directly above the grid it describes. */}
         <div className="scale-legend" style={{ marginBottom: 14 }}>

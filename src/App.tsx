@@ -187,7 +187,7 @@ export default function App() {
             player={detail}
             ctx={ctx}
             rows={buildRows(ctx)}
-            caption={buildCaption(ctx)}
+            caption={buildCaption(ctx, detail.name)}
             players={players}
             listError={loadError}
             onWinChange={setWin}

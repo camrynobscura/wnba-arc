@@ -75,6 +75,12 @@ export function fmtV(v: number | null | undefined, pct: boolean): string {
   return pct ? (v * 100).toFixed(1) + "%" : v.toFixed(1);
 }
 
+/** First token of a full name — used to personalize the on-page descriptions ("Paige's
+    career average" rather than "the player's"). Falls back to the whole string. */
+export function firstName(fullName: string): string {
+  return fullName.split(" ")[0] || fullName;
+}
+
 function sgn(r: number): string {
   if (r > 0.0001) return "+";
   if (r < -0.0001) return "−";
@@ -339,14 +345,14 @@ const WINDOW_LABEL: Record<ComparisonWindow, string> = {
   thisYear: "this season",
 };
 
-export function buildCaption(ctx: BaselineContext): string {
+export function buildCaption(ctx: BaselineContext, playerName: string): string {
   const { subject, effectiveTarget, effectiveWindow, baselineSpanLabel, playerPosition } = ctx;
   const win = WINDOW_LABEL[effectiveWindow];
   if (effectiveTarget === "league")
     return `Comparing ${subject.year} against the WNBA league average — ${win} (${baselineSpanLabel}).`;
   if (effectiveTarget === "position")
     return `Comparing ${subject.year} against other ${positionNoun(playerPosition)} — ${win} (${baselineSpanLabel}).`;
-  return `Comparing ${subject.year} against the player's own ${win} (${baselineSpanLabel}).`;
+  return `Comparing ${subject.year} against ${firstName(playerName)}'s own ${win} (${baselineSpanLabel}).`;
 }
 
 export interface StatBar {
@@ -541,7 +547,7 @@ export function buildStatDetail(player: PlayerDetail, stat: StatDef, ctx: Baseli
     rawFmt: hasDelta ? fmtRaw(cur - base, stat.pct) : "—",
     up,
     deltaColor: up ? "var(--hm-above-text)" : "var(--hm-below-text)",
-    caption: buildCaption(ctx),
+    caption: buildCaption(ctx, player.name),
     positionNote: ctx.positionSampleMissing
       ? `No same-position baseline for ${subject.year} — too few ${positionNoun(ctx.playerPosition)} on record that season.`
       : undefined,

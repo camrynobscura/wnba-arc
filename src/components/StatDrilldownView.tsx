@@ -1,5 +1,5 @@
 import type { PlayerDetail, PlayerSummary } from "../data/api";
-import { positionNoun, type ComparisonTarget, type StatDetail, type StatTableRow } from "../lib/deviation";
+import { firstName, positionNoun, type ComparisonTarget, type StatDetail, type StatTableRow } from "../lib/deviation";
 import { InfoTip } from "./InfoTip";
 import { PlayerSearch } from "./PlayerSearch";
 import { LabeledSelect } from "./Select";
@@ -313,7 +313,7 @@ export function StatDrilldownView({ player, stat, target, positionAvailable, pla
         </div>
       </div>
       <p className="text-muted" style={{ fontSize: 12, marginTop: 14 }}>
-        Each season shows two dots — the player's {stat.label.toLowerCase()} (red above the baseline, blue
+        Each season shows two dots — {firstName(player.name)}'s {stat.label.toLowerCase()} (red above the baseline, blue
         below) and grey = the baseline; the gap between them is that season's deviation. Tap a season to
         compare it. Gaps are missed seasons.
       </p>
