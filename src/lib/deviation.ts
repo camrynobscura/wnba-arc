@@ -256,7 +256,7 @@ export function buildCaption(ctx: BaselineContext): string {
   const win = WINDOW_LABEL[effectiveWindow];
   return effectiveTarget === "league"
     ? `Comparing ${subject.year} against the WNBA league average — ${win} (${baselineSpanLabel}).`
-    : `Comparing ${subject.year} against her own ${win} (${baselineSpanLabel}).`;
+    : `Comparing ${subject.year} against the player's own ${win} (${baselineSpanLabel}).`;
 }
 
 export interface StatBar {

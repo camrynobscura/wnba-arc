@@ -184,7 +184,7 @@ export function SummaryView({
               <div className="seg">
                 <label className="seg-opt" style={{ opacity: ownAvailable ? 1 : 0.4 }}>
                   <input type="radio" name="tgt" value="own" checked={effectiveTarget === "own"} disabled={!ownAvailable} onChange={() => onTargetChange("own")} />
-                  <span>Her own</span>
+                  <span>Their own</span>
                 </label>
                 <label className="seg-opt">
                   <input type="radio" name="tgt" value="league" checked={effectiveTarget === "league"} onChange={() => onTargetChange("league")} />

@@ -53,7 +53,7 @@ export function SelectView({ featured, players, listError, onPick }: SelectViewP
     <main id="main" style={{ maxWidth: "var(--app-width)", width: "100%", margin: "0 auto", padding: "36px 20px 36px" }}>
       <h1 style={{ fontSize: 32, marginBottom: 10 }}>How far from normal is this season?</h1>
       <p className="text-muted" style={{ fontSize: 15, marginBottom: 28 }}>
-        Pick a current WNBA player. See how any of her seasons sits above or below her own baseline — or the league.
+        Pick a current WNBA player. See how any of their seasons sits above or below their own baseline — or the league.
       </p>
 
       <div style={{ position: "relative" }}>

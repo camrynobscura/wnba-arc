@@ -118,7 +118,7 @@ export function StatDrilldownView({ player, stat, target, onTargetChange, onBack
           <div className="seg">
             <label className="seg-opt">
               <input type="radio" name="drilltgt" checked={target === "own"} onChange={() => onTargetChange("own")} />
-              <span>Her own</span>
+              <span>Their own</span>
             </label>
             <label className="seg-opt">
               <input type="radio" name="drilltgt" checked={target === "league"} onChange={() => onTargetChange("league")} />
@@ -283,7 +283,7 @@ export function StatDrilldownView({ player, stat, target, onTargetChange, onBack
         </div>
       </div>
       <p className="text-muted" style={{ fontSize: 12, marginTop: 14 }}>
-        Each season shows two dots — blue = her {stat.label.toLowerCase()}, grey = the baseline;
+        Each season shows two dots — blue = the player's {stat.label.toLowerCase()}, grey = the baseline;
         the gap between them is that season's deviation. Tap a season to compare it. Gaps are missed seasons.
       </p>
 
@@ -310,7 +310,7 @@ export function StatDrilldownView({ player, stat, target, onTargetChange, onBack
                 <InfoTip label="Min" tip="Minutes played per game" />
               </th>
               <th style={{ textAlign: "right" }}>
-                <InfoTip label="vs base" tip="Difference from that season's baseline (her prior average, or the league)" />
+                <InfoTip label="vs base" tip="Difference from that season's baseline (the player's prior average, or the league)" />
               </th>
             </tr>
           </thead>

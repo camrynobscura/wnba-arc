@@ -69,14 +69,14 @@ export function CareerHeatmap({ player, league, subjectYear }: CareerHeatmapProp
         <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "flex-end", gap: "10px 20px", marginBottom: 18 }}>
           <div>
             <h2 style={{ fontSize: 20, margin: 0 }}>Career Trend</h2>
-            <div className="text-muted" style={{ fontSize: 12, marginTop: 3 }}>each cell vs her career average</div>
+            <div className="text-muted" style={{ fontSize: 12, marginTop: 3 }}>each cell vs the player's career average</div>
           </div>
           {/* Diverging color key — sits in the title row (compact) rather than below the grid. */}
           <div className="hm-legend">
             <div className="hm-scale-grad" aria-hidden="true" />
             <div className="hm-scale-ends text-muted">
-              <span>&larr; <b>below</b> her average</span>
-              <span><b>above</b> her average &rarr;</span>
+              <span>&larr; <b>below</b> average</span>
+              <span><b>above</b> average &rarr;</span>
             </div>
             {anySmall && (
               <div className="hm-legend-key text-muted">
