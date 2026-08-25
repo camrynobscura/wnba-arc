@@ -109,11 +109,11 @@ export function StatDrilldownView({ player, stat, target, positionAvailable, pla
       <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
         <div>
           <h1 style={{ margin: 0, fontSize: 28 }}>{stat.label}</h1>
-          {!stat.pct && (
-            <div className="text-muted" style={{ fontSize: 12, marginTop: 2 }}>
-              per game
-            </div>
-          )}
+          {/* Every stat gets a unit subtitle so the header height is consistent: counting
+              stats are per-game averages; shooting %s are whole-season rates. */}
+          <div className="text-muted" style={{ fontSize: 12, marginTop: 2 }}>
+            {stat.pct ? "season rate" : "per game"}
+          </div>
         </div>
         <div style={{ textAlign: "right" }}>
           <div style={{ display: "flex", alignItems: "baseline", gap: 8, justifyContent: "flex-end" }}>
