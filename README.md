@@ -28,8 +28,9 @@ you how unusual they are.
   baseline, in each stat's own units.
 - **Single-stat drill-down** — a year-by-year dumbbell chart plus a full history table for
   any stat.
-- **Two baseline controls** — compare against the player's own history *or* the league, over
-  a career / last-5-years / last-year window. Options that wouldn't change the result are
+- **Three baselines** — compare a season against the player's own history, other players at the
+  **same position** (guards / forwards / centers), *or* the league — over a this-season /
+  previous-year / previous-5-years / career window. Options that wouldn't change the result are
   hidden, so every control that's shown actually matters.
 - **Honest about the data** — missed seasons show as gaps in the timeline, small-sample
   seasons are flagged and kept out of baselines, and stats that can't be sourced reliably are
