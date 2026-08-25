@@ -1,14 +1,18 @@
 import { describe, it, expect } from "vitest";
 import {
+  buildStatDetail,
   getBaselineContext,
   getBaselineValue,
   isSmallSample,
+  isStatSmallSample,
   makeLeague,
   makePositionLookup,
+  ownStatAverage,
   positionNoun,
   type League,
   type PositionLookup,
 } from "./deviation";
+import { STATS } from "../data/stats";
 import type { LeagueSeason, PlayerDetail, PositionSeason, Season, SeasonPlayed } from "../data/api";
 
 /**
@@ -38,6 +42,12 @@ function playedSeason(year: number, gp: number, stats: Partial<SeasonPlayed> = {
     blk: 1,
     fgp: 0.45,
     tpp: 0.35,
+    // Makes/attempts consistent with fgp/tpp (90/200 = .45, 35/100 = .35) and well above the
+    // 10-attempt gate, so a default fixture season is a normal (not attempt-thin) sample.
+    fgMade: 90,
+    fgAtt: 200,
+    fg3Made: 35,
+    fg3Att: 100,
     tsPct: 0.55,
     ...stats,
   };
@@ -340,5 +350,146 @@ describe("positionNoun", () => {
   it("falls back for an unknown or missing position", () => {
     expect(positionNoun(null)).toBe("players at the same position");
     expect(positionNoun("X")).toBe("players at the same position");
+  });
+});
+
+describe("ownStatAverage — pooled rate baselines vs mean-of-rates", () => {
+  it("pools a shooting % from summed makes/attempts, not a mean of season percentages", () => {
+    // The A'ja Wilson case: a 1-of-1 (100%) season next to real-volume seasons. A naive mean
+    // of the season percentages reads ~61%; pooling reads 40/101 ≈ 39.6% — the 1-attempt
+    // season contributes 1 make to a 101-attempt pool, which is what one shot should be worth.
+    const seasons = [
+      playedSeason(2021, 40, { fg3Made: 1, fg3Att: 1 }), // 100%
+      playedSeason(2022, 40, { fg3Made: 30, fg3Att: 80 }), // 37.5%
+      playedSeason(2023, 40, { fg3Made: 9, fg3Att: 20 }), // 45%
+    ];
+    const pooled = ownStatAverage("tpp", seasons);
+    expect(pooled).toBeCloseTo(40 / 101, 5); // ≈ 0.396
+    // Far below the naive mean of {1.0, .375, .45} = .608 — the whole point of the fix.
+    expect(pooled!).toBeLessThan(0.5);
+  });
+
+  it("returns null for a rate stat when there were zero attempts", () => {
+    expect(ownStatAverage("tpp", [playedSeason(2021, 40, { fg3Made: 0, fg3Att: 0 })])).toBeNull();
+  });
+
+  it("still means counting stats per-game (behavior unchanged for non-rate stats)", () => {
+    const seasons = [playedSeason(2021, 40, { pts: 10 }), playedSeason(2022, 40, { pts: 20 })];
+    expect(ownStatAverage("pts", seasons)).toBe(15);
+  });
+});
+
+describe("isStatSmallSample — per-stat gate (games OR attempts)", () => {
+  const L = league([2021]);
+
+  it("flags a full-games season as small sample for a shooting % with too few attempts", () => {
+    const s = playedSeason(2021, 40, { fg3Made: 1, fg3Att: 1 }); // full games, 1 three
+    expect(isSmallSample(s, L)).toBe(false); // games gate: a full season
+    expect(isStatSmallSample(s, L, "tpp")).toBe(true); // attempt gate: too few threes
+    expect(isStatSmallSample(s, L, "pts")).toBe(false); // counting stat has no attempt gate
+  });
+
+  it("does not flag a full-games season that has enough attempts", () => {
+    expect(isStatSmallSample(playedSeason(2021, 40, { fg3Att: 60, fg3Made: 20 }), L, "tpp")).toBe(false);
+  });
+
+  it("boundary: fewer than 10 attempts is small, exactly 10 is not", () => {
+    expect(isStatSmallSample(playedSeason(2021, 40, { fg3Att: 9, fg3Made: 3 }), L, "tpp")).toBe(true);
+    expect(isStatSmallSample(playedSeason(2021, 40, { fg3Att: 10, fg3Made: 3 }), L, "tpp")).toBe(false);
+  });
+
+  it("still flags a games-small season regardless of how many attempts it had", () => {
+    const s = playedSeason(2021, 3, { fg3Att: 200, fg3Made: 80 }); // few games, lots of threes
+    expect(isStatSmallSample(s, L, "tpp")).toBe(true);
+  });
+});
+
+describe("getBaselineValue — own rate baseline pools only real-sample seasons", () => {
+  it("excludes an attempt-thin prior season from the pool entirely", () => {
+    // Subject 2024; prior full seasons 2021 (1/1 — attempt-thin), 2022 (30/80), 2023 (9/20).
+    // The 1/1 is dropped (not just neutralized), so the baseline pools only 2022+2023:
+    // (30+9)/(80+20) = 39/100 = 0.39.
+    const L = league([2021, 2022, 2023, 2024]);
+    const p = player([
+      playedSeason(2021, 40, { fg3Made: 1, fg3Att: 1 }),
+      playedSeason(2022, 40, { fg3Made: 30, fg3Att: 80 }),
+      playedSeason(2023, 40, { fg3Made: 9, fg3Att: 20 }),
+      playedSeason(2024, 40, { fg3Made: 20, fg3Att: 50 }),
+    ]);
+    const ctx = getBaselineContext(p, L, POS, 2024, "own", "career");
+    expect(ctx.effectiveWindow).toBe("career");
+    expect(getBaselineValue("tpp", ctx)).toBeCloseTo(39 / 100, 5);
+  });
+
+  it("has no baseline for a first real season when every prior season is attempt-thin (A'ja 2022)", () => {
+    // 2022 is the first real 3P season; every prior is 0/0–1/1. Pooling those would give ~50%.
+    // With them excluded and nothing eligible left, there's no baseline at all — a first season
+    // can't be above or below a baseline that doesn't exist yet.
+    const L = league([2019, 2020, 2021, 2022]);
+    const p = player([
+      playedSeason(2019, 40, { fg3Made: 0, fg3Att: 1, tpp: 0 }),
+      playedSeason(2020, 40, { fg3Made: 0, fg3Att: 0, tpp: null }),
+      playedSeason(2021, 40, { fg3Made: 1, fg3Att: 1, tpp: 1 }),
+      playedSeason(2022, 40, { fg3Made: 30, fg3Att: 80, tpp: 0.375 }),
+    ]);
+    const ctx = getBaselineContext(p, L, POS, 2022, "own", "career");
+    expect(getBaselineValue("tpp", ctx)).toBeNull();
+  });
+});
+
+describe("buildStatDetail — chart drops thin seasons; table keeps the full record", () => {
+  const tppStat = STATS.find((s) => s.key === "tpp")!;
+  const ptsStat = STATS.find((s) => s.key === "pts")!;
+
+  it("charts only trustworthy seasons but lists every season (with makes/attempts) in the table", () => {
+    const L = league([2019, 2020, 2021, 2022]);
+    const seasons: Season[] = [
+      { year: 2019, played: false, reason: "did not play" },
+      playedSeason(2020, 40, { fg3Made: 30, fg3Att: 80 }), // 37.5% — charted
+      playedSeason(2021, 40, { fg3Made: 1, fg3Att: 1 }), // 100% on 1 attempt — dropped from chart
+      playedSeason(2022, 40, { fg3Made: 9, fg3Att: 20 }), // 45% — charted (subject)
+    ];
+    const p = player(seasons);
+    const ctx = getBaselineContext(p, L, POS, 2022, "own", "career");
+    const detail = buildStatDetail(p, tppStat, ctx);
+
+    // Chart: only the two ≥10-attempt seasons. DNP + attempt-thin are gone entirely.
+    expect(detail.bars.map((b) => b.year)).toEqual([2020, 2022]);
+    expect(detail.chartFallback).toBeNull();
+    // 2020 is the first charted season → no prior history → no baseline dot (neutral value);
+    // 2022 has 2020 as prior, so it does get a baseline.
+    expect(detail.bars.find((b) => b.year === 2020)!.baseFmt).toBeUndefined();
+    expect(detail.bars.find((b) => b.year === 2022)!.baseFmt).toBeDefined();
+
+    // Table: every season, newest-first, with 3PM/3PA and the thin row flagged + delta hidden.
+    expect(detail.tableRows.map((r) => r.year)).toEqual([2022, 2021, 2020, 2019]);
+    const thin = detail.tableRows.find((r) => r.year === 2021)!;
+    expect(thin.smallSample).toBe(true);
+    expect(thin.made).toBe(1);
+    expect(thin.att).toBe(1);
+    expect(thin.deltaFmt).toBe("—"); // delta suppressed for a noise season
+    expect(detail.component).toEqual({ madeShort: "3PM", attShort: "3PA", noun: "three-pointers" });
+  });
+
+  it("counting stats have no makes/attempts columns", () => {
+    const L = league([2021, 2022]);
+    const p = player([playedSeason(2021, 40), playedSeason(2022, 40)]);
+    const detail = buildStatDetail(p, ptsStat, getBaselineContext(p, L, POS, 2022, "own", "career"));
+    expect(detail.component).toBeNull();
+    expect(detail.tableRows.every((r) => r.made === null && r.att === null)).toBe(true);
+  });
+
+  it("shows the fallback line and flags the subject when the stat is too thin to chart", () => {
+    // A near-non-shooter (Alyssa Thomas-style): every season under 10 threes → nothing chartable.
+    const L = league([2020, 2021, 2022]);
+    const p = player([
+      playedSeason(2020, 40, { fg3Made: 0, fg3Att: 2 }),
+      playedSeason(2021, 40, { fg3Made: 1, fg3Att: 3 }),
+      playedSeason(2022, 40, { fg3Made: 2, fg3Att: 5 }),
+    ]);
+    const detail = buildStatDetail(p, tppStat, getBaselineContext(p, L, POS, 2022, "own", "career"));
+    expect(detail.bars).toHaveLength(0);
+    expect(detail.chartFallback).toMatch(/enough three-point attempts/i);
+    expect(detail.subjectSmallSample).toBe(true);
   });
 });

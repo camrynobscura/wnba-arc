@@ -20,6 +20,33 @@ const LAST5_WINDOW_SIZE = 5;
 /** Fallback slate length for a year the league data doesn't list (shouldn't happen). */
 const DEFAULT_SCHEDULED_GAMES = 40;
 
+/** Minimum attempts for a shooting-percentage stat to count as a meaningful sample. A % on a
+    handful of shots is noise — A'ja Wilson went 1-for-1 (100%) from three in 2021, which both
+    inflated her career-3P baseline and dominated the Career Trend color scale. Measured against
+    our data: extreme 0%/100% seasons are almost entirely a 1–9-attempt phenomenon, and a
+    threshold of 10 catches 75 of 77 such 3P seasons while suppressing only ~12% of shooting
+    seasons (and just 1 FG% season — everyone who plays takes 50+ field goals). This gate is
+    ORTHOGONAL to the games-played gate: a full-games season can still be attempt-thin. */
+const MIN_RATE_ATTEMPTS = 10;
+
+/** Shooting-percentage stats that are a make/attempt ratio, mapped to where the raw pair lives
+    on a season. These get (1) the attempt-count small-sample gate above and (2) a baseline
+    POOLED from summed makes/attempts rather than a mean of season percentages — so one
+    low-attempt season can neither swing the baseline nor show a misleading solo value. TS% is
+    intentionally excluded: its denominator mixes shot types (needs free-throw attempts, not on
+    the wire) and it's barely affected in practice. */
+const RATE_STAT_ATTEMPTS: Partial<
+  Record<
+    StatKey,
+    // `noun` is the plural for tooltips ("three-pointers made"); `adj` is the attributive form
+    // for "…enough three-point attempts" (plural + "attempts" would be ungrammatical).
+    { made: keyof SeasonPlayed; att: keyof SeasonPlayed; madeShort: string; attShort: string; noun: string; adj: string }
+  >
+> = {
+  fgp: { made: "fgMade", att: "fgAtt", madeShort: "FGM", attShort: "FGA", noun: "field goals", adj: "field-goal" },
+  tpp: { made: "fg3Made", att: "fg3Att", madeShort: "3PM", attShort: "3PA", noun: "three-pointers", adj: "three-point" },
+};
+
 export type StatKey = StatDef["key"];
 
 /**
@@ -99,6 +126,25 @@ export function playedSeasons(player: PlayerDetail): SeasonPlayed[] {
 /** True when a season's games played fall below the small-sample threshold for its year. */
 export function isSmallSample(season: SeasonPlayed, league: League): boolean {
   return season.gp < SMALL_SAMPLE_FRACTION * league.scheduled(season.year);
+}
+
+/** Attempts a season took for a shooting-% stat, or null if the stat isn't a make/attempt
+    rate (a counting stat, or TS%) — used by the attempt gate and the pooled average. */
+function rateAttempts(season: SeasonPlayed, statKey: StatKey): number | null {
+  const pair = RATE_STAT_ATTEMPTS[statKey];
+  if (!pair) return null;
+  const att = season[pair.att];
+  return typeof att === "number" ? att : null;
+}
+
+/** Whether a season is too thin a sample to trust FOR A GIVEN STAT — either too few games
+    (any stat) or, for a shooting %, too few attempts of that shot. This is the per-stat gate
+    the heatmap cells, drill-down bars, and summary bars all read; it supersedes the plain
+    games-only isSmallSample everywhere a single (season, stat) value is shown or selected. */
+export function isStatSmallSample(season: SeasonPlayed, league: League, statKey: StatKey): boolean {
+  if (isSmallSample(season, league)) return true;
+  const att = rateAttempts(season, statKey);
+  return att != null && att < MIN_RATE_ATTEMPTS;
 }
 
 export interface WindowAvailability {
@@ -271,6 +317,30 @@ function average(vals: (number | null)[]): number | null {
   return nums.reduce((a, x) => a + x, 0) / nums.length;
 }
 
+/** A player's own average of a stat over some seasons. For a shooting % (fgp/tpp) this POOLS
+    the raw makes/attempts — SUM(made)/SUM(att) — so a low-attempt season contributes almost
+    nothing (a 1-of-1 = 100% adds 1 make to a big pool, not a full "100%" vote). For a counting
+    stat it's the plain per-game mean, unchanged. This mirrors how the backend computes the
+    league/position rates, so a player's own baseline and the external ones now agree in method.
+    Null when there's no data (no attempts, or no values). */
+export function ownStatAverage(statKey: StatKey, seasons: SeasonPlayed[]): number | null {
+  const pair = RATE_STAT_ATTEMPTS[statKey];
+  if (pair) {
+    let made = 0;
+    let att = 0;
+    for (const s of seasons) {
+      const m = s[pair.made];
+      const a = s[pair.att];
+      if (typeof m === "number" && typeof a === "number") {
+        made += m;
+        att += a;
+      }
+    }
+    return att > 0 ? made / att : null;
+  }
+  return average(seasons.map((s) => s[statKey]));
+}
+
 export function getBaselineValue(statKey: StatDef["key"], ctx: BaselineContext): number | null {
   if (ctx.effectiveTarget === "league") {
     return average(ctx.windowedYears.map((y) => ctx.league.avg(y, statKey)));
@@ -281,9 +351,13 @@ export function getBaselineValue(statKey: StatDef["key"], ctx: BaselineContext):
     if (pos == null || lookup == null) return null;
     return average(ctx.windowedYears.map((y) => lookup.avg(y, pos, statKey)));
   }
-  const arr = ctx.windowedSeasons;
-  if (arr.length === 0) return ctx.league.avg(ctx.subject.year, statKey);
-  return average(arr.map((s) => s[statKey]));
+  // Pool rate stats from totals, but only over seasons that are a real sample for this stat —
+  // a window of only attempt-thin seasons would otherwise pool to noise. If nothing eligible
+  // remains (a first real season with no prior history), the baseline is null — the summary
+  // then shows "—" and no bar, since there's nothing to be above or below.
+  const arr = ctx.windowedSeasons.filter((s) => !isStatSmallSample(s, ctx.league, statKey));
+  if (arr.length === 0) return null;
+  return ownStatAverage(statKey, arr);
 }
 
 export interface DeviationRow {
@@ -302,6 +376,10 @@ export interface DeviationRow {
   leftPct: number;
   barColor: string;
   deltaColor: string;
+  /** True when the subject season is too thin a sample for THIS stat (few games, or for a
+      shooting % too few attempts) — the deviation isn't meaningful, so the view shows a
+      "small sample" note instead of a bar. */
+  smallSample: boolean;
 }
 
 /** Bar geometry: relative deviation clamped at ±BAR_FULL_SCALE, centered on the baseline. */
@@ -318,8 +396,10 @@ export function buildRows(ctx: BaselineContext): DeviationRow[] {
   return STATS.map((st) => {
     const cur = subject[st.key];
     const base = getBaselineValue(st.key, ctx);
-    const { up, barPct, leftPct } = barGeometry(cur, base);
-    const hasDelta = cur != null && base != null;
+    // Too few attempts (or games) for this stat → the subject value is noise, so no bar/delta.
+    const smallSample = isStatSmallSample(subject, ctx.league, st.key);
+    const { up, barPct, leftPct } = smallSample ? { up: false, barPct: 0, leftPct: 50 } : barGeometry(cur, base);
+    const hasDelta = !smallSample && cur != null && base != null;
     return {
       key: st.key,
       short: st.short,
@@ -334,6 +414,7 @@ export function buildRows(ctx: BaselineContext): DeviationRow[] {
       leftPct,
       barColor: up ? "var(--hm-above)" : "var(--hm-below)",
       deltaColor: up ? "var(--hm-above-text)" : "var(--hm-below-text)",
+      smallSample,
     };
   });
 }
@@ -363,6 +444,9 @@ export interface StatBar {
   isSubject: boolean;
   reason?: string;
   valFmt?: string;
+  /** That season's baseline, formatted — labeled on the chart for the selected season and in
+      every column's hover title, so the actual baseline number is readable. */
+  baseFmt?: string;
   /** Value's height as a percent of the chart height (the line point). */
   hPct?: number;
   /** This season's OWN baseline height (percent) — the per-year tick. Undefined = no
@@ -382,6 +466,10 @@ export interface StatTableRow {
   min: number | null; // per-game minutes; null ~10% of seasons
   valFmt: string;
   gp: number | null;
+  /** Makes/attempts behind a rate stat (e.g. 3PM/3PA), so the table shows WHY a season is a
+      small sample. Null for counting stats and missed seasons — those columns aren't shown. */
+  made: number | null;
+  att: number | null;
   deltaFmt: string;
   deltaColor: string;
   missed: boolean;
@@ -407,6 +495,15 @@ export interface StatDetail {
   /** Set in position mode when the subject season has no same-position sample — the view
       shows it as a note (values still render "—" / no baseline tick). */
   positionNote?: string;
+  /** For a rate stat, the makes/attempts column labels the table should add (e.g. 3PM/3PA);
+      null for a counting stat, where those columns don't apply. */
+  component: { madeShort: string; attShort: string; noun: string } | null;
+  /** True when the subject season is itself too thin a sample for this stat — the header shows
+      the value but no (meaningless) delta, mirroring the summary bar. */
+  subjectSmallSample: boolean;
+  /** When the chart can't show a meaningful trend (fewer than 2 trustworthy seasons), this is
+      the line the view renders in place of the plot. Null when the chart renders normally. */
+  chartFallback: string | null;
   bars: StatBar[];
   tableRows: StatTableRow[];
   /** Y-axis gridline levels: yPct (0 = bottom, 100 = top of scale) + formatted label. */
@@ -418,9 +515,10 @@ export function buildStatDetail(player: PlayerDetail, stat: StatDef, ctx: Baseli
   const cur = subject[stat.key];
 
   const allPlayed = playedSeasons(player);
-  // A season is selectable as the subject unless it's a small sample — mirrors the summary
-  // picker. If the player has no full season at all, they all stay selectable (fallback).
-  const anyFull = allPlayed.some((s) => !isSmallSample(s, ctx.league));
+  // A season is selectable as the subject unless it's a small sample FOR THIS STAT (few games,
+  // or for a shooting % too few attempts) — so selecting it never puts a noisy 100%-on-1-shot
+  // season under the lens. If no season qualifies for this stat, they all stay selectable.
+  const anyFull = allPlayed.some((s) => !isStatSmallSample(s, ctx.league, stat.key));
   // Use the REQUESTED target/window (not the subject-level effective fallback) so that
   // selecting a rookie season keeps the whole chart on "her own" instead of flipping to
   // league. Each season's baseline still handles its own no-history case (uses its value).
@@ -448,9 +546,14 @@ export function buildStatDetail(player: PlayerDetail, stat: StatDef, ctx: Baseli
       const years = windowed.length ? windowed.map((w) => w.year) : [s.year];
       b = pos == null || lookup == null ? null : average(years.map((y) => lookup.avg(y, pos, stat.key)));
     } else {
-      // Own baseline. A first season has no prior history to average → use its own value,
-      // so its baseline dot sits on its value dot (zero deviation) rather than being absent.
-      b = windowed.length ? average(windowed.map((w) => w[stat.key])) : (s[stat.key] ?? null);
+      // Own baseline. Pool rate stats from totals, but ONLY over seasons that are themselves a
+      // real sample for this stat — otherwise a window made up entirely of attempt-thin seasons
+      // (e.g. A'ja Wilson's pre-2022 threes, 0/0–1/1) would pool to garbage like 50%. When
+      // nothing eligible remains (a first real season, with no prior history to compare against),
+      // the baseline is null → the chart draws no baseline dot and the value dot is neutral,
+      // because a first season can't be above or below a baseline that doesn't exist yet.
+      const ownWindowed = windowed.filter((w) => !isStatSmallSample(w, ctx.league, stat.key));
+      b = ownWindowed.length ? ownStatAverage(stat.key, ownWindowed) : null;
     }
     baselineByYear.set(s.year, b);
   }
@@ -458,49 +561,56 @@ export function buildStatDetail(player: PlayerDetail, stat: StatDef, ctx: Baseli
   // Header + table compare against the SAME per-year baseline the chart draws for the
   // subject (keeps all three consistent), instead of a separately-computed value.
   const base = baselineByYear.get(subject.year) ?? null;
-  const hasDelta = cur != null && base != null;
+  // If the subject is itself too thin a sample for this stat, its value is noise → show it in
+  // the header but suppress the (meaningless) delta, mirroring the summary bar.
+  const subjectSmall = isStatSmallSample(subject, ctx.league, stat.key);
+  const hasDelta = !subjectSmall && cur != null && base != null;
   const up = hasDelta ? cur - base >= 0 : false;
 
-  // Scale spans values AND per-year baselines (all static) so nothing clips and the
-  // y-axis never rescales when you re-select a season.
-  const statVals = allPlayed.map((x) => x[stat.key]).filter((v): v is number => v != null);
-  const baseVals = [...baselineByYear.values()].filter((v): v is number => v != null);
-  // 1.2 leaves headroom above the tallest dot so the selected value label doesn't crowd
-  // the top gridline.
-  const maxVal = Math.max(...statVals, ...baseVals) * 1.2 || 1;
+  // The chart shows only trustworthy seasons: played, with a value for this stat, and NOT a
+  // small sample (too few games, or too few attempts for a shooting %). DNP / 0-attempt /
+  // attempt-thin seasons are dropped entirely — not shown as gaps or a misleading dot — so a
+  // noisy 1-of-1 = 100% can't sit at the top looking valid or stretch the scale. Columns
+  // re-space to whatever remains; the table below keeps the full record.
+  const componentPair = RATE_STAT_ATTEMPTS[stat.key];
+  const chartable = allPlayed.filter((x) => x[stat.key] != null && !isStatSmallSample(x, ctx.league, stat.key));
 
-  const bars: StatBar[] = player.seasons.map((x) => {
-    const yy = String(x.year).slice(2);
-    if (!x.played) {
-      return { year: x.year, yy, missed: true, played: false, isSubject: false, reason: x.reason };
-    }
-    const v = x[stat.key];
-    const small = isSmallSample(x, ctx.league);
-    const selectable = !small || !anyFull;
-    const isSubject = x.year === subject.year;
-    if (v == null) {
-      // Played, but no value for THIS stat — empty slot, distinct from a missed season.
-      return { year: x.year, yy, missed: false, played: true, isSubject, smallSample: small, selectable, noValue: true, valFmt: "—" };
-    }
+  // Scale spans the charted values AND their per-year baselines, so nothing clips and the
+  // y-axis never rescales when you re-select a season. A dropped outlier can't stretch it.
+  const chartVals = chartable.map((x) => x[stat.key]).filter((v): v is number => v != null);
+  const chartBaseVals = chartable.map((x) => baselineByYear.get(x.year) ?? null).filter((v): v is number => v != null);
+  // 1.2 leaves headroom above the tallest dot; the trailing 0 guards Math.max on an empty set.
+  const maxVal = Math.max(...chartVals, ...chartBaseVals, 0) * 1.2 || 1;
+
+  const bars: StatBar[] = chartable.map((x) => {
+    const v = x[stat.key] as number; // non-null by the chartable filter
     const b = baselineByYear.get(x.year) ?? null;
+    const isSubject = x.year === subject.year;
     return {
       year: x.year,
-      yy,
+      yy: String(x.year).slice(2),
       missed: false,
       played: true,
       isSubject,
-      smallSample: small,
-      selectable,
+      smallSample: false,
+      selectable: true,
       valFmt: fmtV(v, stat.pct),
+      baseFmt: b != null ? fmtV(b, stat.pct) : undefined,
       hPct: +((v / maxVal) * 100).toFixed(2),
       basePct: b != null ? +((b / maxVal) * 100).toFixed(2) : undefined,
-      color: isSubject
-        ? "var(--color-accent)"
-        : small
-          ? "var(--color-neutral-400)"
-          : "var(--color-neutral-500)",
+      color: isSubject ? "var(--color-accent)" : "var(--color-neutral-500)",
     };
   });
+
+  // Fewer than 2 trustworthy seasons → no meaningful trend to draw (e.g. a player who almost
+  // never shoots threes). The view shows this line instead of the plot; the table still lists
+  // every season with its makes/attempts, so the record stays complete.
+  const chartFallback =
+    chartable.length < 2
+      ? componentPair
+        ? `Too few seasons with enough ${componentPair.adj} attempts to chart a trend.`
+        : "Not enough seasons to chart a trend."
+      : null;
 
   const tableRows: StatTableRow[] = player.seasons.map((x) => {
     if (!x.played) {
@@ -509,6 +619,8 @@ export function buildStatDetail(player: PlayerDetail, stat: StatDef, ctx: Baseli
         min: null,
         valFmt: "—",
         gp: null,
+        made: null,
+        att: null,
         deltaFmt: "—",
         deltaColor: "var(--color-neutral-700)",
         missed: true,
@@ -520,14 +632,19 @@ export function buildStatDetail(player: PlayerDetail, stat: StatDef, ctx: Baseli
     }
     const v = x[stat.key];
     const rowBase = baselineByYear.get(x.year) ?? null;
-    const rowHasDelta = v != null && rowBase != null;
+    const small = isStatSmallSample(x, ctx.league, stat.key);
+    // Suppress the delta on a small-sample row — a "+64%" off a 1-of-1 season is exactly the
+    // noise hidden everywhere else. The value + makes/attempts still show, so the reader sees
+    // both the number and why it's untrustworthy.
+    const rowHasDelta = !small && v != null && rowBase != null;
     const rowUp = rowHasDelta ? v - rowBase >= 0 : false;
-    const small = isSmallSample(x, ctx.league);
     return {
       year: x.year,
       min: x.min,
       valFmt: fmtV(v, stat.pct),
       gp: x.gp,
+      made: componentPair ? (x[componentPair.made] as number) : null,
+      att: componentPair ? (x[componentPair.att] as number) : null,
       deltaFmt: rowHasDelta ? fmtRaw(v - rowBase, stat.pct) : "—",
       deltaColor: rowUp ? "var(--hm-above-text)" : "var(--hm-below-text)",
       missed: false,
@@ -548,6 +665,11 @@ export function buildStatDetail(player: PlayerDetail, stat: StatDef, ctx: Baseli
     up,
     deltaColor: up ? "var(--hm-above-text)" : "var(--hm-below-text)",
     caption: buildCaption(ctx, player.name),
+    component: componentPair
+      ? { madeShort: componentPair.madeShort, attShort: componentPair.attShort, noun: componentPair.noun }
+      : null,
+    subjectSmallSample: subjectSmall,
+    chartFallback,
     positionNote: ctx.positionSampleMissing
       ? `No same-position baseline for ${subject.year} — too few ${positionNoun(ctx.playerPosition)} on record that season.`
       : undefined,

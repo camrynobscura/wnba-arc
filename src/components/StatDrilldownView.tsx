@@ -25,6 +25,10 @@ export function StatDrilldownView({ player, stat, target, positionAvailable, pla
   const bars = stat.bars;
   const n = bars.length;
   const colX = (i: number) => ((i + 0.5) / n) * 100; // column center, % from left
+  // Whether any table row is a small sample → show the dot key below the table. Wording is
+  // stat-aware: a shooting % can be thin on games OR attempts; a counting stat only on games.
+  const anySmallRow = stat.tableRows.some((r) => r.smallSample && !r.missed);
+  const smallSampleKey = stat.component ? "small sample (few games or attempts)" : "small sample (few games)";
 
   const renderRow = (r: StatTableRow) => {
     // Small-sample seasons aren't selectable (unless it's the fallback where a player has no
@@ -55,11 +59,21 @@ export function StatDrilldownView({ player, stat, target, positionAvailable, pla
           r.year
         )}
         {r.smallSample && !r.missed && (
-          <span className="text-muted" style={{ fontSize: 10, marginLeft: 6 }}>
-            small sample
-          </span>
+          // Just a dot (keyed below the table) — the repeated "small sample" text wrapped the
+          // year to two lines. role/aria-label keep it meaningful without visible text.
+          <span className="hm-legend-dot" role="img" aria-label="small sample" style={{ marginLeft: 6 }} />
         )}
       </td>
+      {stat.component && (
+        <>
+          <td style={{ textAlign: "right" }} className="text-muted">
+            {r.missed || r.made == null ? "—" : r.made}
+          </td>
+          <td style={{ textAlign: "right" }} className="text-muted">
+            {r.missed || r.att == null ? "—" : r.att}
+          </td>
+        </>
+      )}
       <td style={{ textAlign: "right" }}>
         {r.missed ? <span className="text-muted">DNP — {r.reason}</span> : r.valFmt}
       </td>
@@ -103,12 +117,19 @@ export function StatDrilldownView({ player, stat, target, positionAvailable, pla
         </div>
         <div style={{ textAlign: "right" }}>
           <div style={{ display: "flex", alignItems: "baseline", gap: 8, justifyContent: "flex-end" }}>
-            <span className="text-heading" style={{ fontSize: 28, lineHeight: 1 }}>
+            <span
+              className="text-heading"
+              style={{ fontSize: 28, lineHeight: 1, color: stat.subjectSmallSample ? "var(--color-neutral-500)" : undefined }}
+            >
               {stat.curFmt}
             </span>
-            <span className="text-heading" style={{ fontSize: 18, color: stat.deltaColor }}>
-              {stat.rawFmt}
-            </span>
+            {stat.subjectSmallSample ? (
+              <span className="text-muted" style={{ fontSize: 13 }}>small sample</span>
+            ) : (
+              <span className="text-heading" style={{ fontSize: 18, color: stat.deltaColor }}>
+                {stat.rawFmt}
+              </span>
+            )}
           </div>
           <div className="text-muted" style={{ fontSize: 12, marginTop: 2 }}>
             {stat.year} · baseline {stat.baseFmt}
@@ -153,6 +174,12 @@ export function StatDrilldownView({ player, stat, target, positionAvailable, pla
       </div>
 
       <div className="card" style={{ padding: "18px 18px 12px" }}>
+        {stat.chartFallback ? (
+          <div className="text-muted" style={{ padding: "48px 8px", textAlign: "center", fontSize: 13 }}>
+            {stat.chartFallback}
+          </div>
+        ) : (
+          <>
         <div style={{ position: "relative", height: PLOT_H, paddingLeft: 4 }}>
           {/* Gridlines + y-axis labels */}
           {stat.axisTicks.map((t) => (
@@ -208,8 +235,8 @@ export function StatDrilldownView({ player, stat, target, positionAvailable, pla
                 key={b.year}
                 onClick={selectable ? () => onSelectYear(b.year) : undefined}
                 disabled={!selectable}
-                aria-label={`${b.year}: ${b.valFmt}${b.smallSample ? " (small sample)" : ""}${selectable ? " — compare this season" : " — too few games to compare"}`}
-                title={selectable ? `Set ${b.year} as the compared season` : "Too few games to compare"}
+                aria-label={`${b.year}: ${b.valFmt}, baseline ${b.baseFmt ?? "—"} — compare this season`}
+                title={`${b.year}: ${b.valFmt} · baseline ${b.baseFmt ?? "—"}`}
                 style={{
                   position: "absolute",
                   left: `${colX(i)}%`,
@@ -269,8 +296,10 @@ export function StatDrilldownView({ player, stat, target, positionAvailable, pla
                     height: dot,
                     borderRadius: "50%",
                     // Colored by direction like the rest of the app: red above the season's
-                    // baseline, blue below (the baseline dot below stays neutral grey).
-                    background: valueAbove ? "var(--hm-above)" : "var(--hm-below)",
+                    // baseline, blue below. A season with NO baseline (a first real season, no
+                    // prior history) is neutral grey — it can't be above or below a baseline that
+                    // doesn't exist yet. (Small-sample seasons never reach the chart at all.)
+                    background: yBase == null ? "var(--color-neutral-500)" : valueAbove ? "var(--hm-above)" : "var(--hm-below)",
                     transform: "translate(-50%, -50%)",
                   }}
                 />
@@ -292,6 +321,25 @@ export function StatDrilldownView({ player, stat, target, positionAvailable, pla
                     {b.valFmt}
                   </span>
                 )}
+                {/* baseline number for the selected season — offset opposite the value label
+                    (the baseline dot is on the other side of the value) so they never overlap. */}
+                {sub && yBase != null && b.baseFmt && (
+                  <span
+                    className="text-muted"
+                    style={{
+                      position: "absolute",
+                      left: "50%",
+                      top: `${yBase}%`,
+                      transform: valueAbove
+                        ? "translate(-50%, -50%) translateY(18px)"
+                        : "translate(-50%, -50%) translateY(-18px)",
+                      fontSize: 11,
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    base {b.baseFmt}
+                  </span>
+                )}
               </button>
             );
           })}
@@ -311,12 +359,17 @@ export function StatDrilldownView({ player, stat, target, positionAvailable, pla
             </div>
           ))}
         </div>
+          </>
+        )}
       </div>
-      <p className="text-muted" style={{ fontSize: 12, marginTop: 14 }}>
-        Each season shows two dots — {firstName(player.name)}'s {stat.label.toLowerCase()} (red above the baseline, blue
-        below) and grey = the baseline; the gap between them is that season's deviation. Tap a season to
-        compare it. Gaps are missed seasons.
-      </p>
+      {!stat.chartFallback && (
+        <p className="text-muted" style={{ fontSize: 12, marginTop: 14 }}>
+          Each season shows two dots — {firstName(player.name)}'s {stat.label.toLowerCase()} (red above the baseline, blue
+          below) and grey = the baseline; the gap between them is that season's deviation. The selected season is labeled
+          with both values (hover any season to read its numbers). Tap a season to compare it. Low-sample seasons are left
+          off the chart — the table below has the full history.
+        </p>
+      )}
 
       {/* Yearly table (F2) — one full-width table, zebra-striped. table-layout: fixed
           gives evenly-distributed columns and makes the table fit its container at any
@@ -324,15 +377,41 @@ export function StatDrilldownView({ player, stat, target, positionAvailable, pla
       <div style={{ marginTop: 22 }}>
         <table className="table" style={{ tableLayout: "fixed" }} aria-label="Season stats">
           <colgroup>
-            <col style={{ width: "24%" }} />
-            <col style={{ width: "19%" }} />
-            <col style={{ width: "19%" }} />
-            <col style={{ width: "19%" }} />
-            <col style={{ width: "19%" }} />
+            {stat.component ? (
+              <>
+                <col style={{ width: "17%" }} />
+                <col style={{ width: "12%" }} />
+                <col style={{ width: "12%" }} />
+                <col style={{ width: "16%" }} />
+                <col style={{ width: "12%" }} />
+                <col style={{ width: "13%" }} />
+                <col style={{ width: "18%" }} />
+              </>
+            ) : (
+              <>
+                <col style={{ width: "24%" }} />
+                <col style={{ width: "19%" }} />
+                <col style={{ width: "19%" }} />
+                <col style={{ width: "19%" }} />
+                <col style={{ width: "19%" }} />
+              </>
+            )}
           </colgroup>
           <thead>
             <tr>
               <th>Season</th>
+              {/* Makes/attempts for a rate stat, right before the % they produce — so a thin
+                  season (e.g. 3PM 1 / 3PA 1 = 100%) explains its own "small sample" tag. */}
+              {stat.component && (
+                <>
+                  <th style={{ textAlign: "right" }}>
+                    <InfoTip label={stat.component.madeShort} tip={`${stat.component.noun} made that season`} />
+                  </th>
+                  <th style={{ textAlign: "right" }}>
+                    <InfoTip label={stat.component.attShort} tip={`${stat.component.noun} attempted that season`} />
+                  </th>
+                </>
+              )}
               <th style={{ textAlign: "right" }}>{stat.short}</th>
               <th style={{ textAlign: "right" }}>
                 <InfoTip label="GP" tip="Games played that season" />
@@ -347,6 +426,11 @@ export function StatDrilldownView({ player, stat, target, positionAvailable, pla
           </thead>
           <tbody>{stat.tableRows.map(renderRow)}</tbody>
         </table>
+        {anySmallRow && (
+          <div className="hm-legend-key text-muted" style={{ marginTop: 10 }}>
+            <span className="hm-legend-dot" aria-hidden="true" /> {smallSampleKey}
+          </div>
+        )}
       </div>
     </main>
   );

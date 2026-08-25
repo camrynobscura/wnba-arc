@@ -513,7 +513,9 @@ textarea.input { min-height: 90px; resize: vertical; }
 }
 .scale-ends b { font-weight: 600; }
 .hm-legend-key { display: inline-flex; align-items: center; gap: 6px; margin-top: 8px; font-size: 11px; }
-.hm-legend-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--color-neutral-600); }
+/* inline-block + vertical-align so the same dot works both in the flex legend and inline next
+   to a table year; flex:none keeps it from shrinking inside the legend. */
+.hm-legend-dot { display: inline-block; vertical-align: middle; flex: none; width: 7px; height: 7px; border-radius: 50%; background: var(--color-neutral-600); }
 
 /* — dialog — */
 .dialog-backdrop {

@@ -1,7 +1,7 @@
 import { photoUrl, type StatDef } from "../data/stats";
 import type { PlayerDetail, PlayerSummary } from "../data/api";
 import { PlayerSearch } from "./PlayerSearch";
-import { positionNoun, type BaselineContext, type ComparisonTarget, type ComparisonWindow, type DeviationRow } from "../lib/deviation";
+import { isSmallSample, positionNoun, type BaselineContext, type ComparisonTarget, type ComparisonWindow, type DeviationRow } from "../lib/deviation";
 import { PlayerPhoto } from "./PlayerPhoto";
 import { DeviationBlocks } from "./DeviationBlocks";
 import { CareerHeatmap } from "./CareerHeatmap";
@@ -90,6 +90,9 @@ export function SummaryView({
   const missedGroups = [...missedByReason.entries()];
   // Only full (non-small-sample) seasons are offered; the context handles the fallback.
   const years = selectableYears;
+  // A small-sample row is almost always "too few attempts" (the subject is a full-games season);
+  // it's only "too few games" in the degenerate fallback where the player has no full season.
+  const smallSampleReason = isSmallSample(subject, league) ? "too few games" : "too few attempts";
 
   return (
     <main id="main" style={{ maxWidth: "var(--app-width)", width: "100%", margin: "0 auto", padding: "18px 20px 16px" }}>
@@ -251,12 +254,18 @@ export function SummaryView({
                 baseline {row.baseFmt}
               </div>
             </div>
-            {/* A little breathing room between the label and where the bar track starts. */}
+            {/* A little breathing room between the label and where the bar track starts. A
+                subject season with too few attempts for this stat shows a note, not a bar —
+                the deviation off a 1-of-1 shooting line would be meaningless. */}
             <div style={{ paddingLeft: 12 }}>
-              <DeviationBlocks up={row.up} barPct={row.barPct} barColor={row.barColor} showBaselineLabel={idx === 0} />
+              {row.smallSample ? (
+                <span className="text-muted" style={{ fontSize: 12 }}>small sample — {smallSampleReason}</span>
+              ) : (
+                <DeviationBlocks up={row.up} barPct={row.barPct} barColor={row.barColor} showBaselineLabel={idx === 0} />
+              )}
             </div>
             <div style={{ textAlign: "right", display: "flex", flexDirection: "column", alignItems: "flex-end", lineHeight: 1.05 }}>
-              <span className="text-heading" style={{ fontSize: 19 }}>{row.curFmt}</span>
+              <span className="text-heading" style={{ fontSize: 19, color: row.smallSample ? "var(--color-neutral-500)" : undefined }}>{row.curFmt}</span>
               <span style={{ fontSize: 11, color: row.deltaColor }}>{row.rawFmt}</span>
             </div>
           </button>

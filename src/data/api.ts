@@ -39,6 +39,14 @@ export interface SeasonPlayed {
   blk: number;
   fgp: number | null; // decimal (0.466 = 46.6%); null on 0 attempts
   tpp: number | null;
+  // Raw makes/attempts behind fgp/tpp. The frontend pools these into rate baselines
+  // (SUM(made)/SUM(att)) instead of averaging season percentages, and gates seasons with
+  // too few attempts — a % on a handful of shots is noise. See deviation.ts
+  // (RATE_STAT_ATTEMPTS / MIN_RATE_ATTEMPTS). Always present (NOT NULL integers).
+  fgMade: number;
+  fgAtt: number;
+  fg3Made: number;
+  fg3Att: number;
   // Advanced (added to the displayed set). A decimal like the other percentage stats.
   tsPct: number | null; // true shooting %
 }

@@ -1,7 +1,7 @@
 import { Fragment } from "react";
 import type { PlayerDetail } from "../data/api";
 import { STATS } from "../data/stats";
-import { firstName, isSmallSample, playedSeasons, type League } from "../lib/deviation";
+import { firstName, isSmallSample, isStatSmallSample, ownStatAverage, playedSeasons, type League } from "../lib/deviation";
 import { InfoTip } from "./InfoTip";
 import { ScaleKey } from "./ScaleKey";
 
@@ -51,18 +51,22 @@ export function CareerHeatmap({ player, league, subjectYear }: CareerHeatmapProp
   if (played.length < 2) return null;
 
   const seasons = [...player.seasons].reverse(); // newest-first: latest year on top, descending
-  const comparable = played.filter((s) => !isSmallSample(s, league));
-  // Career average comes from full seasons; fall back to all played if there aren't 2.
-  const basis = comparable.length >= 2 ? comparable : played;
-  const anySmall = played.some((s) => isSmallSample(s, league));
 
-  // Stats are now the inner (column) axis, so precompute each stat's center/spread once.
+  // Each stat's center + spread are computed from only its own non-small-sample seasons, and
+  // small-sample is per-stat now (few games for any stat, or too few attempts for a shooting %).
+  // So a 1-for-1 = 100% three-point year is excluded from the 3P average AND from its spread —
+  // it can't drag the baseline or stretch the color scale (which would wash out every real year).
+  // Rate stats use the POOLED average (SUM(made)/SUM(att)); counting stats the plain mean.
   const statAgg = STATS.map((st) => {
+    const comparable = played.filter((s) => !isStatSmallSample(s, league, st.key));
+    // Fall back to all played if fewer than 2 seasons qualify for this stat.
+    const basis = comparable.length >= 2 ? comparable : played;
+    const avg = ownStatAverage(st.key, basis);
     const vals = basis.map((s) => s[st.key]).filter((v): v is number => v != null);
-    const avg = vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
-    const maxDev = vals.length ? Math.max(...vals.map((v) => Math.abs(v - avg!)), 1e-9) : 1;
+    const maxDev = avg != null && vals.length ? Math.max(...vals.map((v) => Math.abs(v - avg)), 1e-9) : 1;
     return { st, avg, maxDev };
   });
+  const anySmall = played.some((s) => STATS.some((st) => isStatSmallSample(s, league, st.key)));
 
   return (
     <>
@@ -71,14 +75,10 @@ export function CareerHeatmap({ player, league, subjectYear }: CareerHeatmapProp
           <h2 style={{ fontSize: 20, margin: 0 }}>Career Trend</h2>
           <div className="text-muted" style={{ fontSize: 12, marginTop: 3 }}>each cell vs {firstName(player.name)}'s career average</div>
         </div>
-        {/* Diverging color key — sits directly above the grid it describes. */}
+        {/* Diverging color key — sits directly above the grid it describes. The small-sample
+            key lives BELOW the grid (after it), like the drill-down's table key. */}
         <div className="scale-legend" style={{ marginBottom: 14 }}>
           <ScaleKey noun="baseline" />
-          {anySmall && (
-            <div className="hm-legend-key text-muted">
-              <span className="hm-legend-dot" aria-hidden="true" /> small sample (few games)
-            </div>
-          )}
         </div>
 
         {/* No overflow wrapper: with 7 fixed columns the grid fits from ~300px up, and an
@@ -107,14 +107,16 @@ export function CareerHeatmap({ player, league, subjectYear }: CareerHeatmapProp
                   return <div key={key} className="hm-cell hm-empty" title={`${s.year}: did not play`}>—</div>;
                 }
                 const v = s[st.key] as number | null;
-                const small = isSmallSample(s, league);
+                const small = isStatSmallSample(s, league, st.key);
                 // Too small a sample (or no value for this stat) → greyed, not heat-colored.
                 if (small || v == null || avg == null) {
+                  // Distinguish the reason so the tooltip is honest: too few games vs too few shots.
+                  const reason = isSmallSample(s, league) ? `${s.gp} games` : "few attempts";
                   return (
                     <div
                       key={key}
                       className={"hm-cell hm-muted" + (small ? " hm-ss" : "")}
-                      title={`${st.label} · ${s.year}: ${fmt(v, st.pct)}${small ? ` (small sample · ${s.gp} games)` : ""}`}
+                      title={`${st.label} · ${s.year}: ${fmt(v, st.pct)}${small ? ` (small sample · ${reason})` : ""}`}
                     >
                       {fmt(v, st.pct)}
                     </div>
@@ -137,6 +139,11 @@ export function CareerHeatmap({ player, league, subjectYear }: CareerHeatmapProp
             </Fragment>
           ))}
         </div>
+        {anySmall && (
+          <div className="hm-legend-key text-muted" style={{ marginTop: 12 }}>
+            <span className="hm-legend-dot" aria-hidden="true" /> small sample (few games or attempts)
+          </div>
+        )}
       </section>
 
       <hr style={{ border: 0, borderTop: "1px solid var(--color-divider)", margin: "20px 0 18px" }} />
