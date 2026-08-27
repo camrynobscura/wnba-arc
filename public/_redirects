@@ -1,0 +1,3 @@
+# SPA fallback: serve the app for any path so client-side routing (react-router) can
+# handle deep links like /player/aja-wilson-3149391/blk on a cold load or refresh.
+/*  /index.html  200
