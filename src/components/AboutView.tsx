@@ -80,9 +80,13 @@ export function AboutView({ onBack }: AboutViewProps) {
           <strong>Small samples.</strong> A season where the player appeared in less than 25% of the schedule is left
           out of baselines, so a handful of games can't skew the math.
         </p>
-        <p style={{ margin: 0 }}>
+        <p style={{ marginBottom: 12 }}>
           <strong>What's missing.</strong> A few stats need data ESPN doesn't share (rebound percentages, and all-in-one
           metrics like PER), so ARC leaves them out rather than guessing.
+        </p>
+        <p className="text-muted" style={{ margin: 0, fontSize: 13, lineHeight: 1.5 }}>
+          ARC is an independent, unofficial project — not affiliated with, endorsed by, or connected to the WNBA or
+          ESPN. All team and player names, logos, and photos are the property of their respective owners.
         </p>
       </section>
     </main>

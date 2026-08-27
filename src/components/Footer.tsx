@@ -14,7 +14,8 @@ function formatScrapedAt(iso: string | null): string | null {
 /**
  * A quiet global footer showing dataset freshness. Renders nothing when the
  * scrape time is unknown (e.g. before the API exposes `/meta`, or a failed
- * fetch), so it never surfaces an error or an empty line.
+ * fetch), so it never surfaces an error or an empty line. (The unofficial ·
+ * data-from-ESPN attribution lives in the About page's "The data" section.)
  */
 export function Footer({ lastScrapedAt }: FooterProps) {
   const asOf = formatScrapedAt(lastScrapedAt);
