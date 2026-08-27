@@ -90,29 +90,29 @@ export function StatDrilldownView({ player, stat, target, positionAvailable, pla
       </td>
       {stat.component && (
         <>
-          <td style={{ textAlign: "right" }} className="text-muted">
+          <td className="text-muted">
             {r.missed || r.made == null ? "—" : r.made}
           </td>
-          <td style={{ textAlign: "right" }} className="text-muted">
+          <td className="text-muted">
             {r.missed || r.att == null ? "—" : r.att}
           </td>
         </>
       )}
-      <td style={{ textAlign: "right" }} className={r.missed ? "text-muted" : undefined}>
+      <td className={r.missed ? "text-muted" : undefined}>
         {r.valFmt}
       </td>
-      <td style={{ textAlign: "right" }} className="text-muted">
+      <td className="text-muted">
         {r.gp ?? "—"}
       </td>
-      <td style={{ textAlign: "right" }} className="text-muted">
+      <td className="text-muted">
         {r.min != null ? r.min.toFixed(1) : "—"}
       </td>
       {showPct && (
-        <td style={{ textAlign: "right" }}>
+        <td>
           {r.pctile != null ? ordinal(Math.round(r.pctile)) : <span className="text-muted">—</span>}
         </td>
       )}
-      <td style={{ textAlign: "right", color: r.missed ? undefined : r.deltaColor }}>
+      <td style={{ color: r.missed ? undefined : r.deltaColor }}>
         {r.deltaFmt}
       </td>
     </tr>
@@ -120,9 +120,9 @@ export function StatDrilldownView({ player, stat, target, positionAvailable, pla
   };
 
   return (
-    <main id="main" style={{ maxWidth: "var(--app-width)", width: "100%", margin: "0 auto", padding: "18px 20px 16px" }}>
+    <main id="main" className="view-main">
       {/* Top row: back to this player's summary (left) + jump to another player (right). */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12, marginBottom: 18 }}>
+      <div className="view-header">
         <button className="btn btn-ghost" style={{ gap: 8 }} onClick={onBack}>
           <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
             <path d="M19 12H5M12 19l-7-7 7-7" />
@@ -178,15 +178,15 @@ export function StatDrilldownView({ player, stat, target, positionAvailable, pla
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 10, marginBottom: 10 }}>
         <div style={{ display: "flex", flexWrap: "wrap", gap: "6px 16px", fontSize: "var(--fs-xs)" }}>
           <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <span aria-hidden="true" style={{ width: 10, height: 10, borderRadius: "50%", background: "var(--hm-above)" }} />
+            <span aria-hidden="true" className="legend-dot" style={{ background: "var(--hm-above)" }} />
             Above baseline
           </span>
           <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <span aria-hidden="true" style={{ width: 10, height: 10, borderRadius: "50%", background: "var(--hm-below)" }} />
+            <span aria-hidden="true" className="legend-dot" style={{ background: "var(--hm-below)" }} />
             Below baseline
           </span>
           <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <span aria-hidden="true" style={{ width: 10, height: 10, borderRadius: "50%", background: "var(--color-neutral-600)" }} />
+            <span aria-hidden="true" className="legend-dot" style={{ background: "var(--color-neutral-600)" }} />
             Baseline
           </span>
         </div>
@@ -421,7 +421,7 @@ export function StatDrilldownView({ player, stat, target, positionAvailable, pla
         )}
         {/* table-layout: fixed + no per-column widths ⇒ every column is an equal share of the
             100%-wide table (5, 6, or 7 columns depending on the stat). */}
-        <table className="table" style={{ tableLayout: "fixed" }} aria-label="Season stats">
+        <table className="table" aria-label="Season stats">
           <thead>
             <tr>
               <th scope="col">Season</th>
@@ -429,27 +429,27 @@ export function StatDrilldownView({ player, stat, target, positionAvailable, pla
                   season (e.g. 3PM 1 / 3PA 1 = 100%) explains its own "small sample" tag. */}
               {stat.component && (
                 <>
-                  <th scope="col" style={{ textAlign: "right" }}>
+                  <th scope="col">
                     <InfoTip label={stat.component.madeShort} tip={`${stat.component.noun} made that season`} />
                   </th>
-                  <th scope="col" style={{ textAlign: "right" }}>
+                  <th scope="col">
                     <InfoTip label={stat.component.attShort} tip={`${stat.component.noun} attempted that season`} />
                   </th>
                 </>
               )}
-              <th scope="col" style={{ textAlign: "right" }}>{stat.short}</th>
-              <th scope="col" style={{ textAlign: "right" }}>
+              <th scope="col">{stat.short}</th>
+              <th scope="col">
                 <InfoTip label="GP" tip="Games played that season" />
               </th>
-              <th scope="col" style={{ textAlign: "right" }}>
+              <th scope="col">
                 <InfoTip label="Min" tip="Minutes played per game" />
               </th>
               {showPct && (
-                <th scope="col" style={{ textAlign: "right" }}>
+                <th scope="col">
                   <InfoTip label="Pct" tip={`This season's percentile ${pctWhere}`} />
                 </th>
               )}
-              <th scope="col" style={{ textAlign: "right" }}>
+              <th scope="col">
                 <InfoTip label="vs base" tip="Difference from that season's baseline (the league or same-position average that year)" />
               </th>
             </tr>

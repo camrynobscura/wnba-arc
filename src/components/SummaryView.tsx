@@ -79,9 +79,9 @@ export function SummaryView({
   const smallSampleReason = isSmallSample(subject, league) ? "too few games" : "too few attempts";
 
   return (
-    <main id="main" style={{ maxWidth: "var(--app-width)", width: "100%", margin: "0 auto", padding: "18px 20px 16px" }}>
+    <main id="main" className="view-main">
       {/* Top row: back to all players (left) + jump straight to another player (right). */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12, marginBottom: 18 }}>
+      <div className="view-header">
         <button className="btn btn-ghost" style={{ gap: 8 }} onClick={onGoHome}>
           <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
             <path d="M19 12H5M12 19l-7-7 7-7" />
