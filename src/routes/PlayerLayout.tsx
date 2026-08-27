@@ -58,7 +58,9 @@ export function PlayerLayout() {
   if (espn == null || players.find((p) => p.espn === espn) == null)
     return <Notice title="Player not found" detail="No current player matches this link." onBack={backHome} />;
   if (detailError) return <Notice title="Couldn't load this player" detail={detailError} onBack={backHome} />;
-  if (detail == null) return <Notice title="Loading player…" />;
+  // Same title as the roster/league gate above so a hard refresh shows one steady
+  // "Loading…" instead of switching text between the two sequential load phases.
+  if (detail == null) return <Notice title="Loading…" />;
 
   return (
     <>

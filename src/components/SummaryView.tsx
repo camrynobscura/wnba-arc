@@ -144,6 +144,74 @@ export function SummaryView({
         </p>
       </div>
 
+      {/* Same diverging gradient key as the Career Trend heatmap, placed identically —
+          left-aligned directly above the bars it describes. */}
+      <div className="scale-legend" style={{ marginTop: 10, marginBottom: 10 }}>
+        <ScaleKey noun="baseline" />
+      </div>
+
+      {/* A list of stats you can drill into (semantic <ul> — the list-reset keeps it visually
+          identical). Each row is one <button> so keyboard/SR users get a real control. */}
+      <ul style={{ listStyle: "none", margin: 0, padding: "14px 0 0", borderTop: "2px solid var(--color-divider)" }}>
+        {rows.map((row, idx) => {
+          // Fold the value + delta into the button's accessible name. An aria-label OVERRIDES a
+          // control's inner text, so without this a screen reader announces "Points, open history"
+          // and never the numbers on screen — the whole point of the row.
+          const readout = row.smallSample
+            ? "small sample"
+            : row.rawFmt === "—"
+              ? `baseline ${row.baseFmt}`
+              : `${row.rawFmt} versus baseline ${row.baseFmt}`;
+          return (
+          <li key={row.key}>
+          <button
+            className="btn-reset row-hover"
+            aria-label={`${row.label}: ${row.curFmt}, ${readout} — open year-by-year history`}
+            style={{
+              textAlign: "left",
+              width: "100%",
+              display: "grid",
+              // Side columns sized tight to their content (label / number) so the bar
+              // track (1fr) spreads as wide as possible in both directions. Columns are
+              // uniform across rows so every bar's center baseline stays vertically aligned.
+              // Label column is wide enough to keep the longest label ("True Shooting %")
+              // on one line in the condensed heading font.
+              gridTemplateColumns: "120px 1fr 56px",
+              alignItems: "center",
+              gap: 10,
+              padding: "16px 8px",
+              borderBottom: "1px solid var(--color-divider)",
+            }}
+            onClick={() => onOpenStat(row.key)}
+          >
+            <div style={{ lineHeight: 1.05 }}>
+              <div className="text-heading" style={{ fontSize: "var(--fs-lg)" }}>{row.label}</div>
+              <div className="text-muted" style={{ fontSize: "var(--fs-2xs)" }}>
+                baseline {row.baseFmt}
+              </div>
+            </div>
+            {/* A little breathing room between the label and where the bar track starts. A
+                subject season with too few attempts for this stat shows a note, not a bar —
+                the deviation off a 1-of-1 shooting line would be meaningless. */}
+            <div style={{ paddingLeft: 12 }}>
+              {row.smallSample ? (
+                <span className="text-muted" style={{ fontSize: "var(--fs-xs)" }}>small sample — {smallSampleReason}</span>
+              ) : (
+                <DeviationBlocks up={row.up} barPct={row.barPct} barColor={row.barColor} showBaselineLabel={idx === 0} />
+              )}
+            </div>
+            <div style={{ textAlign: "right", display: "flex", flexDirection: "column", alignItems: "flex-end", lineHeight: 1.05 }}>
+              <span className="text-heading" style={{ fontSize: "var(--fs-lg)", color: row.smallSample ? "var(--color-neutral-500)" : undefined }}>{row.curFmt}</span>
+              <span style={{ fontSize: "var(--fs-2xs)", color: row.deltaColor }}>{row.rawFmt}</span>
+            </div>
+          </button>
+          </li>
+          );
+        })}
+      </ul>
+
+      {/* Data-omission notes — placed directly beneath the bars they qualify (which seasons
+          aren't selectable / shown, and why). */}
       {(nonSelectableSmallSample.length > 0 || missedGroups.length > 0 || positionSampleMissing) && (
         <div
           role="note"
@@ -151,7 +219,7 @@ export function SummaryView({
             display: "flex",
             flexDirection: "column",
             gap: 4,
-            margin: "10px 0 0",
+            margin: "14px 0 0",
             padding: "10px 12px",
             fontSize: "var(--fs-xs)",
             lineHeight: 1.4,
@@ -186,72 +254,7 @@ export function SummaryView({
         </div>
       )}
 
-      {/* Same diverging gradient key as the Career Trend heatmap, placed identically —
-          left-aligned directly above the bars it describes. */}
-      <div className="scale-legend" style={{ marginTop: 10, marginBottom: 10 }}>
-        <ScaleKey noun="baseline" />
-      </div>
-
-      {/* A list of stats you can drill into (semantic <ul> — the list-reset keeps it visually
-          identical). Each row is one <button> so keyboard/SR users get a real control. */}
-      <ul style={{ listStyle: "none", margin: 0, padding: "14px 0 10px", borderTop: "2px solid var(--color-divider)" }}>
-        {rows.map((row, idx) => {
-          // Fold the value + delta into the button's accessible name. An aria-label OVERRIDES a
-          // control's inner text, so without this a screen reader announces "Points, open history"
-          // and never the numbers on screen — the whole point of the row.
-          const readout = row.smallSample
-            ? "small sample"
-            : row.rawFmt === "—"
-              ? `baseline ${row.baseFmt}`
-              : `${row.rawFmt} versus baseline ${row.baseFmt}`;
-          return (
-          <li key={row.key}>
-          <button
-            className="btn-reset row-hover"
-            aria-label={`${row.label}: ${row.curFmt}, ${readout} — open year-by-year history`}
-            style={{
-              textAlign: "left",
-              width: "100%",
-              display: "grid",
-              // Side columns sized tight to their content (label / number) so the bar
-              // track (1fr) spreads as wide as possible in both directions. Columns are
-              // uniform across rows so every bar's center baseline stays vertically aligned.
-              // Label column is wide enough to keep the longest label ("True Shooting %")
-              // on one line in the condensed heading font.
-              gridTemplateColumns: "120px 1fr 56px",
-              alignItems: "center",
-              gap: 10,
-              padding: "14px 8px",
-              borderBottom: "1px solid var(--color-divider)",
-            }}
-            onClick={() => onOpenStat(row.key)}
-          >
-            <div style={{ lineHeight: 1.05 }}>
-              <div className="text-heading" style={{ fontSize: "var(--fs-lg)" }}>{row.label}</div>
-              <div className="text-muted" style={{ fontSize: "var(--fs-2xs)" }}>
-                baseline {row.baseFmt}
-              </div>
-            </div>
-            {/* A little breathing room between the label and where the bar track starts. A
-                subject season with too few attempts for this stat shows a note, not a bar —
-                the deviation off a 1-of-1 shooting line would be meaningless. */}
-            <div style={{ paddingLeft: 12 }}>
-              {row.smallSample ? (
-                <span className="text-muted" style={{ fontSize: "var(--fs-xs)" }}>small sample — {smallSampleReason}</span>
-              ) : (
-                <DeviationBlocks up={row.up} barPct={row.barPct} barColor={row.barColor} showBaselineLabel={idx === 0} />
-              )}
-            </div>
-            <div style={{ textAlign: "right", display: "flex", flexDirection: "column", alignItems: "flex-end", lineHeight: 1.05 }}>
-              <span className="text-heading" style={{ fontSize: "var(--fs-lg)", color: row.smallSample ? "var(--color-neutral-500)" : undefined }}>{row.curFmt}</span>
-              <span style={{ fontSize: "var(--fs-2xs)", color: row.deltaColor }}>{row.rawFmt}</span>
-            </div>
-          </button>
-          </li>
-          );
-        })}
-      </ul>
-      <p className="text-muted" style={{ fontSize: "var(--fs-xs)", marginTop: 16 }}>
+      <p className="text-muted" style={{ fontSize: "var(--fs-xs)", marginTop: 10 }}>
         Bars show how far each stat sits above or below its baseline — the further out, the more exceptional. Click a stat for its year-by-year history and percentile ranking →
       </p>
     </main>

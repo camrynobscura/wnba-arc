@@ -52,7 +52,7 @@ export function SelectView({ featured, players, listError, onPick }: SelectViewP
                   display: "flex",
                   alignItems: "center",
                   gap: 14,
-                  padding: "12px 4px",
+                  padding: "12px 12px",
                   borderBottom: "1px solid var(--color-divider)",
                 }}
                 onClick={() => onPick(f.espn)}

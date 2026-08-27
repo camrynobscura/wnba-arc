@@ -92,7 +92,7 @@ export function CareerHeatmap({ player, league, subjectYear }: CareerHeatmapProp
       <section aria-label="Career Trend" style={{ margin: "4px 0 2px" }}>
         <div style={{ marginBottom: 12 }}>
           <h2 style={{ fontSize: "var(--fs-xl)", margin: 0 }}>Career Trend</h2>
-          <div className="text-muted" style={{ fontSize: "var(--fs-xs)", marginTop: 8 }}>each cell vs {firstName(player.name)}'s career average</div>
+          <div className="text-muted" style={{ fontSize: "var(--fs-xs)", marginTop: 8 }}>Each cell vs {firstName(player.name)}'s career average.</div>
         </div>
         {/* Diverging color key — sits directly above the grid it describes. The small-sample
             key lives BELOW the grid (after it), like the drill-down's table key. */}

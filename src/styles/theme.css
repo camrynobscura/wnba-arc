@@ -62,23 +62,23 @@
   /* Max content width for every view (App shell, select, summary, drill-down). */
   --app-width: 600px;
 
-  --font-heading: "Barlow Condensed", system-ui, sans-serif;
+  --font-heading: 'Barlow Condensed', system-ui, sans-serif;
   --font-heading-weight: 600;
-  --font-body: "Barlow", system-ui, sans-serif;
+  --font-body: 'Barlow', system-ui, sans-serif;
 
   /* Type scale — rem so it honors the reader's browser font-size (root stays at the browser
      default; no 62.5% hack). px equivalents at a 16px root noted for reference. */
-  --fs-3xs: 0.625rem;   /* 10 */
-  --fs-2xs: 0.6875rem;  /* 11 */
-  --fs-xs: 0.75rem;     /* 12 */
-  --fs-sm: 0.8125rem;   /* 13 */
-  --fs-md: 0.875rem;    /* 14 */
-  --fs-base: 1rem;      /* 16 */
-  --fs-lg: 1.125rem;    /* 18 — stat labels */
-  --fs-xl: 1.4375rem;   /* 23 — section headers */
-  --fs-2xl: 1.75rem;    /* 28 — player / page name */
-  --fs-3xl: 2rem;       /* 32 */
-  --fs-4xl: 2.75rem;    /* 44 */
+  --fs-3xs: 0.625rem; /* 10 */
+  --fs-2xs: 0.6875rem; /* 11 */
+  --fs-xs: 0.75rem; /* 12 */
+  --fs-sm: 0.8125rem; /* 13 */
+  --fs-md: 0.875rem; /* 14 */
+  --fs-base: 1rem; /* 16 */
+  --fs-lg: 1.125rem; /* 18 — stat labels */
+  --fs-xl: 1.4375rem; /* 23 — section headers */
+  --fs-2xl: 1.75rem; /* 28 — player / page name */
+  --fs-3xl: 2rem; /* 32 */
+  --fs-4xl: 2.75rem; /* 44 */
 
   --space-1: 3.4px;
   --space-2: 6.8px;
@@ -110,31 +110,31 @@
    component that pairs e.g. a `-100` surface with `-800` text (tags, muted cells)
    works in both themes with no per-component overrides. All values contrast-checked
    ≥4.5:1 for text / ≥3:1 for graphics on their own ground. */
-:root[data-theme="dark"] {
+:root[data-theme='dark'] {
   --color-bg: #17191e;
   --color-surface: #1c1f24;
   --color-text: #dfe1e7;
-  --color-accent: #7ea6cf;       /* brightened so dark text reads on it (buttons) */
+  --color-accent: #7ea6cf; /* brightened so dark text reads on it (buttons) */
   --color-accent-2: #93aecb;
   --color-divider: color-mix(in srgb, #e6e8ec 15%, transparent);
 
-  --color-neutral-100: #16181c;  /* near background */
+  --color-neutral-100: #16181c; /* near background */
   --color-neutral-200: #1d2025;
   --color-neutral-300: #262a30;
   --color-neutral-400: #363b43;
   --color-neutral-500: #4e545e;
-  --color-neutral-600: #808791;  /* muted text / icons (5.0:1 on bg) */
+  --color-neutral-600: #808791; /* muted text / icons (5.0:1 on bg) */
   --color-neutral-700: #9ca3ad;
   --color-neutral-800: #c1c6cd;
-  --color-neutral-900: #e4e6ea;  /* near foreground */
+  --color-neutral-900: #e4e6ea; /* near foreground */
 
-  --color-accent-100: #1b2836;   /* dark blue — tag backgrounds */
+  --color-accent-100: #1b2836; /* dark blue — tag backgrounds */
   --color-accent-200: #23394d;
   --color-accent-300: #2d4a63;
   --color-accent-400: #3d6486;
   --color-accent-500: #5a83a8;
   --color-accent-600: #7ba0c4;
-  --color-accent-700: #9cbde0;   /* accent text / links / focus (light blue) */
+  --color-accent-700: #9cbde0; /* accent text / links / focus (light blue) */
   --color-accent-800: #c2d6ef;
   --color-accent-900: #e2ecf8;
 
@@ -169,7 +169,11 @@
    aren't tied to any one component. Plain CSS on plain HTML.
    ══════════════════════════════════════════════════════════════════════ */
 
-*, *::before, *::after { box-sizing: border-box; }
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
 
 body {
   margin: 0;
@@ -182,44 +186,98 @@ body {
 }
 
 /* — headings & text elements — */
-h1, h2, h3, h4, h5, h6 {
-  font-family: var(--font-heading); font-weight: var(--font-heading-weight);
-  line-height: 1.12; letter-spacing: -0.015em; margin: 0 0 var(--space-2);
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-heading);
+  font-weight: var(--font-heading-weight);
+  line-height: 1.12;
+  letter-spacing: -0.015em;
+  margin: 0 0 var(--space-2);
 }
-h1 { font-size: var(--fs-4xl); }
-h2 { font-size: var(--fs-3xl); }
-h3 { font-size: var(--fs-2xl); }
-h4 { font-size: var(--fs-xl); }
-h5 { font-size: var(--fs-base); }
-h6 { font-size: var(--fs-sm); }
-h6 { letter-spacing: 0.08em; text-transform: uppercase; }
-p { margin: 0 0 var(--space-3); }
-a { color: var(--color-accent-700); text-underline-offset: 3px; }
-img { display: block; max-width: 100%; }
-figure { margin: 0; }
+h1 {
+  font-size: var(--fs-4xl);
+}
+h2 {
+  font-size: var(--fs-3xl);
+}
+h3 {
+  font-size: var(--fs-2xl);
+}
+h4 {
+  font-size: var(--fs-xl);
+}
+h5 {
+  font-size: var(--fs-base);
+}
+h6 {
+  font-size: var(--fs-sm);
+}
+h6 {
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+p {
+  margin: 0 0 var(--space-3);
+}
+a {
+  color: var(--color-accent-700);
+  text-underline-offset: 3px;
+}
+img {
+  display: block;
+  max-width: 100%;
+}
+figure {
+  margin: 0;
+}
 figcaption {
-  font-size: var(--fs-2xs); margin-top: var(--space-1);
+  font-size: var(--fs-2xs);
+  margin-top: var(--space-1);
   color: color-mix(in srgb, var(--color-text) 55%, transparent);
 }
 
 /* — text utilities — */
 /* 68% ink meets WCAG 1.4.3 (~5:1 on the page ground); 55% read ~3.6:1 and failed. */
-.text-muted { color: color-mix(in srgb, var(--color-text) 68%, transparent); }
+.text-muted {
+  color: color-mix(in srgb, var(--color-text) 68%, transparent);
+}
 /* Condensed display face for ad-hoc titley labels/values that aren't <h*> elements
    (headings already get this from the h1–h6 rule). Size stays at the call site; a
    heavier weight (e.g. 700) can still be set inline to override. */
-.text-heading { font-family: var(--font-heading); font-weight: var(--font-heading-weight); }
+.text-heading {
+  font-family: var(--font-heading);
+  font-weight: var(--font-heading-weight);
+}
 
 /* — focus & selection — */
-:focus { outline: none; }
-:focus-visible { outline: 2px solid var(--color-accent-700); outline-offset: 2px; }
-::selection { background: color-mix(in srgb, var(--color-accent) 30%, transparent); }
+:focus {
+  outline: none;
+}
+:focus-visible {
+  outline: 2px solid var(--color-accent-700);
+  outline-offset: 2px;
+}
+::selection {
+  background: color-mix(in srgb, var(--color-accent) 30%, transparent);
+}
 
 /* — screen-reader-only — */
 /* Visually hidden but exposed to screen readers (used by live-region status text). */
 .sr-only {
-  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
-  overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; border: 0;
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
@@ -228,60 +286,125 @@ figcaption {
 
 /* — view layout — shared across the top-level views (Summary, drill-down) — */
 /* The centered page column every view's <main> uses. */
-.view-main { max-width: var(--app-width); width: 100%; margin: 0 auto; padding: 18px 20px 16px; }
+.view-main {
+  max-width: var(--app-width);
+  width: 100%;
+  margin: 0 auto;
+  padding: 18px 20px 16px;
+}
 /* The top bar of a view: back-control on the left, player-jump on the right. */
 .view-header {
-  display: flex; align-items: center; justify-content: space-between;
-  flex-wrap: wrap; gap: 12px; margin-bottom: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 18px;
 }
 /* A colored swatch dot in a scale/color legend (the color is set inline per entry). */
-.legend-dot { width: 10px; height: 10px; border-radius: 50%; }
+.legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
 
 /* — buttons — */
 .btn {
-  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
-  cursor: pointer; text-decoration: none;
-  font-family: var(--font-heading); font-weight: var(--font-heading-weight);
-  font-size: var(--fs-md); line-height: 1.2; color: var(--color-text);
-  background: transparent; border: 1px solid transparent;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  cursor: pointer;
+  text-decoration: none;
+  font-family: var(--font-heading);
+  font-weight: var(--font-heading-weight);
+  font-size: var(--fs-md);
+  line-height: 1.2;
+  color: var(--color-text);
+  background: transparent;
+  border: 1px solid transparent;
   padding: var(--space-2) calc(var(--space-3) * 1.2);
   border-radius: var(--radius-md);
 }
-.btn svg { display: block; }
-.btn:disabled { opacity: 0.45; cursor: not-allowed; }
-.btn-ghost { color: var(--color-accent-700); padding-inline: var(--space-1); }
-.btn-ghost:hover { background: color-mix(in srgb, var(--color-accent) 10%, transparent); }
-.btn-ghost:active { background: color-mix(in srgb, var(--color-accent) 18%, transparent); }
-.btn-block { width: 100%; margin-top: var(--space-2); }
+.btn svg {
+  display: block;
+}
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.btn-ghost {
+  color: var(--color-accent-700);
+  padding-inline: var(--space-1);
+}
+.btn-ghost:hover {
+  background: color-mix(in srgb, var(--color-accent) 10%, transparent);
+}
+.btn-ghost:active {
+  background: color-mix(in srgb, var(--color-accent) 18%, transparent);
+}
+.btn-block {
+  width: 100%;
+  margin-top: var(--space-2);
+}
 
 /* — forms — */
 .field > label {
-  display: block; font-size: var(--fs-xs); margin-bottom: 5px;
+  display: block;
+  font-size: var(--fs-xs);
+  margin-bottom: 5px;
   color: color-mix(in srgb, var(--color-text) 70%, transparent);
 }
 .input {
-  width: 100%; min-height: 36px; padding: 6px 10px; font: inherit;
-  font-size: var(--fs-md); color: var(--color-text); caret-color: var(--color-accent);
+  width: 100%;
+  min-height: 36px;
+  padding: 6px 10px;
+  font: inherit;
+  font-size: var(--fs-md);
+  color: var(--color-text);
+  caret-color: var(--color-accent);
   background: var(--color-surface);
-  border: 1px solid var(--color-divider); border-radius: var(--radius-md);
+  border: 1px solid var(--color-divider);
+  border-radius: var(--radius-md);
 }
-.input:hover { border-color: color-mix(in srgb, var(--color-text) 45%, transparent); }
-.input:focus-visible { border-color: var(--color-accent); outline-offset: 0; }
+.input:hover {
+  border-color: color-mix(in srgb, var(--color-text) 45%, transparent);
+}
+.input:focus-visible {
+  border-color: var(--color-accent);
+  outline-offset: 0;
+}
 
 /* Custom <select> styling: native select chrome renders at inconsistent heights across
    OS/browsers, so we drop the native appearance and draw our own chevron — giving the
    season picker a deterministic 36px height that matches the segmented controls. */
-.select-wrap { position: relative; display: inline-block; }
+.select-wrap {
+  position: relative;
+  display: inline-block;
+}
 .select-wrap::after {
-  content: ""; position: absolute; right: 11px; top: 50%; transform: translateY(-50%);
-  width: 10px; height: 6px; pointer-events: none; color: var(--color-neutral-700);
+  content: '';
+  position: absolute;
+  right: 11px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 10px;
+  height: 6px;
+  pointer-events: none;
+  color: var(--color-neutral-700);
   background: currentColor;
-  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6'%3E%3Cpath d='M0 0h10L5 6z'/%3E%3C/svg%3E") center / contain no-repeat;
-  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6'%3E%3Cpath d='M0 0h10L5 6z'/%3E%3C/svg%3E") center / contain no-repeat;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6'%3E%3Cpath d='M0 0h10L5 6z'/%3E%3C/svg%3E")
+    center / contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6'%3E%3Cpath d='M0 0h10L5 6z'/%3E%3C/svg%3E")
+    center / contain no-repeat;
 }
 select.select-reset {
-  appearance: none; -webkit-appearance: none;
-  height: 36px; min-height: 36px; padding: 0 30px 0 10px; line-height: 34px;
+  appearance: none;
+  -webkit-appearance: none;
+  height: 36px;
+  min-height: 36px;
+  padding: 0 30px 0 10px;
+  line-height: 34px;
 }
 
 /* — league-comparison controls (SummaryView) — Season + "Compare against" as one row of
@@ -290,71 +413,146 @@ select.select-reset {
 /* No bottom margin — the element that follows (the missed-season note, else the scale key) owns
    the 10px gap below the caption via its own margin-top, so it matches the 10px `gap` above the
    caption regardless of margin-collapse behavior. */
-.sb-controls { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; }
-.sb-selectors { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 16px; }
+.sb-controls {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+}
+.sb-selectors {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 16px;
+}
 
 /* — cards — */
 .card {
-  display: flex; flex-direction: column; gap: var(--space-2);
-  padding: var(--space-3); border-radius: var(--radius-md); background: var(--color-surface);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
 }
-.card-kicker { font-size: var(--fs-3xs); letter-spacing: 0.1em; text-transform: uppercase; color: var(--color-accent-700); }
-.elev-sm { box-shadow: var(--shadow-sm); }
-.elev-md { box-shadow: var(--shadow-md); }
-.elev-lg { box-shadow: var(--shadow-lg); }
+.card-kicker {
+  font-size: var(--fs-3xs);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-accent-700);
+}
+.elev-sm {
+  box-shadow: var(--shadow-sm);
+}
+.elev-md {
+  box-shadow: var(--shadow-md);
+}
+.elev-lg {
+  box-shadow: var(--shadow-lg);
+}
 
 /* — header / nav — the top bar and the controls that live in it — */
 .nav {
-  display: flex; align-items: center; gap: var(--space-4);
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
   padding: var(--space-3) var(--space-4);
   border-bottom: none;
 }
 .nav-brand {
-  font-family: var(--font-heading); font-weight: var(--font-heading-weight);
-  font-size: var(--fs-lg); margin-right: auto;
+  font-family: var(--font-heading);
+  font-weight: var(--font-heading-weight);
+  font-size: var(--fs-lg);
+  margin-right: auto;
 }
 
 /* The compact, always-visible player-page search (see components/PlayerSearch.tsx):
    underline only, no box. */
 .search-underline {
-  border: 0; border-bottom: 1px solid var(--color-divider);
-  background: transparent; border-radius: 0;
+  border: 0;
+  border-bottom: 1px solid var(--color-divider);
+  background: transparent;
+  border-radius: 0;
 }
-.search-underline:focus { outline: none; border-bottom-color: var(--color-accent); }
-.search-underline::placeholder { color: var(--color-neutral-600); }
+.search-underline:focus {
+  outline: none;
+  border-bottom-color: var(--color-accent);
+}
+.search-underline::placeholder {
+  color: var(--color-neutral-600);
+}
 
 /* Light/dark switch — square hairline button, of a piece with the blueprint frame. */
 .theme-toggle {
-  display: inline-flex; align-items: center; justify-content: center;
-  width: 34px; height: 34px; padding: 0; flex: none;
-  color: var(--color-text); background: transparent;
-  border: 1px solid var(--color-divider); border-radius: 0; cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  flex: none;
+  color: var(--color-text);
+  background: transparent;
+  border: 1px solid var(--color-divider);
+  border-radius: 0;
+  cursor: pointer;
 }
-.theme-toggle:hover { border-color: var(--color-accent); color: var(--color-accent); }
-.theme-toggle svg { display: block; }
+.theme-toggle:hover {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+.theme-toggle svg {
+  display: block;
+}
 
 /* — player photo / avatar (see components/PlayerPhoto.tsx) — */
-.duotone{position:relative;overflow:hidden}
-.duotone::after{content:"";position:absolute;inset:0;pointer-events:none;
-  background:var(--color-accent);mix-blend-mode:color}
+.duotone {
+  position: relative;
+  overflow: hidden;
+}
+.duotone::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: var(--color-accent);
+  mix-blend-mode: color;
+}
 
 /* Avatar backdrop shown through ESPN's transparent cutout headshots. Kept light in
    both themes — the default neutral-300 flips near-black in dark mode and swallowed
    dark hair/uniforms; neutral-700 (a mid-light grey in the reversed dark ramp) keeps
    the player readable. */
-.player-photo { background: var(--color-neutral-300); }
-:root[data-theme="dark"] .player-photo { background: var(--color-neutral-700); }
+.player-photo {
+  background: var(--color-neutral-300);
+}
+:root[data-theme='dark'] .player-photo {
+  background: var(--color-neutral-700);
+}
 /* Initials fallback (shown when the headshot 404s) — dark on the light backdrop in
    both themes; neutral-700 alone would match the dark-mode backdrop and vanish. */
-.player-photo-initials { color: var(--color-neutral-700); }
-:root[data-theme="dark"] .player-photo-initials { color: var(--color-neutral-300); }
+.player-photo-initials {
+  color: var(--color-neutral-700);
+}
+:root[data-theme='dark'] .player-photo-initials {
+  color: var(--color-neutral-300);
+}
 
 /* — tables — */
-.table { width: 100%; border-collapse: collapse; font-size: var(--fs-md); table-layout: fixed; }
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--fs-md);
+  table-layout: fixed;
+}
 .table th {
-  text-align: left; font-size: var(--fs-2xs); letter-spacing: 0.08em; text-transform: uppercase;
+  text-align: left;
+  font-size: var(--fs-2xs);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
   color: color-mix(in srgb, var(--color-text) 72%, transparent);
-  padding: var(--space-2); border-bottom: 1px solid var(--color-divider);
+  padding: var(--space-2);
+  border-bottom: 1px solid var(--color-divider);
 }
 .table td {
   padding: var(--space-2);
@@ -363,85 +561,174 @@ select.select-reset {
 /* Every column but the first (the Season label) holds a number → right-aligned.
    :not(:first-child) outweighs the base `.table th`'s left-align, so order-independent. */
 .table th:not(:first-child),
-.table td:not(:first-child) { text-align: right; }
+.table td:not(:first-child) {
+  text-align: right;
+}
 /* Zebra striping — aids row-tracking on the wide drill-down table. Selected row
    sets its own (blue) background inline, which overrides both this and :hover. */
-.table tbody tr:nth-child(even) { background: color-mix(in srgb, var(--color-text) 3.5%, transparent); }
-.table tbody tr:hover { background: color-mix(in srgb, var(--color-text) 7%, transparent); }
+.table tbody tr:nth-child(even) {
+  background: color-mix(in srgb, var(--color-text) 3.5%, transparent);
+}
+.table tbody tr:hover {
+  background: color-mix(in srgb, var(--color-text) 7%, transparent);
+}
 
 /* — segmented deviation bar (summary view) — blocks fill outward from a central
      baseline; see components/DeviationBlocks.tsx and mockups/segmented-bars.html. */
-.dev-blocks { position: relative; height: 30px; }
-.dev-cells { position: absolute; inset: 0; display: flex; align-items: center; gap: 8px; } /* 8px = baseline gap */
-.dev-half { display: flex; gap: 3px; height: 19px; flex: 1 1 0; min-width: 0; } /* 3px = block-to-block gap */
-.dev-half.left { justify-content: flex-end; }
-.dev-cell {
-  flex: 1; position: relative; overflow: hidden; border-radius: 2px;
-  background: color-mix(in srgb, var(--color-text) 6%, transparent);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-text) 14%, transparent);
+.dev-blocks {
+  position: relative;
+  height: 30px;
 }
-.dev-fill { position: absolute; inset: 0; border-radius: inherit; }
+.dev-cells {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+} /* 8px = baseline gap */
+.dev-half {
+  display: flex;
+  gap: 3px;
+  height: 19px;
+  flex: 1 1 0;
+  min-width: 0;
+} /* 3px = block-to-block gap */
+.dev-half.left {
+  justify-content: flex-end;
+}
+.dev-cell {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--color-text) 6%, transparent);
+  box-shadow: inset 0 0 0 1px
+    color-mix(in srgb, var(--color-text) 14%, transparent);
+}
+.dev-fill {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+}
 .dev-rail {
-  position: absolute; top: 50%; left: 50%; width: 1.5px; height: 24px;
-  transform: translate(-0.75px, -50%); background: var(--color-text);
-  border-radius: 1px; pointer-events: none;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 1.5px;
+  height: 24px;
+  transform: translate(-0.75px, -50%);
+  background: var(--color-text);
+  border-radius: 1px;
+  pointer-events: none;
 }
 .dev-rail-label {
-  position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%);
-  margin-bottom: 3px; white-space: nowrap;
-  font-family: var(--font-heading); font-weight: 600; font-size: var(--fs-2xs);
-  letter-spacing: 0.04em; color: var(--color-text);
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: var(--fs-2xs);
+  letter-spacing: 0.04em;
+  color: var(--color-text);
 }
 
 /* — career heatmap (summary view overview) — see components/CareerHeatmap.tsx —
      cell backgrounds are computed inline (diverging color-mix vs a neutral token). */
-.heatmap { display: grid; gap: 2px; --hm-yearcol: 40px; }
+.heatmap {
+  display: grid;
+  gap: 2px;
+  --hm-yearcol: 40px;
+}
 /* Full 4-digit year by default; 2-digit + narrower year column on mobile. */
-.hm-year-short { display: none; }
+.hm-year-short {
+  display: none;
+}
 @media (max-width: 480px) {
-  .heatmap { --hm-yearcol: 26px; }
-  .hm-year-full { display: none; }
-  .hm-year-short { display: inline; }
+  .heatmap {
+    --hm-yearcol: 26px;
+  }
+  .hm-year-full {
+    display: none;
+  }
+  .hm-year-short {
+    display: inline;
+  }
 }
 /* Column headers = the 7 stats (short label, full name in a tooltip). */
 .hm-colhead {
-  font-family: var(--font-heading); font-weight: 600; font-size: var(--fs-sm);
-  color: var(--color-neutral-700); text-align: center; padding-bottom: 4px;
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: var(--fs-sm);
+  color: var(--color-neutral-700);
+  text-align: center;
+  padding-bottom: 4px;
 }
 /* Row headers = seasons, down the left edge — left-aligned so they line up with the
    section heading above (not indented by a right-aligned label column). */
 .hm-rowhead {
-  display: flex; align-items: center; justify-content: flex-start;
-  font-family: var(--font-heading); font-weight: 600; font-size: var(--fs-sm);
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: var(--fs-sm);
   color: var(--color-neutral-700);
 }
-.hm-rowhead.is-subject { color: var(--color-accent-700); font-weight: 700; }
+.hm-rowhead.is-subject {
+  color: var(--color-accent-700);
+  font-weight: 700;
+}
 .hm-cell {
-  position: relative; display: flex; align-items: center; justify-content: center;
-  min-height: 31px; border-radius: 3px; font-size: var(--fs-sm); font-weight: 500;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 31px;
+  border-radius: 3px;
+  font-size: var(--fs-sm);
+  font-weight: 500;
   font-variant-numeric: tabular-nums;
 }
 .hm-empty {
   background: color-mix(in srgb, var(--color-text) 5%, transparent);
-  color: var(--color-neutral-600); font-weight: 400;
+  color: var(--color-neutral-600);
+  font-weight: 400;
 }
 /* Small-sample season: shown (with its value) but greyed, never heat-colored. */
 .hm-muted {
   background: color-mix(in srgb, var(--color-text) 6%, transparent);
-  color: var(--color-neutral-600); font-weight: 400;
+  color: var(--color-neutral-600);
+  font-weight: 400;
 }
 .hm-ss::after {
-  content: ""; position: absolute; top: 3px; right: 3px;
-  width: 5px; height: 5px; border-radius: 50%; background: currentColor; opacity: 0.7;
+  content: '';
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.7;
 }
 /* Diverging scale key — shared by the Career Trend heatmap and the Season Breakdown bars
    (see components/ScaleKey.tsx). End labels + arrows are the non-color cue for the
    encoding (1.4.1). .scale-legend is the fixed-width wrapper, placed directly above the
    grid / bars in both sections so the two keys sit identically. */
-.scale-legend { width: 100%; }
+.scale-legend {
+  width: 100%;
+}
 .scale-grad {
-  height: 11px; border-radius: 3px;
-  background: linear-gradient(to right, var(--hm-below), var(--hm-base), var(--hm-above));
+  height: 11px;
+  border-radius: 3px;
+  background: linear-gradient(
+    to right,
+    var(--hm-below),
+    var(--hm-base),
+    var(--hm-above)
+  );
   /* Hairline border so the near-transparent midpoint doesn't fade into the page.
      Clip the gradient to the padding box so it doesn't bleed under the (semi-transparent)
      border and show stray colors at the edges/rounded corners. */
@@ -449,31 +736,71 @@ select.select-reset {
   background-clip: padding-box;
 }
 .scale-ends {
-  display: flex; justify-content: space-between; align-items: center;
-  margin-top: 5px; font-size: var(--fs-2xs);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 5px;
+  font-size: var(--fs-2xs);
 }
-.scale-ends b { font-weight: 600; }
-.hm-legend-key { display: inline-flex; align-items: center; gap: 6px; margin-top: 8px; font-size: var(--fs-2xs); }
+.scale-ends b {
+  font-weight: 600;
+}
+.hm-legend-key {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  font-size: var(--fs-2xs);
+}
 /* inline-block + vertical-align so the same dot works both in the flex legend and inline next
    to a table year; flex:none keeps it from shrinking inside the legend. */
-.hm-legend-dot { display: inline-block; vertical-align: middle; flex: none; width: 7px; height: 7px; border-radius: 50%; background: var(--color-neutral-600); }
+.hm-legend-dot {
+  display: inline-block;
+  vertical-align: middle;
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--color-neutral-600);
+}
 
 /* — feedback & a11y widgets: loading spinner, info tooltip, skip link — */
 /* Loading indicator — a wave of accent fill across small hairline blocks, echoing
    the deviation blocks + the blueprint frame. Decorative (aria-hidden); the state
    text beside it carries meaning to assistive tech. */
-.spinner { display: inline-flex; gap: 4px; align-items: center; }
+.spinner {
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+}
 .spinner span {
-  width: 8px; height: 15px; border: 1px solid var(--color-accent); background: transparent;
+  width: 8px;
+  height: 15px;
+  border: 1px solid var(--color-accent);
+  background: transparent;
   animation: spinner-wave 1.1s ease-in-out infinite;
 }
-.spinner span:nth-child(2) { animation-delay: 0.13s; }
-.spinner span:nth-child(3) { animation-delay: 0.26s; }
-.spinner span:nth-child(4) { animation-delay: 0.39s; }
-.spinner span:nth-child(5) { animation-delay: 0.52s; }
+.spinner span:nth-child(2) {
+  animation-delay: 0.13s;
+}
+.spinner span:nth-child(3) {
+  animation-delay: 0.26s;
+}
+.spinner span:nth-child(4) {
+  animation-delay: 0.39s;
+}
+.spinner span:nth-child(5) {
+  animation-delay: 0.52s;
+}
 @keyframes spinner-wave {
-  0%, 60%, 100% { background: transparent; }
-  30% { background: var(--color-accent); }
+  0%,
+  60%,
+  100% {
+    background: transparent;
+  }
+  30% {
+    background: var(--color-accent);
+  }
 }
 /* No traveling wave for reduced-motion users — hold a static half-fill instead of
    freezing mid-animation, so it still reads as "in progress" (WCAG 2.3 spirit). */
@@ -487,35 +814,76 @@ select.select-reset {
 /* Info tooltip: a focusable term with a bubble shown on hover/focus. The bubble is a
    child of the trigger, so moving the pointer onto it keeps it open (WCAG 1.4.13). */
 .infotip {
-  position: relative; cursor: help;
-  text-decoration: underline dotted; text-underline-offset: 3px;
+  position: relative;
+  cursor: help;
+  text-decoration: underline dotted;
+  text-underline-offset: 3px;
 }
 .infotip-bubble {
-  display: none; position: absolute; bottom: calc(100% + 6px); left: 50%; transform: translateX(-50%);
-  z-index: 20; width: max-content; max-width: 200px; padding: 6px 9px;
-  font-family: var(--font-body); font-size: var(--fs-2xs); font-weight: 400; line-height: 1.35;
-  letter-spacing: 0; text-transform: none; text-align: left; color: var(--color-text);
-  background: var(--color-surface); border: 1px solid var(--color-divider);
-  border-radius: var(--radius-md); box-shadow: var(--shadow-md); white-space: normal;
+  display: none;
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 20;
+  width: max-content;
+  max-width: 200px;
+  padding: 6px 9px;
+  font-family: var(--font-body);
+  font-size: var(--fs-2xs);
+  font-weight: 400;
+  line-height: 1.35;
+  letter-spacing: 0;
+  text-transform: none;
+  text-align: left;
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-divider);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  white-space: normal;
 }
 /* Open state is JS-driven (see InfoTip.tsx) so only one bubble shows at a time. */
-.infotip-bubble.is-open { display: block; }
+.infotip-bubble.is-open {
+  display: block;
+}
 
 /* Skip-to-content link: off-screen until focused (WCAG 2.4.1). */
 .skip-link {
-  position: absolute; left: 8px; top: -48px; z-index: 100;
-  background: var(--color-surface); color: var(--color-accent-700);
-  padding: 8px 14px; border: 1px solid var(--color-accent-700); border-radius: var(--radius-md);
-  font-family: var(--font-heading); font-weight: 600; text-decoration: none;
+  position: absolute;
+  left: 8px;
+  top: -48px;
+  z-index: 100;
+  background: var(--color-surface);
+  color: var(--color-accent-700);
+  padding: 8px 14px;
+  border: 1px solid var(--color-accent-700);
+  border-radius: var(--radius-md);
+  font-family: var(--font-heading);
+  font-weight: 600;
+  text-decoration: none;
 }
-.skip-link:focus { top: 8px; }
+.skip-link:focus {
+  top: 8px;
+}
 
 /* ══════════════════════════════════════════════════════════════════════════
    THEME FRAME OVERRIDE — the "Industry" look: square, transparent, hairline-
    bordered frames on the boxy components. Re-opens the component classes above,
    so it MUST stay last to win the cascade.
    ══════════════════════════════════════════════════════════════════════ */
-.card, .btn, .input { border-radius: 0; }
-.card { background: transparent; border: 1px solid var(--color-divider); }
-.btn { border: 1px solid var(--color-divider); }
-.btn-ghost { border-color: transparent; }
+.card,
+.btn,
+.input {
+  border-radius: 0;
+}
+.card {
+  background: transparent;
+  border: 1px solid var(--color-divider);
+}
+.btn {
+  border: 1px solid var(--color-divider);
+}
+.btn-ghost {
+  border-color: transparent;
+}
