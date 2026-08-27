@@ -10,7 +10,6 @@ import {
   makeLeague,
   makePositionLookup,
   type ComparisonTarget,
-  type ComparisonWindow,
 } from "./lib/deviation";
 import { Header } from "./components/Header";
 import { SelectView } from "./components/SelectView";
@@ -40,8 +39,7 @@ export default function App() {
   const [view, setView] = useState<View>("select");
   const [statKey, setStatKey] = useState<StatDef["key"] | null>(null);
   const [subjectYear, setSubjectYear] = useState<number | null>(null);
-  const [win, setWin] = useState<ComparisonWindow>("career");
-  const [target, setTarget] = useState<ComparisonTarget>("own");
+  const [target, setTarget] = useState<ComparisonTarget>("league");
 
   // Load the player list + league data once, when the app mounts.
   useEffect(() => {
@@ -111,8 +109,8 @@ export default function App() {
 
   const statDef = useMemo(() => STATS.find((st) => st.key === statKey) ?? null, [statKey]);
   const ctx = useMemo(
-    () => (detail && league ? getBaselineContext(detail, league, positions, subjectYear, target, win) : null),
-    [detail, league, positions, subjectYear, target, win],
+    () => (detail && league ? getBaselineContext(detail, league, positions, subjectYear, target) : null),
+    [detail, league, positions, subjectYear, target],
   );
   const statDetail = useMemo(
     () => (detail && ctx && statDef ? buildStatDetail(detail, statDef, ctx) : null),
@@ -130,15 +128,7 @@ export default function App() {
   const pick = (espn: string) => {
     setSelectedEspn(espn);
     setStatKey(null);
-    setWin("career");
-    setTarget("own");
-  };
-
-  // "This season" only applies to the external baselines; switching to "Their own" while it's
-  // selected would be a meaningless self-comparison, so snap the window back to career.
-  const changeTarget = (t: ComparisonTarget) => {
-    setTarget(t);
-    if (t === "own" && win === "thisYear") setWin("career");
+    setTarget("league");
   };
 
   const backToSummary = () => {
@@ -190,8 +180,7 @@ export default function App() {
             caption={buildCaption(ctx, detail.name)}
             players={players}
             listError={loadError}
-            onWinChange={setWin}
-            onTargetChange={changeTarget}
+            onTargetChange={setTarget}
             onSubjectYearChange={setSubjectYear}
             onGoHome={goHome}
             onOpenStat={openStat}
@@ -201,11 +190,11 @@ export default function App() {
           <StatDrilldownView
             player={detail}
             stat={statDetail}
-            target={ctx.requestedTarget}
+            target={ctx.target}
             positionAvailable={ctx.positionAvailable}
             players={players}
             listError={loadError}
-            onTargetChange={changeTarget}
+            onTargetChange={setTarget}
             onBack={backToSummary}
             onSelectYear={setSubjectYear}
             onPick={pick}

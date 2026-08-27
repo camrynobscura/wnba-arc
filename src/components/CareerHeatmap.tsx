@@ -25,6 +25,14 @@ const HM_BASE = "var(--hm-base)";
 // reach AA; 75% keeps the worst cell at ~4.7:1 while staying vivid.
 const MAX_INTENSITY = 75;
 
+/** The color ruler for a counting stat never gets more sensitive than this fraction of the
+    league spread. So a stat whose whole career spans a league-trivial range (blocks bouncing
+    0.1↔0.2) stays pale instead of painting tenths of a block as dramatic — the same
+    league-yardstick idea as the deviation bars. It's a FLOOR on the own-range ruler (maxDev):
+    a player with genuine season-to-season swings exceeds it and keeps their vivid trajectory.
+    Tunable; 0.5 measured against Kelsey Mitchell's blocks (0.05–0.23 career range). */
+const HEATMAP_STEP_FLOOR = 0.5;
+
 const clamp = (x: number, a: number, b: number) => Math.max(a, Math.min(b, x));
 const fmt = (v: number | null, pct: boolean) => (v == null ? "—" : pct ? `${Math.round(v * 100)}%` : v.toFixed(1));
 
@@ -63,7 +71,12 @@ export function CareerHeatmap({ player, league, subjectYear }: CareerHeatmapProp
     const basis = comparable.length >= 2 ? comparable : played;
     const avg = ownStatAverage(st.key, basis);
     const vals = basis.map((s) => s[st.key]).filter((v): v is number => v != null);
-    const maxDev = avg != null && vals.length ? Math.max(...vals.map((v) => Math.abs(v - avg)), 1e-9) : 1;
+    const ownMaxDev = avg != null && vals.length ? Math.max(...vals.map((v) => Math.abs(v - avg)), 1e-9) : 1;
+    // Floor the ruler at HEATMAP_STEP_FLOOR × the league spread so a league-trivial career range
+    // can't saturate the color scale. Counting stats only (they carry a league step); rate stats
+    // and pre-004 data have no step → keep the own-range ruler unchanged.
+    const leagueStep = league.stdev(subjectYear, st.key);
+    const maxDev = leagueStep != null ? Math.max(ownMaxDev, HEATMAP_STEP_FLOOR * leagueStep) : ownMaxDev;
     return { st, avg, maxDev };
   });
   const anySmall = played.some((s) => STATS.some((st) => isStatSmallSample(s, league, st.key)));

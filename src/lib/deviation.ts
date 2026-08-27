@@ -1,22 +1,25 @@
 import { STATS, type StatDef } from "../data/stats";
 import type { LeagueSeason, PlayerDetail, PositionSeason, SeasonMissed, SeasonPlayed } from "../data/api";
 
-// "thisYear" compares the subject season to that SAME year's league/position peers (e.g.
-// 2026 vs. other 2026 forwards). It's meaningful only for the external baselines — comparing
-// a season to itself under "own" is always zero — so it's offered only when the target is
-// league or position.
-export type ComparisonWindow = "career" | "last5" | "last1" | "thisYear";
-export type ComparisonTarget = "own" | "league" | "position";
+// The subject season is compared to that SAME year's peer group — the whole league, or the
+// player's position. (An earlier "own history" target + a Window control were removed: the
+// Career Trend heatmap already tells the own-trajectory story, and comparing one season to a
+// multi-year peer blob was confusing. See DECISIONS.)
+export type ComparisonTarget = "league" | "position";
 
 /** A season below this fraction of its year's scheduled games is "small sample" (D6).
     25% ≈ 11 of a 44-game season — a ~10–13 game year counts, a handful of games doesn't.
     Must stay equal to wnba-data's SMALL_SAMPLE_FRACTION (scripts/compute-league.ts), which
     uses the same bar to pick which players qualify for the league averages. Keep them paired. */
 const SMALL_SAMPLE_FRACTION = 0.25;
-/** A full-length deviation bar = the stat is this fraction above/below baseline (S1). */
+/** A full-length deviation bar = the stat is this fraction above/below baseline (S1). Used for
+    the shooting-% bars (relative change) and as the fallback for a counting stat when its
+    comparison group has no spread on the wire (data older than migration 004). */
 const BAR_FULL_SCALE = 0.5;
-/** How many seasons the "last 5 years" window spans. */
-const LAST5_WINDOW_SIZE = 5;
+/** A full-length COUNTING-stat bar = this many "steps" (population standard deviations of the
+    comparison group) above/below the baseline. 3 already means "almost nobody's out here", so
+    the rare 4-step+ signature seasons clip to a full bar. See AboutView / DECISIONS. */
+const FULL_STEPS = 3;
 /** Fallback slate length for a year the league data doesn't list (shouldn't happen). */
 const DEFAULT_SCHEDULED_GAMES = 40;
 
@@ -49,6 +52,34 @@ const RATE_STAT_ATTEMPTS: Partial<
 
 export type StatKey = StatDef["key"];
 
+/** The five counting stats whose bars measure in "steps" and carry a spread + percentile. The
+    shooting %s (fgp/tpp/tsPct) are absent — they keep the relative-% bar and have neither. */
+const COUNTING_KEYS = ["pts", "reb", "ast", "stl", "blk"] as const;
+type CountingKey = (typeof COUNTING_KEYS)[number];
+export function isCountingStat(key: StatKey): key is CountingKey {
+  return (COUNTING_KEYS as readonly string[]).includes(key);
+}
+
+/** Percentile (0–100) of `value` within a decile ladder — 11 values at the 0,10,…,100th
+    percentiles (the backend's spacing; see wnba-data src/db/spread.ts). Linear interpolation
+    between rungs, clamped to [0,100]. */
+function interpPercentile(ladder: number[], value: number): number {
+  const n = ladder.length;
+  if (n === 0) return 0;
+  if (value <= ladder[0]) return 0;
+  if (value >= ladder[n - 1]) return 100;
+  const stepPct = 100 / (n - 1); // each gap spans one decile = 10 percentile points
+  for (let i = 1; i < n; i++) {
+    if (value <= ladder[i]) {
+      const lo = ladder[i - 1];
+      const hi = ladder[i];
+      const frac = hi > lo ? (value - lo) / (hi - lo) : 0;
+      return (i - 1) * stepPct + frac * stepPct;
+    }
+  }
+  return 100;
+}
+
 /**
  * Per-year league lookups, built once from the API's /league data. This replaces
  * the old hardcoded mock `leagueAvg`/`scheduledGames` — real per-year averages and
@@ -59,6 +90,13 @@ export interface League {
   avg(year: number, key: StatKey): number | null;
   /** The year's scheduled-game count — the small-sample denominator. */
   scheduled(year: number): number;
+  /** Population spread ("step") of a counting stat that year — the ruler for the deviation
+      bars. Null for shooting %s (no step) or when the API predates the spread data (migration
+      004), in which case the bar falls back to relative-%. */
+  stdev(year: number, key: StatKey): number | null;
+  /** Where `value` lands (0–100) among that year's qualified players for a counting stat;
+      null for shooting %s or missing data. */
+  pctile(year: number, key: StatKey, value: number): number | null;
 }
 
 export function makeLeague(seasons: LeagueSeason[]): League {
@@ -66,6 +104,12 @@ export function makeLeague(seasons: LeagueSeason[]): League {
   return {
     avg: (year, key) => byYear.get(year)?.[key] ?? null,
     scheduled: (year) => byYear.get(year)?.scheduledGames ?? DEFAULT_SCHEDULED_GAMES,
+    stdev: (year, key) => (isCountingStat(key) ? (byYear.get(year)?.stdev?.[key] ?? null) : null),
+    pctile: (year, key, value) => {
+      if (!isCountingStat(key)) return null;
+      const ladder = byYear.get(year)?.pctiles?.[key];
+      return ladder ? interpPercentile(ladder, value) : null;
+    },
   };
 }
 
@@ -74,12 +118,24 @@ export interface PositionLookup {
   /** Average of a stat for players at `position` in `year`; null if that (year, position)
       bucket has no row (too small a sample — the API omits it). */
   avg(year: number, position: string, key: StatKey): number | null;
+  /** The POSITION's own spread ("step") of a counting stat that (year, position) — position
+      bars measure against how this position varies. Null for shooting %s or missing data. */
+  stdev(year: number, position: string, key: StatKey): number | null;
+  /** Where `value` lands (0–100) among that (year, position) bucket for a counting stat. */
+  pctile(year: number, position: string, key: StatKey, value: number): number | null;
 }
 
 export function makePositionLookup(seasons: PositionSeason[]): PositionLookup {
   const byKey = new Map(seasons.map((s) => [`${s.year}|${s.position}`, s]));
   return {
     avg: (year, position, key) => byKey.get(`${year}|${position}`)?.[key] ?? null,
+    stdev: (year, position, key) =>
+      isCountingStat(key) ? (byKey.get(`${year}|${position}`)?.stdev?.[key] ?? null) : null,
+    pctile: (year, position, key, value) => {
+      if (!isCountingStat(key)) return null;
+      const ladder = byKey.get(`${year}|${position}`)?.pctiles?.[key];
+      return ladder ? interpPercentile(ladder, value) : null;
+    },
   };
 }
 
@@ -147,14 +203,6 @@ export function isStatSmallSample(season: SeasonPlayed, league: League, statKey:
   return att != null && att < MIN_RATE_ATTEMPTS;
 }
 
-export interface WindowAvailability {
-  career: boolean;
-  last5: boolean;
-  last1: boolean;
-  /** The subject season vs. the same year's peers — league/position only. */
-  thisYear: boolean;
-}
-
 export interface BaselineContext {
   /** The league lookup this context was built with — downstream fns read it for averages. */
   league: League;
@@ -164,10 +212,11 @@ export interface BaselineContext {
   /** The player's position code (G/F/C), or null if unknown — whose peers the position
       baseline compares against. */
   playerPosition: string | null;
-  /** Whether the position baseline can be offered at all (the player has a known position). */
+  /** Whether the position baseline can be offered at all (the player has a known position
+      and /positions loaded). */
   positionAvailable: boolean;
-  /** True in position mode when the subject's windowed baseline has no same-position sample
-      (every windowed year's bucket is absent) — the UI shows a "no sample" note. */
+  /** True in position mode when the subject season has no same-position sample (that year's
+      bucket is absent) — the UI shows a "no sample" note and the baseline is null. */
   positionSampleMissing: boolean;
   /** The season under examination (the "subject"), defaulting to the latest *selectable*
       (full, non-small-sample) season. */
@@ -178,52 +227,10 @@ export interface BaselineContext {
   /** Small-sample seasons excluded from selection, shown as a "not selectable" note.
       Empty in the fallback case (player has only small-sample seasons, so they stay selectable). */
   nonSelectableSmallSample: SeasonPlayed[];
-  /** All played seasons before the subject, oldest first (includes small-sample ones). */
-  history: SeasonPlayed[];
-  /** History with small-sample seasons removed — what baseline averages are computed from. */
-  eligibleHistory: SeasonPlayed[];
-  effectiveTarget: ComparisonTarget;
-  effectiveWindow: ComparisonWindow;
-  /** The target/window the user actually requested, before any subject-level fallback.
-      The drill-down's per-year baselines use these, so selecting a rookie season doesn't
-      flip the whole chart to the league fallback. */
-  requestedTarget: ComparisonTarget;
-  requestedWindow: ComparisonWindow;
-  /** True when "own" was requested but there is no prior season at all, so it fell back. */
-  fallbackActive: boolean;
-  /** Whether the player has any prior eligible season to anchor an own-baseline. */
-  ownAvailable: boolean;
-  windowAvailable: WindowAvailability;
-  /** Prior eligible seasons feeding the current window (own mode). */
-  windowedSeasons: SeasonPlayed[];
-  /** Years feeding the current window (league mode averages league value over these). */
-  windowedYears: number[];
-  /** Human label of the span the current baseline covers, e.g. "2018–2024 · 7 seasons". */
-  baselineSpanLabel: string;
+  /** What the subject season is compared against — the whole league or the player's position. */
+  target: ComparisonTarget;
   /** Gaps in the player's timeline (no data for that year). */
   missedSeasons: SeasonMissed[];
-}
-
-function pickWindow(seasons: SeasonPlayed[], window: ComparisonWindow): SeasonPlayed[] {
-  // "thisYear" isn't a span of prior seasons — it resolves to the subject year alone, which
-  // the caller handles by falling back to [subject.year] when this returns nothing.
-  if (window === "thisYear") return [];
-  if (window === "career") return seasons;
-  if (window === "last5") return seasons.slice(-LAST5_WINDOW_SIZE);
-  return seasons.slice(-1);
-}
-
-// Fallback order when the requested window isn't available for the subject. "thisYear" is
-// last so a broad request (e.g. last5 with too few priors) drops to a narrower prior-based
-// window before ever collapsing to a single year — it's only reached when nothing else fits
-// (an external baseline for a first-season player).
-const WINDOW_FALLBACK_ORDER: ComparisonWindow[] = ["career", "last5", "last1", "thisYear"];
-
-function spanLabel(years: number[]): string {
-  if (years.length === 0) return "—";
-  const min = Math.min(...years);
-  const max = Math.max(...years);
-  return min === max ? `${min}` : `${min}–${max} · ${years.length} seasons`;
 }
 
 export function getBaselineContext(
@@ -232,7 +239,6 @@ export function getBaselineContext(
   positions: PositionLookup | null,
   subjectYear: number | null,
   target: ComparisonTarget,
-  window: ComparisonWindow,
 ): BaselineContext {
   const played = playedSeasons(player);
   // Only full (non-small-sample) seasons are selectable as the subject — a handful of
@@ -241,49 +247,16 @@ export function getBaselineContext(
   const fullSeasons = played.filter((s) => !isSmallSample(s, league));
   const selectable = fullSeasons.length > 0 ? fullSeasons : played;
   const subject = selectable.find((s) => s.year === subjectYear) ?? selectable[selectable.length - 1];
-  const history = played.filter((s) => s.year < subject.year);
-  const eligibleHistory = history.filter((s) => !isSmallSample(s, league));
-  const priorCount = eligibleHistory.length;
-
-  const ownAvailable = priorCount >= 1;
-  // "own" is the only target that can fall back (to league) when there's no prior season;
-  // "league" and "position" pass through unchanged (position never auto-falls back — a
-  // missing same-position sample shows a note instead, per product decision).
-  const effectiveTarget: ComparisonTarget = target === "own" && !ownAvailable ? "league" : target;
-  const fallbackActive = target === "own" && !ownAvailable;
 
   const playerPosition = player.pos;
   const positionAvailable = playerPosition != null && positions != null;
 
-  // Only offer a prior-based window if it selects a *different* set of seasons than a
-  // narrower one — otherwise two windows show the identical number. With N prior seasons:
-  //   last year = 1 season       → needs N ≥ 1
-  //   career    = all N seasons  → duplicates "last year" at N = 1, so needs N ≥ 2
-  //   last 5    = 5 seasons      → duplicates "career" until N > 5, so needs N ≥ 6
-  // "This season" is a different axis — the subject year vs. that year's peers — so it's
-  // offered whenever the baseline is external (league/position), regardless of prior count.
-  // It also covers the first-season case that would otherwise have no external option.
-  const usesExternalBaseline = effectiveTarget === "league" || effectiveTarget === "position";
-  const windowAvailable: WindowAvailability = {
-    career: priorCount >= 2,
-    last5: priorCount >= LAST5_WINDOW_SIZE + 1,
-    last1: priorCount >= 1,
-    thisYear: usesExternalBaseline,
-  };
-  const effectiveWindow: ComparisonWindow = windowAvailable[window]
-    ? window
-    : (WINDOW_FALLBACK_ORDER.find((w) => windowAvailable[w]) ?? window);
-
-  const windowedSeasons = pickWindow(eligibleHistory, effectiveWindow);
-  const windowedYears = windowedSeasons.length ? windowedSeasons.map((s) => s.year) : [subject.year];
-
-  // In position mode, is there actually a same-position sample for the subject's window?
-  // (Uses "pts" as a witness — if the (year, position) row exists, all its stats do.)
-  const positionBaseline =
-    effectiveTarget === "position" && playerPosition != null && positions != null
-      ? average(windowedYears.map((y) => positions.avg(y, playerPosition, "pts")))
-      : null;
-  const positionSampleMissing = effectiveTarget === "position" && positionBaseline == null;
+  // In position mode, does the subject's own year have a same-position sample? (Uses "pts" as a
+  // witness — if the (year, position) row exists, all its stats do.) If not, the baseline is
+  // null and the UI shows a note; position never silently falls back to league.
+  const positionSampleMissing =
+    target === "position" &&
+    (playerPosition == null || positions == null || positions.avg(subject.year, playerPosition, "pts") == null);
 
   return {
     league,
@@ -294,18 +267,7 @@ export function getBaselineContext(
     subject,
     selectableYears: [...selectable].map((s) => s.year).reverse(),
     nonSelectableSmallSample: fullSeasons.length > 0 ? played.filter((s) => isSmallSample(s, league)) : [],
-    history,
-    eligibleHistory,
-    effectiveTarget,
-    effectiveWindow,
-    requestedTarget: target,
-    requestedWindow: window,
-    fallbackActive,
-    ownAvailable,
-    windowAvailable,
-    windowedSeasons,
-    windowedYears,
-    baselineSpanLabel: spanLabel(windowedYears),
+    target,
     missedSeasons: player.seasons.filter((s): s is SeasonMissed => !s.played),
   };
 }
@@ -342,22 +304,14 @@ export function ownStatAverage(statKey: StatKey, seasons: SeasonPlayed[]): numbe
 }
 
 export function getBaselineValue(statKey: StatDef["key"], ctx: BaselineContext): number | null {
-  if (ctx.effectiveTarget === "league") {
-    return average(ctx.windowedYears.map((y) => ctx.league.avg(y, statKey)));
-  }
-  if (ctx.effectiveTarget === "position") {
+  const y = ctx.subject.year;
+  if (ctx.target === "position") {
     const pos = ctx.playerPosition;
     const lookup = ctx.positions;
     if (pos == null || lookup == null) return null;
-    return average(ctx.windowedYears.map((y) => lookup.avg(y, pos, statKey)));
+    return lookup.avg(y, pos, statKey);
   }
-  // Pool rate stats from totals, but only over seasons that are a real sample for this stat —
-  // a window of only attempt-thin seasons would otherwise pool to noise. If nothing eligible
-  // remains (a first real season with no prior history), the baseline is null — the summary
-  // then shows "—" and no bar, since there's nothing to be above or below.
-  const arr = ctx.windowedSeasons.filter((s) => !isStatSmallSample(s, ctx.league, statKey));
-  if (arr.length === 0) return null;
-  return ownStatAverage(statKey, arr);
+  return ctx.league.avg(y, statKey);
 }
 
 export interface DeviationRow {
@@ -382,7 +336,8 @@ export interface DeviationRow {
   smallSample: boolean;
 }
 
-/** Bar geometry: relative deviation clamped at ±BAR_FULL_SCALE, centered on the baseline. */
+/** Bar geometry: relative deviation clamped at ±BAR_FULL_SCALE, centered on the baseline.
+    The fallback ruler for shooting %s and for pre-004 data with no spread. */
 function barGeometry(cur: number | null, base: number | null): { up: boolean; barPct: number; leftPct: number } {
   if (cur == null || base == null) return { up: false, barPct: 0, leftPct: 50 };
   const ratio = base ? (cur - base) / base : 0;
@@ -391,14 +346,46 @@ function barGeometry(cur: number | null, base: number | null): { up: boolean; ba
   return { up, barPct, leftPct: up ? 50 : 50 - barPct };
 }
 
+/** Bar geometry for a counting stat in "steps" — deviation ÷ the comparison group's spread,
+    a full bar at FULL_STEPS. This is what stops elite players' bars from all pinning to the
+    end and stops small-denominator stats (blocks/steals) from exploding. Returns null when
+    there's no usable spread (a shooting %, or data older than migration 004), so the caller
+    falls back to barGeometry (relative-%). */
+function stepGeometry(
+  cur: number | null,
+  base: number | null,
+  spread: number | null,
+): { up: boolean; barPct: number; leftPct: number } | null {
+  if (cur == null || base == null || spread == null || spread <= 0) return null;
+  const steps = (cur - base) / spread;
+  const barPct = +(Math.min(Math.abs(steps) / FULL_STEPS, 1) * 50).toFixed(2);
+  const up = cur - base >= 0;
+  return { up, barPct, leftPct: up ? 50 : 50 - barPct };
+}
+
 export function buildRows(ctx: BaselineContext): DeviationRow[] {
-  const { subject } = ctx;
+  const { subject, league, positions, target, playerPosition } = ctx;
   return STATS.map((st) => {
     const cur = subject[st.key];
     const base = getBaselineValue(st.key, ctx);
     // Too few attempts (or games) for this stat → the subject value is noise, so no bar/delta.
-    const smallSample = isStatSmallSample(subject, ctx.league, st.key);
-    const { up, barPct, leftPct } = smallSample ? { up: false, barPct: 0, leftPct: 50 } : barGeometry(cur, base);
+    const smallSample = isStatSmallSample(subject, league, st.key);
+
+    // A counting stat's bar measures in "steps" of the comparison group's spread, from the
+    // subject year's group: the position in position mode, otherwise the league. Shooting %s
+    // and pre-004 data have no spread → null → the bar falls back to relative-%. (The percentile
+    // gloss lives in the stat drill-down, not here.)
+    let spread: number | null = null;
+    if (isCountingStat(st.key) && cur != null) {
+      spread =
+        target === "position" && playerPosition != null && positions != null
+          ? positions.stdev(subject.year, playerPosition, st.key)
+          : league.stdev(subject.year, st.key);
+    }
+
+    const { up, barPct, leftPct } = smallSample
+      ? { up: false, barPct: 0, leftPct: 50 }
+      : (stepGeometry(cur, base, spread) ?? barGeometry(cur, base));
     const hasDelta = !smallSample && cur != null && base != null;
     return {
       key: st.key,
@@ -419,21 +406,11 @@ export function buildRows(ctx: BaselineContext): DeviationRow[] {
   });
 }
 
-const WINDOW_LABEL: Record<ComparisonWindow, string> = {
-  career: "career",
-  last5: "previous 5 seasons",
-  last1: "previous season",
-  thisYear: "this season",
-};
-
 export function buildCaption(ctx: BaselineContext, playerName: string): string {
-  const { subject, effectiveTarget, effectiveWindow, baselineSpanLabel, playerPosition } = ctx;
-  const win = WINDOW_LABEL[effectiveWindow];
-  if (effectiveTarget === "league")
-    return `Comparing ${subject.year} against the WNBA league average — ${win} (${baselineSpanLabel}).`;
-  if (effectiveTarget === "position")
-    return `Comparing ${subject.year} against other ${positionNoun(playerPosition)} — ${win} (${baselineSpanLabel}).`;
-  return `Comparing ${subject.year} against ${firstName(playerName)}'s own ${win} (${baselineSpanLabel}).`;
+  const { subject, target, playerPosition } = ctx;
+  if (target === "position")
+    return `Comparing ${firstName(playerName)}'s ${subject.year} against other ${positionNoun(playerPosition)} that season.`;
+  return `Comparing ${firstName(playerName)}'s ${subject.year} against the WNBA league average that season.`;
 }
 
 export interface StatBar {
@@ -449,8 +426,8 @@ export interface StatBar {
   baseFmt?: string;
   /** Value's height as a percent of the chart height (the line point). */
   hPct?: number;
-  /** This season's OWN baseline height (percent) — the per-year tick. Undefined = no
-      baseline for this season (e.g. a rookie year with no prior history to average). */
+  /** This season's baseline height (percent) — the per-year tick (that year's league or
+      position average). Undefined = no baseline (a year with no same-position sample). */
   basePct?: number;
   smallSample?: boolean;
   /** Whether this season can be selected as the subject — false for small-sample seasons
@@ -472,6 +449,10 @@ export interface StatTableRow {
   att: number | null;
   deltaFmt: string;
   deltaColor: string;
+  /** This season's percentile (0–100) within its comparison group (league/position) — the
+      table's "Pct" column. Null for shooting %s (no ladder), small-sample/missed seasons, a
+      missing position bucket, or pre-004 data. */
+  pctile: number | null;
   missed: boolean;
   smallSample: boolean;
   /** Whether this season can be selected as the subject (see StatBar.selectable). */
@@ -519,41 +500,20 @@ export function buildStatDetail(player: PlayerDetail, stat: StatDef, ctx: Baseli
   // or for a shooting % too few attempts) — so selecting it never puts a noisy 100%-on-1-shot
   // season under the lens. If no season qualifies for this stat, they all stay selectable.
   const anyFull = allPlayed.some((s) => !isStatSmallSample(s, ctx.league, stat.key));
-  // Use the REQUESTED target/window (not the subject-level effective fallback) so that
-  // selecting a rookie season keeps the whole chart on "her own" instead of flipping to
-  // league. Each season's baseline still handles its own no-history case (uses its value).
-  const target = ctx.requestedTarget;
-  const window = ctx.requestedWindow;
+  const target = ctx.target;
 
-  // Each season's OWN baseline, computed relative to that season (its prior window),
-  // using the same target/window the summary shows. Drawn as a per-year tick, so the
-  // chart is static — selecting a season never moves a shared baseline. An "own"
-  // baseline is null when the season has no prior eligible history (e.g. a rookie
-  // year) → no tick, per product decision. (League always has a value that year.)
+  // Each season's baseline = that year's league (or position) average, drawn as a per-year tick,
+  // so the chart is static — selecting a season never moves a shared baseline. A position year
+  // with no same-position sample has no baseline (null → no tick, and a neutral value dot).
   const baselineByYear = new Map<number, number | null>();
   for (const s of allPlayed) {
-    const priorEligible = allPlayed.filter((p) => p.year < s.year && !isSmallSample(p, ctx.league));
-    const windowed = pickWindow(priorEligible, window);
     let b: number | null;
-    if (target === "league") {
-      const years = windowed.length ? windowed.map((w) => w.year) : [s.year];
-      b = average(years.map((y) => ctx.league.avg(y, stat.key)));
-    } else if (target === "position") {
-      // Same shape as league, but the same-position average per year. A year with no
-      // same-position sample contributes null and drops out (or leaves no tick).
+    if (target === "position") {
       const pos = ctx.playerPosition;
       const lookup = ctx.positions;
-      const years = windowed.length ? windowed.map((w) => w.year) : [s.year];
-      b = pos == null || lookup == null ? null : average(years.map((y) => lookup.avg(y, pos, stat.key)));
+      b = pos == null || lookup == null ? null : lookup.avg(s.year, pos, stat.key);
     } else {
-      // Own baseline. Pool rate stats from totals, but ONLY over seasons that are themselves a
-      // real sample for this stat — otherwise a window made up entirely of attempt-thin seasons
-      // (e.g. A'ja Wilson's pre-2022 threes, 0/0–1/1) would pool to garbage like 50%. When
-      // nothing eligible remains (a first real season, with no prior history to compare against),
-      // the baseline is null → the chart draws no baseline dot and the value dot is neutral,
-      // because a first season can't be above or below a baseline that doesn't exist yet.
-      const ownWindowed = windowed.filter((w) => !isStatSmallSample(w, ctx.league, stat.key));
-      b = ownWindowed.length ? ownStatAverage(stat.key, ownWindowed) : null;
+      b = ctx.league.avg(s.year, stat.key);
     }
     baselineByYear.set(s.year, b);
   }
@@ -566,6 +526,14 @@ export function buildStatDetail(player: PlayerDetail, stat: StatDef, ctx: Baseli
   const subjectSmall = isStatSmallSample(subject, ctx.league, stat.key);
   const hasDelta = !subjectSmall && cur != null && base != null;
   const up = hasDelta ? cur - base >= 0 : false;
+
+  // A season's percentile within its comparison group — the position bucket in position mode,
+  // else the league. Null for shooting %s (no ladder), a small-sample season, a missing position
+  // bucket, or pre-004 data. Fed to the table's "Pct" column.
+  const pctileFor = (year: number, value: number): number | null =>
+    ctx.target === "position" && ctx.playerPosition != null && ctx.positions != null
+      ? ctx.positions.pctile(year, ctx.playerPosition, stat.key, value)
+      : ctx.league.pctile(year, stat.key, value);
 
   // The chart shows only trustworthy seasons: played, with a value for this stat, and NOT a
   // small sample (too few games, or too few attempts for a shooting %). DNP / 0-attempt /
@@ -623,6 +591,7 @@ export function buildStatDetail(player: PlayerDetail, stat: StatDef, ctx: Baseli
         att: null,
         deltaFmt: "—",
         deltaColor: "var(--color-neutral-700)",
+        pctile: null,
         missed: true,
         smallSample: false,
         selectable: false,
@@ -647,6 +616,7 @@ export function buildStatDetail(player: PlayerDetail, stat: StatDef, ctx: Baseli
       att: componentPair ? (x[componentPair.att] as number) : null,
       deltaFmt: rowHasDelta ? fmtRaw(v - rowBase, stat.pct) : "—",
       deltaColor: rowUp ? "var(--hm-above-text)" : "var(--hm-below-text)",
+      pctile: !small && v != null ? pctileFor(x.year, v) : null,
       missed: false,
       smallSample: small,
       selectable: !small || !anyFull,

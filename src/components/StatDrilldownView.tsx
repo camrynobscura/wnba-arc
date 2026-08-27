@@ -21,6 +21,13 @@ interface StatDrilldownViewProps {
 
 const PLOT_H = 220; // px
 
+/** 1 → "1st", 2 → "2nd", 94 → "94th" — for the drill-down's percentile line. */
+function ordinal(n: number): string {
+  const s = ["th", "st", "nd", "rd"];
+  const v = n % 100;
+  return `${n}${s[(v - 20) % 10] || s[v] || s[0]}`;
+}
+
 export function StatDrilldownView({ player, stat, target, positionAvailable, players, listError, onTargetChange, onBack, onSelectYear, onPick }: StatDrilldownViewProps) {
   const bars = stat.bars;
   const n = bars.length;
@@ -29,6 +36,11 @@ export function StatDrilldownView({ player, stat, target, positionAvailable, pla
   // stat-aware: a shooting % can be thin on games OR attempts; a counting stat only on games.
   const anySmallRow = stat.tableRows.some((r) => r.smallSample && !r.missed);
   const smallSampleKey = stat.component ? "small sample (few games or attempts)" : "small sample (few games)";
+  // The percentile ("Pct") column shows only for counting stats with ladders — shooting %s and
+  // pre-004 data have no percentile, so it's hidden then. It ranks the season "in the league" or
+  // "among {position}", matching the current Compare-against target.
+  const showPct = stat.tableRows.some((r) => r.pctile != null);
+  const pctWhere = target === "position" ? `among ${positionNoun(player.pos)}` : "in the league";
 
   const renderRow = (r: StatTableRow) => {
     // Small-sample seasons aren't selectable (unless it's the fallback where a player has no
@@ -83,6 +95,11 @@ export function StatDrilldownView({ player, stat, target, positionAvailable, pla
       <td style={{ textAlign: "right" }} className="text-muted">
         {r.min != null ? r.min.toFixed(1) : "—"}
       </td>
+      {showPct && (
+        <td style={{ textAlign: "right" }}>
+          {r.pctile != null ? ordinal(Math.round(r.pctile)) : <span className="text-muted">—</span>}
+        </td>
+      )}
       <td style={{ textAlign: "right", color: r.missed ? undefined : r.deltaColor }}>
         {r.deltaFmt}
       </td>
@@ -165,9 +182,8 @@ export function StatDrilldownView({ player, stat, target, positionAvailable, pla
           ariaLabel="Compare against"
           value={target}
           options={[
-            { value: "own", label: "Their own" },
-            ...(positionAvailable ? [{ value: "position", label: `Other ${positionNoun(player.pos)}` }] : []),
             { value: "league", label: "League avg" },
+            ...(positionAvailable ? [{ value: "position", label: `Other ${positionNoun(player.pos)}` }] : []),
           ]}
           onChange={(v) => onTargetChange(v as ComparisonTarget)}
         />
@@ -375,28 +391,9 @@ export function StatDrilldownView({ player, stat, target, positionAvailable, pla
           gives evenly-distributed columns and makes the table fit its container at any
           width (no horizontal scroll needed → nothing clips the header tooltips). */}
       <div style={{ marginTop: 22 }}>
+        {/* table-layout: fixed + no per-column widths ⇒ every column is an equal share of the
+            100%-wide table (5, 6, or 7 columns depending on the stat). */}
         <table className="table" style={{ tableLayout: "fixed" }} aria-label="Season stats">
-          <colgroup>
-            {stat.component ? (
-              <>
-                <col style={{ width: "17%" }} />
-                <col style={{ width: "12%" }} />
-                <col style={{ width: "12%" }} />
-                <col style={{ width: "16%" }} />
-                <col style={{ width: "12%" }} />
-                <col style={{ width: "13%" }} />
-                <col style={{ width: "18%" }} />
-              </>
-            ) : (
-              <>
-                <col style={{ width: "24%" }} />
-                <col style={{ width: "19%" }} />
-                <col style={{ width: "19%" }} />
-                <col style={{ width: "19%" }} />
-                <col style={{ width: "19%" }} />
-              </>
-            )}
-          </colgroup>
           <thead>
             <tr>
               <th>Season</th>
@@ -419,8 +416,13 @@ export function StatDrilldownView({ player, stat, target, positionAvailable, pla
               <th style={{ textAlign: "right" }}>
                 <InfoTip label="Min" tip="Minutes played per game" />
               </th>
+              {showPct && (
+                <th style={{ textAlign: "right" }}>
+                  <InfoTip label="Pct" tip={`This season's percentile ${pctWhere}`} />
+                </th>
+              )}
               <th style={{ textAlign: "right" }}>
-                <InfoTip label="vs base" tip="Difference from that season's baseline (the player's prior average, or the league)" />
+                <InfoTip label="vs base" tip="Difference from that season's baseline (the league or same-position average that year)" />
               </th>
             </tr>
           </thead>

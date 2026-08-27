@@ -63,6 +63,24 @@ export interface Meta {
 }
 
 /** Per-year league context — averages + real slate length. */
+/** Spread ("step") + percentile ladders travel only for the five COUNTING stats — the ones
+    whose bars measure in league-steps. The shooting %s keep their relative-% bar, so they carry
+    neither. Both are `null` on data from an API older than migration 004; the frontend then
+    falls back to the relative-% bar. Mirror of the backend contract's StatSpread/StatPctiles. */
+export interface StatSpread {
+  pts: number;
+  reb: number;
+  ast: number;
+  stl: number;
+  blk: number;
+}
+export interface StatPctiles {
+  pts: number[];
+  reb: number[];
+  ast: number[];
+  stl: number[];
+  blk: number[];
+}
 export interface LeagueSeason {
   year: number;
   scheduledGames: number;
@@ -74,6 +92,8 @@ export interface LeagueSeason {
   fgp: number;
   tpp: number;
   tsPct: number; // league TS% — the baseline for the displayed TS%
+  stdev: StatSpread | null; // per-stat population spread — the deviation bar's step
+  pctiles: StatPctiles | null; // value-at-decile ladders — for the percentile tooltip
 }
 
 /** Per-year, per-position averages — the "compare to same position" baseline. A (year,
@@ -91,6 +111,8 @@ export interface PositionSeason {
   fgp: number;
   tpp: number;
   tsPct: number;
+  stdev: StatSpread | null; // the position's own spread (bars measure vs this position's variation)
+  pctiles: StatPctiles | null;
 }
 
 // ── fetch plumbing ───────────────────────────────────────────────────────────

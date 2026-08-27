@@ -344,7 +344,7 @@ select.select-reset {
 }
 textarea.input { min-height: 90px; resize: vertical; }
 
-/* — Season Breakdown controls (SummaryView) — Season / Baseline / Window as one row of
+/* — League-comparison controls (SummaryView) — Season + "Compare against" as one row of
    matching dropdowns, with the caption of what's being compared full-width beneath. The row
    wraps to multiple lines on a narrow viewport (order preserved). */
 .sb-controls { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; margin-bottom: 8px; }

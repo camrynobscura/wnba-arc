@@ -46,20 +46,24 @@ export function AboutView({ onBack }: AboutViewProps) {
 
       <section style={sectionStyle}>
         <h2 style={h2Style}>How to read it</h2>
-        <p style={{ marginBottom: 12 }}>Two controls set what "normal" means:</p>
         <p style={{ marginBottom: 12 }}>
-          <strong>Baseline.</strong> Measure a player against their own history or against the league. When it's their
-          own, the season you're viewing is left out, so a big year always looks like one.
+          Each player has two views. <strong>Career Trend</strong> grids every season against that player's own career
+          average (warmer above, cooler below), so a whole career reads at a glance. The <strong>league comparison</strong>{" "}
+          below it takes one season and shows how each stat stacks up against everyone else that year.
         </p>
         <p style={{ marginBottom: 12 }}>
-          <strong>Window.</strong> Choose what the baseline covers: their whole career, the previous five years, the
-          previous year, or — for a league or same-position comparison — just this season. Options that wouldn't
-          change anything are hidden, so what you see always matters.
+          <strong>Two controls.</strong> Pick the <strong>season</strong>, then choose what to compare it against — the
+          whole <strong>league</strong> average, or other players at the same <strong>position</strong> (guards,
+          forwards, or centers) — for that same year.
         </p>
         <p style={{ margin: 0 }}>
-          Each player has two views. <strong>Career Trend</strong> grids every season against their career average
-          (warmer above, cooler below) so a whole career reads at a glance. <strong>Season Breakdown</strong> takes one
-          season and shows each stat as a bar. Click any stat to see its full history.
+          <strong>The bars.</strong> A bar's length is how far the stat lands from that average — but measured against
+          how much players actually differ on it, not as a flat percentage. That keeps an ordinary bump on a low-volume
+          stat (a tenth of a block) small, while a genuinely rare number — leading the league in rebounds — fills the
+          bar. A full bar is about as far from normal as anyone gets, so the handful of all-time seasons past that point
+          simply max out. Click into any stat for its full year-by-year history and where the season ranks — its
+          percentile against the league or the chosen position. Shooting percentages are the exception — they're shown
+          as a plain gap from the average.
         </p>
       </section>
 

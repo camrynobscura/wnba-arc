@@ -1,7 +1,7 @@
 import { photoUrl, type StatDef } from "../data/stats";
 import type { PlayerDetail, PlayerSummary } from "../data/api";
 import { PlayerSearch } from "./PlayerSearch";
-import { isSmallSample, positionNoun, type BaselineContext, type ComparisonTarget, type ComparisonWindow, type DeviationRow } from "../lib/deviation";
+import { firstName, isSmallSample, positionNoun, type BaselineContext, type ComparisonTarget, type DeviationRow } from "../lib/deviation";
 import { PlayerPhoto } from "./PlayerPhoto";
 import { DeviationBlocks } from "./DeviationBlocks";
 import { CareerHeatmap } from "./CareerHeatmap";
@@ -33,23 +33,12 @@ interface SummaryViewProps {
   /** Full roster + its load error, for the in-row "search more players" box. */
   players: PlayerSummary[] | null;
   listError: string | null;
-  onWinChange: (win: ComparisonWindow) => void;
   onTargetChange: (target: ComparisonTarget) => void;
   onSubjectYearChange: (year: number) => void;
   onGoHome: () => void;
   onOpenStat: (key: StatDef["key"]) => void;
   onPick: (espn: string) => void;
 }
-
-// Dropdown order = smallest span to biggest: this season → previous year → previous 5 → career.
-// "Previous" (not "last") because the subject can be a past season — the years before 2019
-// aren't naturally "last year" / "last 5 years".
-const WINDOW_LABEL: Record<ComparisonWindow, string> = {
-  thisYear: "This season",
-  last1: "Previous year",
-  last5: "Previous 5 years",
-  career: "Career",
-};
 
 export function SummaryView({
   player,
@@ -58,7 +47,6 @@ export function SummaryView({
   caption,
   players,
   listError,
-  onWinChange,
   onTargetChange,
   onSubjectYearChange,
   onGoHome,
@@ -68,11 +56,7 @@ export function SummaryView({
   const {
     subject,
     league,
-    effectiveTarget,
-    effectiveWindow,
-    fallbackActive,
-    ownAvailable,
-    windowAvailable,
+    target,
     selectableYears,
     nonSelectableSmallSample,
     missedSeasons,
@@ -88,7 +72,7 @@ export function SummaryView({
     missedByReason.set(reason, [...(missedByReason.get(reason) ?? []), m.year]);
   }
   const missedGroups = [...missedByReason.entries()];
-  // Only full (non-small-sample) seasons are offered; the context handles the fallback.
+  // Only full (non-small-sample) seasons are offered as the subject.
   const years = selectableYears;
   // A small-sample row is almost always "too few attempts" (the subject is a full-games season);
   // it's only "too few games" in the degenerate fallback where the player has no full season.
@@ -128,14 +112,13 @@ export function SummaryView({
 
       <CareerHeatmap player={player} league={league} subjectYear={subject.year} />
 
-      <h2 style={{ fontSize: 20, margin: "0 0 14px" }}>Season Breakdown</h2>
+      <h2 style={{ fontSize: 20, margin: "0 0 14px" }}>{firstName(player.name)} vs the League</h2>
 
-      {/* Controls (.sb-* in theme.css). Desktop: comparison controls left, season picker
-          right. Mobile: a single left-aligned column — season+games first (it's first in
-          the DOM; row-reverse flips it to the right on desktop), then the compare controls. */}
-      {/* Season / Baseline / Window as one row of matching dropdowns; the caption of what's
-          being compared spans full-width beneath. An unavailable window (one that would collapse
-          to a narrower one — the distinctness rule) is a disabled option: shown but not choosable. */}
+      {/* Controls (.sb-* in theme.css). Desktop: the comparison control left, season picker
+          right. Mobile: a single left-aligned column. Pick a season, then compare it to that
+          same year's whole-league average or its position peers — the caption spans full-width
+          beneath. (The old "their own" baseline + Window control were removed; the Career Trend
+          heatmap above already tells the own-trajectory story. See DECISIONS.) */}
       <div className="sb-controls">
         <div className="sb-selectors">
           <LabeledSelect
@@ -146,36 +129,20 @@ export function SummaryView({
             onChange={(v) => onSubjectYearChange(Number(v))}
           />
           <LabeledSelect
-            label="Baseline"
-            value={effectiveTarget}
+            label="Compare against"
+            value={target}
             options={[
-              { value: "own", label: "Their own", disabled: !ownAvailable },
+              { value: "league", label: "League avg" },
               // Offered only once /positions has loaded and the player has a known position.
               ...(positionAvailable ? [{ value: "position", label: `Other ${positionNoun(playerPosition)}` }] : []),
-              { value: "league", label: "League avg" },
             ]}
             onChange={(v) => onTargetChange(v as ComparisonTarget)}
-          />
-          <LabeledSelect
-            label="Window"
-            value={effectiveWindow}
-            options={(Object.keys(WINDOW_LABEL) as ComparisonWindow[]).map((w) => ({
-              value: w,
-              label: WINDOW_LABEL[w],
-              disabled: !windowAvailable[w],
-            }))}
-            onChange={(v) => onWinChange(v as ComparisonWindow)}
           />
         </div>
         <p className="text-muted" style={{ fontSize: 13, margin: 0 }}>
           {caption}
         </p>
       </div>
-      {fallbackActive && (
-        <span className="tag tag-accent" style={{ marginBottom: 8 }}>
-          Using league average — no prior season to compare against yet
-        </span>
-      )}
 
       {(nonSelectableSmallSample.length > 0 || missedGroups.length > 0 || positionSampleMissing) && (
         <div
@@ -272,7 +239,7 @@ export function SummaryView({
         ))}
       </div>
       <p className="text-muted" style={{ fontSize: 12, marginTop: 16 }}>
-        Bars show each stat's distance from its baseline (full bar = 50% above/below). Click a stat for its year-by-year history →
+        Bars show how far each stat sits above or below its baseline — the further out, the more exceptional. Click a stat for its year-by-year history and percentile ranking →
       </p>
     </main>
   );
