@@ -137,10 +137,10 @@ export function StatDrilldownView({ player, stat, target, positionAvailable, pla
       </div>
       <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
         <div>
-          <h1 style={{ margin: 0, fontSize: 28 }}>{stat.label}</h1>
+          <h1 style={{ margin: 0, fontSize: "var(--fs-2xl)" }}>{stat.label}</h1>
           {/* Every stat gets a unit subtitle so the header height is consistent: counting
               stats are per-game averages; shooting %s are whole-season rates. */}
-          <div className="text-muted" style={{ fontSize: 12, marginTop: 2 }}>
+          <div className="text-muted" style={{ fontSize: "var(--fs-xs)", marginTop: 2 }}>
             {stat.pct ? "season rate" : "per game"}
           </div>
         </div>
@@ -148,35 +148,35 @@ export function StatDrilldownView({ player, stat, target, positionAvailable, pla
           <div style={{ display: "flex", alignItems: "baseline", gap: 8, justifyContent: "flex-end" }}>
             <span
               className="text-heading"
-              style={{ fontSize: 28, lineHeight: 1, color: stat.subjectSmallSample ? "var(--color-neutral-500)" : undefined }}
+              style={{ fontSize: "var(--fs-2xl)", lineHeight: 1, color: stat.subjectSmallSample ? "var(--color-neutral-500)" : undefined }}
             >
               {stat.curFmt}
             </span>
             {stat.subjectSmallSample ? (
-              <span className="text-muted" style={{ fontSize: 13 }}>small sample</span>
+              <span className="text-muted" style={{ fontSize: "var(--fs-sm)" }}>small sample</span>
             ) : (
-              <span className="text-heading" style={{ fontSize: 18, color: stat.deltaColor }}>
+              <span className="text-heading" style={{ fontSize: "var(--fs-lg)", color: stat.deltaColor }}>
                 {stat.rawFmt}
               </span>
             )}
           </div>
-          <div className="text-muted" style={{ fontSize: 12, marginTop: 2 }}>
+          <div className="text-muted" style={{ fontSize: "var(--fs-xs)", marginTop: 2 }}>
             {stat.year} · baseline {stat.baseFmt}
           </div>
         </div>
       </div>
-      <p className="text-muted" style={{ fontSize: 13, margin: stat.positionNote ? "8px 0 8px" : "8px 0 18px" }}>
+      <p className="text-muted" style={{ fontSize: "var(--fs-sm)", margin: stat.positionNote ? "8px 0 8px" : "8px 0 18px" }}>
         {stat.caption}
       </p>
       {stat.positionNote && (
-        <p role="note" className="text-muted" style={{ fontSize: 12.5, lineHeight: 1.4, margin: "0 0 18px", paddingLeft: 10, borderLeft: "2px solid var(--color-divider)" }}>
+        <p role="note" className="text-muted" style={{ fontSize: "var(--fs-xs)", lineHeight: 1.4, margin: "0 0 18px", paddingLeft: 10, borderLeft: "2px solid var(--color-divider)" }}>
           {stat.positionNote}
         </p>
       )}
 
       {/* Legend + baseline toggle */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 10, marginBottom: 10 }}>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: "6px 16px", fontSize: 12 }}>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "6px 16px", fontSize: "var(--fs-xs)" }}>
           <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
             <span aria-hidden="true" style={{ width: 10, height: 10, borderRadius: "50%", background: "var(--hm-above)" }} />
             Above baseline
@@ -203,7 +203,7 @@ export function StatDrilldownView({ player, stat, target, positionAvailable, pla
 
       <div className="card" style={{ padding: "18px 18px 12px" }}>
         {stat.chartFallback ? (
-          <div className="text-muted" style={{ padding: "48px 8px", textAlign: "center", fontSize: 13 }}>
+          <div className="text-muted" style={{ padding: "48px 8px", textAlign: "center", fontSize: "var(--fs-sm)" }}>
             {stat.chartFallback}
           </div>
         ) : (
@@ -221,7 +221,7 @@ export function StatDrilldownView({ player, stat, target, positionAvailable, pla
                   position: "absolute",
                   left: 0,
                   top: -7,
-                  fontSize: 10,
+                  fontSize: "var(--fs-3xs)",
                   color: "var(--color-neutral-700)",
                   background: "var(--color-bg)",
                   paddingRight: 4,
@@ -334,14 +334,17 @@ export function StatDrilldownView({ player, stat, target, positionAvailable, pla
                 {/* value number for the selected season, offset off the dot for breathing room */}
                 {sub && (
                   <span
-                    className="text-heading"
                     style={{
                       position: "absolute",
                       left: "50%",
                       top: `${yVal}%`,
-                      transform: valueAbove ? "translate(-50%, -50%) translateY(-18px)" : "translate(-50%, -50%) translateY(18px)",
-                      fontSize: 12,
-                      fontWeight: 700, // heavier than the utility's default for the on-chart value label
+                      // Anchor by the label's NEAR edge (not its center) so the gap to the dot is
+                      // the same for both labels regardless of height (the baseline label is 2 rows).
+                      transform: valueAbove
+                        ? "translate(-50%, -100%) translateY(-12px)"
+                        : "translate(-50%, 0) translateY(12px)",
+                      fontSize: "var(--fs-xs)",
+                      fontWeight: 700, // bold for emphasis; body font (no text-heading) to match the baseline label
                       color: "var(--color-text)",
                       whiteSpace: "nowrap",
                     }}
@@ -358,14 +361,22 @@ export function StatDrilldownView({ player, stat, target, positionAvailable, pla
                       position: "absolute",
                       left: "50%",
                       top: `${yBase}%`,
+                      // Near-edge anchored (see the value label) so both labels sit the same
+                      // distance from their dot, whichever is on top.
                       transform: valueAbove
-                        ? "translate(-50%, -50%) translateY(18px)"
-                        : "translate(-50%, -50%) translateY(-18px)",
-                      fontSize: 11,
-                      whiteSpace: "nowrap",
+                        ? "translate(-50%, 0) translateY(12px)"
+                        : "translate(-50%, -100%) translateY(-12px)",
+                      fontSize: "var(--fs-2xs)",
+                      // Stacked ("base" over the value) so the label stays within the narrow
+                      // column instead of spilling past its edges.
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      lineHeight: 1.15,
                     }}
                   >
-                    base {b.baseFmt}
+                    <span>base</span>
+                    <span>{b.baseFmt}</span>
                   </span>
                 )}
               </button>
@@ -380,7 +391,7 @@ export function StatDrilldownView({ player, stat, target, positionAvailable, pla
               <span
                 className="text-muted"
                 title={b.missed ? b.reason : undefined}
-                style={{ fontSize: 10, fontWeight: b.isSubject ? 700 : 400, opacity: b.missed ? 0.6 : 1 }}
+                style={{ fontSize: "var(--fs-3xs)", fontWeight: b.isSubject ? 700 : 400, opacity: b.missed ? 0.6 : 1 }}
               >
                 '{b.yy}
               </span>
@@ -391,7 +402,7 @@ export function StatDrilldownView({ player, stat, target, positionAvailable, pla
         )}
       </div>
       {!stat.chartFallback && (
-        <p className="text-muted" style={{ fontSize: 12, marginTop: 14 }}>
+        <p className="text-muted" style={{ fontSize: "var(--fs-xs)", marginTop: 14 }}>
           Each season shows two dots — {firstName(player.name)}'s {stat.label.toLowerCase()} (red above the baseline, blue
           below) and grey = the baseline; the gap between them is that season's deviation. The selected season is labeled
           with both values (hover any season to read its numbers). Tap a season to compare it. Low-sample seasons are left
@@ -404,7 +415,7 @@ export function StatDrilldownView({ player, stat, target, positionAvailable, pla
           width (no horizontal scroll needed → nothing clips the header tooltips). */}
       <div style={{ marginTop: 22 }}>
         {missedNote && (
-          <p role="note" className="text-muted" style={{ fontSize: 12.5, lineHeight: 1.4, margin: "0 0 12px", paddingLeft: 10, borderLeft: "2px solid var(--color-divider)" }}>
+          <p role="note" className="text-muted" style={{ fontSize: "var(--fs-xs)", lineHeight: 1.4, margin: "0 0 12px", paddingLeft: 10, borderLeft: "2px solid var(--color-divider)" }}>
             {missedNote}
           </p>
         )}
@@ -413,32 +424,32 @@ export function StatDrilldownView({ player, stat, target, positionAvailable, pla
         <table className="table" style={{ tableLayout: "fixed" }} aria-label="Season stats">
           <thead>
             <tr>
-              <th>Season</th>
+              <th scope="col">Season</th>
               {/* Makes/attempts for a rate stat, right before the % they produce — so a thin
                   season (e.g. 3PM 1 / 3PA 1 = 100%) explains its own "small sample" tag. */}
               {stat.component && (
                 <>
-                  <th style={{ textAlign: "right" }}>
+                  <th scope="col" style={{ textAlign: "right" }}>
                     <InfoTip label={stat.component.madeShort} tip={`${stat.component.noun} made that season`} />
                   </th>
-                  <th style={{ textAlign: "right" }}>
+                  <th scope="col" style={{ textAlign: "right" }}>
                     <InfoTip label={stat.component.attShort} tip={`${stat.component.noun} attempted that season`} />
                   </th>
                 </>
               )}
-              <th style={{ textAlign: "right" }}>{stat.short}</th>
-              <th style={{ textAlign: "right" }}>
+              <th scope="col" style={{ textAlign: "right" }}>{stat.short}</th>
+              <th scope="col" style={{ textAlign: "right" }}>
                 <InfoTip label="GP" tip="Games played that season" />
               </th>
-              <th style={{ textAlign: "right" }}>
+              <th scope="col" style={{ textAlign: "right" }}>
                 <InfoTip label="Min" tip="Minutes played per game" />
               </th>
               {showPct && (
-                <th style={{ textAlign: "right" }}>
+                <th scope="col" style={{ textAlign: "right" }}>
                   <InfoTip label="Pct" tip={`This season's percentile ${pctWhere}`} />
                 </th>
               )}
-              <th style={{ textAlign: "right" }}>
+              <th scope="col" style={{ textAlign: "right" }}>
                 <InfoTip label="vs base" tip="Difference from that season's baseline (the league or same-position average that year)" />
               </th>
             </tr>

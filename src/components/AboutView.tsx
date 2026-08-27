@@ -11,7 +11,7 @@ const sectionStyle: React.CSSProperties = {
   borderTop: "1px solid var(--color-divider)",
 };
 const h2Style: React.CSSProperties = {
-  fontSize: 26,
+  fontSize: "var(--fs-2xl)",
   letterSpacing: "-0.01em",
   marginBottom: 14,
 };
@@ -29,7 +29,7 @@ export function AboutView({ onBack }: AboutViewProps) {
         ← Back
       </button>
 
-      <h1 style={{ fontSize: 44, marginBottom: 4 }}>About ARC</h1>
+      <h1 style={{ fontSize: "var(--fs-4xl)", marginBottom: 4 }}>About ARC</h1>
 
       <section style={{ marginTop: 24 }}>
         <h2 style={h2Style}>What ARC shows</h2>
@@ -84,7 +84,7 @@ export function AboutView({ onBack }: AboutViewProps) {
           <strong>What's missing.</strong> A few stats need data ESPN doesn't share (rebound percentages, and all-in-one
           metrics like PER), so ARC leaves them out rather than guessing.
         </p>
-        <p className="text-muted" style={{ margin: 0, fontSize: 13, lineHeight: 1.5 }}>
+        <p className="text-muted" style={{ margin: 0, fontSize: "var(--fs-sm)", lineHeight: 1.5 }}>
           ARC is an independent, unofficial project — not affiliated with, endorsed by, or connected to the WNBA or
           ESPN. All team and player names, logos, and photos are the property of their respective owners.
         </p>

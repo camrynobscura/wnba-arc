@@ -37,13 +37,13 @@ export function Footer({ lastScrapedAt }: FooterProps) {
         className="text-muted"
         style={{
           display: "inline-block",
-          fontSize: 12,
+          fontSize: "var(--fs-xs)",
           letterSpacing: "0.02em",
           padding: "6px 10px",
           border: "1px solid var(--color-divider)",
         }}
       >
-        Data current as of {asOf}
+        Data current as of <time dateTime={lastScrapedAt ?? undefined}>{asOf}</time>
       </span>
     </footer>
   );

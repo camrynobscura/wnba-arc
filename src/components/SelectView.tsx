@@ -17,8 +17,8 @@ interface SelectViewProps {
 export function SelectView({ featured, players, listError, onPick }: SelectViewProps) {
   return (
     <main id="main" style={{ maxWidth: "var(--app-width)", width: "100%", margin: "0 auto", padding: "36px 20px 36px" }}>
-      <h1 style={{ fontSize: 32, marginBottom: 10 }}>How far from normal is this season?</h1>
-      <p className="text-muted" style={{ fontSize: 15, marginBottom: 28 }}>
+      <h1 style={{ fontSize: "var(--fs-3xl)", marginBottom: 10 }}>How far from normal is this season?</h1>
+      <p className="text-muted" style={{ fontSize: "var(--fs-base)", marginBottom: 28 }}>
         Pick a current WNBA player. See how any of their seasons sits above or below their own baseline — or the league.
       </p>
 
@@ -27,22 +27,24 @@ export function SelectView({ featured, players, listError, onPick }: SelectViewP
       <div style={{ marginTop: 34 }}>
         <h2
           className="text-muted"
-          style={{ fontSize: 13, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 8 }}
+          style={{ fontSize: "var(--fs-sm)", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 8 }}
         >
           Featured players
         </h2>
-        <div
+        <ul
           style={{
+            listStyle: "none",
+            margin: 0,
+            padding: 0,
             display: "grid",
             gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))",
             columnGap: 24,
             borderTop: "2px solid var(--color-divider)",
           }}
         >
-          {featured.map((f) => {
-            return (
+          {featured.map((f) => (
+            <li key={f.espn}>
               <button
-                key={f.espn}
                 className="btn-reset row-hover"
                 style={{
                   textAlign: "left",
@@ -57,8 +59,8 @@ export function SelectView({ featured, players, listError, onPick }: SelectViewP
               >
                 <PlayerPhoto src={photoUrl(f.espn)} name={f.name} size={40} />
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div className="text-heading" style={{ fontSize: 16 }}>{f.name}</div>
-                  <div className="text-muted" style={{ fontSize: 12 }}>
+                  <div className="text-heading" style={{ fontSize: "var(--fs-base)" }}>{f.name}</div>
+                  <div className="text-muted" style={{ fontSize: "var(--fs-xs)" }}>
                     {[f.team, f.pos].filter(Boolean).join(" · ")}
                   </div>
                 </div>
@@ -66,9 +68,9 @@ export function SelectView({ featured, players, listError, onPick }: SelectViewP
                   <path d="M9 18l6-6-6-6" />
                 </svg>
               </button>
-            );
-          })}
-        </div>
+            </li>
+          ))}
+        </ul>
       </div>
     </main>
   );

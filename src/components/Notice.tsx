@@ -16,11 +16,11 @@ export function Notice({ title, detail, onBack }: { title: string; detail?: stri
           <Spinner />
         </div>
       )}
-      <p className="text-heading" style={{ fontSize: 18, marginBottom: 8 }}>
+      <p className="text-heading" style={{ fontSize: "var(--fs-lg)", marginBottom: 8 }}>
         {title}
       </p>
       {detail && (
-        <p className="text-muted" style={{ fontSize: 13, wordBreak: "break-word" }}>
+        <p className="text-muted" style={{ fontSize: "var(--fs-sm)", wordBreak: "break-word" }}>
           {detail}
         </p>
       )}

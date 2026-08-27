@@ -41,6 +41,12 @@ const fmt = (v: number | null, pct: boolean) => (v == null ? "—" : pct ? `${Ma
  * average for that stat (warm above / cool below), each stat scaled to its own spread.
  * Overview companion to the deviation bars.
  *
+ * Intentionally plain <div>s, not a semantic <table>: the heatmap is a *visual* overview —
+ * the color pattern is the payload — and every underlying value is available accessibly in
+ * the drill-down table and the deviation bars. Table-navigating a grid of colors wouldn't
+ * serve a screen-reader user, so we don't take on the cell-display complexity to fake table
+ * semantics here. (A11y review 2026-08-27 — deliberate, not an oversight.)
+ *
  * Laid out with **stats as columns (fixed 7) and years as rows** so the grid can never
  * overflow horizontally, however long the career or narrow the screen — long careers
  * grow downward instead (the earlier stats-as-columns layout scrolled sideways for
@@ -85,8 +91,8 @@ export function CareerHeatmap({ player, league, subjectYear }: CareerHeatmapProp
     <>
       <section aria-label="Career Trend" style={{ margin: "4px 0 2px" }}>
         <div style={{ marginBottom: 12 }}>
-          <h2 style={{ fontSize: 20, margin: 0 }}>Career Trend</h2>
-          <div className="text-muted" style={{ fontSize: 12, marginTop: 3 }}>each cell vs {firstName(player.name)}'s career average</div>
+          <h2 style={{ fontSize: "var(--fs-xl)", margin: 0 }}>Career Trend</h2>
+          <div className="text-muted" style={{ fontSize: "var(--fs-xs)", marginTop: 8 }}>each cell vs {firstName(player.name)}'s career average</div>
         </div>
         {/* Diverging color key — sits directly above the grid it describes. The small-sample
             key lives BELOW the grid (after it), like the drill-down's table key. */}

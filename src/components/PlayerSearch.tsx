@@ -145,11 +145,11 @@ export function PlayerSearch({ players, listError, onPick, variant = "hero" }: P
         style={{ position: "absolute", zIndex: 20, background: "var(--color-surface)", border: "1px solid var(--color-divider)", overflowY: "auto", ...posStyle }}
       >
         {searchPending ? (
-          <div className="text-muted" style={{ padding: "12px 14px", fontSize: 13, display: "flex", alignItems: "center", gap: 8 }}>
+          <div className="text-muted" style={{ padding: "12px 14px", fontSize: "var(--fs-sm)", display: "flex", alignItems: "center", gap: 8 }}>
             <Spinner /> Loading roster…
           </div>
         ) : noMatches ? (
-          <div className="text-muted" style={{ padding: "12px 14px", fontSize: 13 }}>No players match “{query}”.</div>
+          <div className="text-muted" style={{ padding: "12px 14px", fontSize: "var(--fs-sm)" }}>No players match “{query}”.</div>
         ) : (
           filtered.map((p, i) => (
             <div
@@ -173,8 +173,8 @@ export function PlayerSearch({ players, listError, onPick, variant = "hero" }: P
               onMouseEnter={() => setHighlight(i)}
               onClick={() => pick(p.espn)}
             >
-              <span className="text-heading" style={{ fontSize: 15 }}>{p.name}</span>
-              <span className="text-muted" style={{ fontFamily: "var(--font-body)", fontSize: 12, marginLeft: "auto" }}>
+              <span className="text-heading" style={{ fontSize: "var(--fs-base)" }}>{p.name}</span>
+              <span className="text-muted" style={{ fontFamily: "var(--font-body)", fontSize: "var(--fs-xs)", marginLeft: "auto" }}>
                 {[p.team, p.pos].filter(Boolean).join(" · ")}
               </span>
             </div>
@@ -195,7 +195,7 @@ export function PlayerSearch({ players, listError, onPick, variant = "hero" }: P
         <input
           {...comboProps}
           className="search-underline"
-          style={{ width: "100%", height: 30, paddingLeft: 24, fontSize: 14, color: "var(--color-text)", fontFamily: "var(--font-body)" }}
+          style={{ width: "100%", height: 30, paddingLeft: 24, fontSize: "var(--fs-md)", color: "var(--color-text)", fontFamily: "var(--font-body)" }}
           placeholder={listError ? "Search unavailable" : players ? "Search players…" : "Loading roster…"}
           disabled={listError != null}
         />
@@ -215,7 +215,7 @@ export function PlayerSearch({ players, listError, onPick, variant = "hero" }: P
         <input
           {...comboProps}
           className="input"
-          style={{ paddingLeft: 38, height: 48, fontSize: 16 }}
+          style={{ paddingLeft: 38, height: 48, fontSize: "var(--fs-base)" }}
           placeholder={players ? "Search a player or team…" : "Loading roster for search…"}
         />
         {listbox({ left: 0, right: 0, top: 54, maxHeight: 360 })}
@@ -224,12 +224,12 @@ export function PlayerSearch({ players, listError, onPick, variant = "hero" }: P
       {srStatus}
 
       {searchPending && (
-        <p className="text-muted" style={{ fontSize: 12, marginTop: 8, display: "flex", alignItems: "center", gap: 8 }}>
+        <p className="text-muted" style={{ fontSize: "var(--fs-xs)", marginTop: 8, display: "flex", alignItems: "center", gap: 8 }}>
           <Spinner /> Loading full roster…
         </p>
       )}
       {listError && (
-        <p role="alert" className="text-muted" style={{ fontSize: 12, marginTop: 8 }}>
+        <p role="alert" className="text-muted" style={{ fontSize: "var(--fs-xs)", marginTop: 8 }}>
           Couldn't load the full roster — search is unavailable, but featured players still work.
         </p>
       )}

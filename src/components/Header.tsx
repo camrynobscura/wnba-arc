@@ -30,7 +30,7 @@ export function Header({ onGoHome, onAbout }: HeaderProps) {
         <span>ARC WNBA</span>
         <span
           className="text-muted"
-          style={{ fontSize: 12, letterSpacing: "0.14em", textTransform: "uppercase", fontFamily: "var(--font-body)", fontWeight: 400 }}
+          style={{ fontSize: "var(--fs-xs)", letterSpacing: "0.14em", textTransform: "uppercase", fontFamily: "var(--font-body)", fontWeight: 400 }}
         >
           · season vs. baseline
         </span>

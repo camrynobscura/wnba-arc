@@ -106,13 +106,13 @@ export function SummaryView({
           <div className="card-kicker" style={{ marginBottom: 3 }}>
             {player.team} · {player.pos} · #{player.jersey}
           </div>
-          <h1 style={{ fontSize: 27, margin: 0, lineHeight: 1 }}>{player.name}</h1>
+          <h1 style={{ fontSize: "var(--fs-2xl)", margin: 0, lineHeight: 1 }}>{player.name}</h1>
         </div>
       </div>
 
       <CareerHeatmap player={player} league={league} subjectYear={subject.year} />
 
-      <h2 style={{ fontSize: 20, margin: "0 0 14px" }}>{firstName(player.name)} vs the League</h2>
+      <h2 style={{ fontSize: "var(--fs-xl)", margin: "0 0 8px" }}>{firstName(player.name)} vs the League</h2>
 
       {/* Controls (.sb-* in theme.css). Desktop: the comparison control left, season picker
           right. Mobile: a single left-aligned column. Pick a season, then compare it to that
@@ -139,7 +139,7 @@ export function SummaryView({
             onChange={(v) => onTargetChange(v as ComparisonTarget)}
           />
         </div>
-        <p className="text-muted" style={{ fontSize: 13, margin: 0 }}>
+        <p className="text-muted" style={{ fontSize: "var(--fs-sm)", margin: 0 }}>
           {caption}
         </p>
       </div>
@@ -151,9 +151,9 @@ export function SummaryView({
             display: "flex",
             flexDirection: "column",
             gap: 4,
-            margin: "10px 0 4px",
+            margin: "10px 0 0",
             padding: "10px 12px",
-            fontSize: 12.5,
+            fontSize: "var(--fs-xs)",
             lineHeight: 1.4,
             color: "var(--color-neutral-700)",
             background: "color-mix(in srgb, var(--color-text) 3.5%, transparent)",
@@ -188,16 +188,27 @@ export function SummaryView({
 
       {/* Same diverging gradient key as the Career Trend heatmap, placed identically —
           left-aligned directly above the bars it describes. */}
-      <div className="scale-legend" style={{ marginTop: 18, marginBottom: 10 }}>
+      <div className="scale-legend" style={{ marginTop: 10, marginBottom: 10 }}>
         <ScaleKey noun="baseline" />
       </div>
 
-      <div style={{ borderTop: "2px solid var(--color-divider)", paddingTop: 14, paddingBottom: 10 }}>
-        {rows.map((row, idx) => (
+      {/* A list of stats you can drill into (semantic <ul> — the list-reset keeps it visually
+          identical). Each row is one <button> so keyboard/SR users get a real control. */}
+      <ul style={{ listStyle: "none", margin: 0, padding: "14px 0 10px", borderTop: "2px solid var(--color-divider)" }}>
+        {rows.map((row, idx) => {
+          // Fold the value + delta into the button's accessible name. An aria-label OVERRIDES a
+          // control's inner text, so without this a screen reader announces "Points, open history"
+          // and never the numbers on screen — the whole point of the row.
+          const readout = row.smallSample
+            ? "small sample"
+            : row.rawFmt === "—"
+              ? `baseline ${row.baseFmt}`
+              : `${row.rawFmt} versus baseline ${row.baseFmt}`;
+          return (
+          <li key={row.key}>
           <button
-            key={row.key}
             className="btn-reset row-hover"
-            aria-label={`${row.label} — open year-by-year history`}
+            aria-label={`${row.label}: ${row.curFmt}, ${readout} — open year-by-year history`}
             style={{
               textAlign: "left",
               width: "100%",
@@ -216,8 +227,8 @@ export function SummaryView({
             onClick={() => onOpenStat(row.key)}
           >
             <div style={{ lineHeight: 1.05 }}>
-              <div className="text-heading" style={{ fontSize: 19 }}>{row.label}</div>
-              <div className="text-muted" style={{ fontSize: 11 }}>
+              <div className="text-heading" style={{ fontSize: "var(--fs-lg)" }}>{row.label}</div>
+              <div className="text-muted" style={{ fontSize: "var(--fs-2xs)" }}>
                 baseline {row.baseFmt}
               </div>
             </div>
@@ -226,19 +237,21 @@ export function SummaryView({
                 the deviation off a 1-of-1 shooting line would be meaningless. */}
             <div style={{ paddingLeft: 12 }}>
               {row.smallSample ? (
-                <span className="text-muted" style={{ fontSize: 12 }}>small sample — {smallSampleReason}</span>
+                <span className="text-muted" style={{ fontSize: "var(--fs-xs)" }}>small sample — {smallSampleReason}</span>
               ) : (
                 <DeviationBlocks up={row.up} barPct={row.barPct} barColor={row.barColor} showBaselineLabel={idx === 0} />
               )}
             </div>
             <div style={{ textAlign: "right", display: "flex", flexDirection: "column", alignItems: "flex-end", lineHeight: 1.05 }}>
-              <span className="text-heading" style={{ fontSize: 19, color: row.smallSample ? "var(--color-neutral-500)" : undefined }}>{row.curFmt}</span>
-              <span style={{ fontSize: 11, color: row.deltaColor }}>{row.rawFmt}</span>
+              <span className="text-heading" style={{ fontSize: "var(--fs-lg)", color: row.smallSample ? "var(--color-neutral-500)" : undefined }}>{row.curFmt}</span>
+              <span style={{ fontSize: "var(--fs-2xs)", color: row.deltaColor }}>{row.rawFmt}</span>
             </div>
           </button>
-        ))}
-      </div>
-      <p className="text-muted" style={{ fontSize: 12, marginTop: 16 }}>
+          </li>
+          );
+        })}
+      </ul>
+      <p className="text-muted" style={{ fontSize: "var(--fs-xs)", marginTop: 16 }}>
         Bars show how far each stat sits above or below its baseline — the further out, the more exceptional. Click a stat for its year-by-year history and percentile ranking →
       </p>
     </main>

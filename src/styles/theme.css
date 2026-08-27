@@ -61,6 +61,20 @@
   --font-heading-weight: 600;
   --font-body: "Barlow", system-ui, sans-serif;
 
+  /* Type scale — rem so it honors the reader's browser font-size (root stays at the browser
+     default; no 62.5% hack). px equivalents at a 16px root noted for reference. */
+  --fs-3xs: 0.625rem;   /* 10 */
+  --fs-2xs: 0.6875rem;  /* 11 */
+  --fs-xs: 0.75rem;     /* 12 */
+  --fs-sm: 0.8125rem;   /* 13 */
+  --fs-md: 0.875rem;    /* 14 */
+  --fs-base: 1rem;      /* 16 */
+  --fs-lg: 1.125rem;    /* 18 — stat labels */
+  --fs-xl: 1.4375rem;   /* 23 — section headers */
+  --fs-2xl: 1.75rem;    /* 28 — player / page name */
+  --fs-3xl: 2rem;       /* 32 */
+  --fs-4xl: 2.75rem;    /* 44 */
+
   --space-1: 3.4px;
   --space-2: 6.8px;
   --space-3: 10.2px;
@@ -146,35 +160,14 @@
 }
 
 body {
+  margin: 0;
   background: var(--color-bg);
   color: var(--color-text);
   font-family: var(--font-body);
+  font-size: var(--fs-base);
+  line-height: 1.55;
+  font-weight: 400;
 }
-h1, h2, h3, h4 { font-family: var(--font-heading); font-weight: var(--font-heading-weight); }
-
-.blueprint {
-  position: relative;
-  border: 1px solid var(--color-divider);
-  border-radius: 0;
-}
-/* The overlay image treatments (halftone, duotone) clip their overlay
-   (overflow:hidden); a blueprint wrapper draws its registration marks
-   outside the box, so when both classes share a wrapper the frame must
-   win. */
-.blueprint.halftone, .blueprint.plate, .blueprint.duotone { overflow: visible; }
-.blueprint > .corner {
-  position: absolute; width: 11px; height: 11px;
-  color: color-mix(in srgb, var(--color-text) 55%, transparent);
-}
-.blueprint > .corner::before, .blueprint > .corner::after {
-  content: ""; position: absolute; background: currentColor;
-}
-.blueprint > .corner::before { left: 5px; top: 0; width: 1px; height: 100%; }
-.blueprint > .corner::after  { top: 5px; left: 0; width: 100%; height: 1px; }
-.blueprint > .corner.tl { top: -6px; left: -6px; }
-.blueprint > .corner.tr { top: -6px; right: -6px; }
-.blueprint > .corner.bl { bottom: -6px; left: -6px; }
-.blueprint > .corner.br { bottom: -6px; right: -6px; }
 
 .duotone{position:relative;overflow:hidden}
 .duotone::after{content:"";position:absolute;inset:0;pointer-events:none;
@@ -196,24 +189,23 @@ h1, h2, h3, h4 { font-family: var(--font-heading); font-weight: var(--font-headi
    ══════════════════════════════════════════════════════════════════════ */
 
 *, *::before, *::after { box-sizing: border-box; }
-body { margin: 0; font-size: 16px; line-height: 1.55; font-weight: 400; }
 h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-heading); font-weight: var(--font-heading-weight);
   line-height: 1.12; letter-spacing: -0.015em; margin: 0 0 var(--space-2);
 }
-h1 { font-size: 42px; }
-h2 { font-size: 32px; }
-h3 { font-size: 25px; }
-h4 { font-size: 20px; }
-h5 { font-size: 16px; }
-h6 { font-size: 13px; }
+h1 { font-size: var(--fs-4xl); }
+h2 { font-size: var(--fs-3xl); }
+h3 { font-size: var(--fs-2xl); }
+h4 { font-size: var(--fs-xl); }
+h5 { font-size: var(--fs-base); }
+h6 { font-size: var(--fs-sm); }
 h6 { letter-spacing: 0.08em; text-transform: uppercase; }
 p { margin: 0 0 var(--space-3); }
 a { color: var(--color-accent-700); text-underline-offset: 3px; }
 img { display: block; max-width: 100%; }
 figure { margin: 0; }
 figcaption {
-  font-size: 11px; margin-top: var(--space-1);
+  font-size: var(--fs-2xs); margin-top: var(--space-1);
   color: color-mix(in srgb, var(--color-text) 55%, transparent);
 }
 /* 68% ink meets WCAG 1.4.3 (~5:1 on the page ground); 55% read ~3.6:1 and failed. */
@@ -266,7 +258,7 @@ figcaption {
 .infotip-bubble {
   display: none; position: absolute; bottom: calc(100% + 6px); left: 50%; transform: translateX(-50%);
   z-index: 20; width: max-content; max-width: 200px; padding: 6px 9px;
-  font-family: var(--font-body); font-size: 11px; font-weight: 400; line-height: 1.35;
+  font-family: var(--font-body); font-size: var(--fs-2xs); font-weight: 400; line-height: 1.35;
   letter-spacing: 0; text-transform: none; text-align: left; color: var(--color-text);
   background: var(--color-surface); border: 1px solid var(--color-divider);
   border-radius: var(--radius-md); box-shadow: var(--shadow-md); white-space: normal;
@@ -283,44 +275,31 @@ figcaption {
 }
 .skip-link:focus { top: 8px; }
 
-/* — rules — */
-.hr {
-  height: 1px; border: 0; margin: var(--space-4) 0;
-  background: var(--color-divider);
-}
-
 /* — buttons — */
 .btn {
   display: inline-flex; align-items: center; justify-content: center; gap: 6px;
   cursor: pointer; text-decoration: none;
   font-family: var(--font-heading); font-weight: var(--font-heading-weight);
-  font-size: 14px; line-height: 1.2; color: var(--color-text);
+  font-size: var(--fs-md); line-height: 1.2; color: var(--color-text);
   background: transparent; border: 1px solid transparent;
   padding: var(--space-2) calc(var(--space-3) * 1.2);
   border-radius: var(--radius-md);
 }
 .btn svg { display: block; }
 .btn:disabled { opacity: 0.45; cursor: not-allowed; }
-.btn-primary { background: var(--color-accent); color: var(--color-bg); }
-.btn-primary:hover { background: var(--color-accent-600); }
-.btn-primary:active { background: var(--color-accent-700); }
-.btn-secondary { border-color: var(--color-divider); }
-.btn-secondary:hover { background: color-mix(in srgb, var(--color-text) 7%, transparent); }
-.btn-secondary:active { background: color-mix(in srgb, var(--color-text) 14%, transparent); }
 .btn-ghost { color: var(--color-accent-700); padding-inline: var(--space-1); }
 .btn-ghost:hover { background: color-mix(in srgb, var(--color-accent) 10%, transparent); }
 .btn-ghost:active { background: color-mix(in srgb, var(--color-accent) 18%, transparent); }
-.btn-icon { width: 36px; height: 36px; padding: 0; }
 .btn-block { width: 100%; margin-top: var(--space-2); }
 
 /* — forms — */
 .field > label {
-  display: block; font-size: 12px; margin-bottom: 5px;
+  display: block; font-size: var(--fs-xs); margin-bottom: 5px;
   color: color-mix(in srgb, var(--color-text) 70%, transparent);
 }
 .input {
   width: 100%; min-height: 36px; padding: 6px 10px; font: inherit;
-  font-size: 14px; color: var(--color-text); caret-color: var(--color-accent);
+  font-size: var(--fs-md); color: var(--color-text); caret-color: var(--color-accent);
   background: var(--color-surface);
   border: 1px solid var(--color-divider); border-radius: var(--radius-md);
 }
@@ -342,12 +321,14 @@ select.select-reset {
   appearance: none; -webkit-appearance: none;
   height: 36px; min-height: 36px; padding: 0 30px 0 10px; line-height: 34px;
 }
-textarea.input { min-height: 90px; resize: vertical; }
 
 /* — League-comparison controls (SummaryView) — Season + "Compare against" as one row of
    matching dropdowns, with the caption of what's being compared full-width beneath. The row
    wraps to multiple lines on a narrow viewport (order preserved). */
-.sb-controls { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; margin-bottom: 8px; }
+/* No bottom margin — the element that follows (the missed-season note, else the scale key) owns
+   the 10px gap below the caption via its own margin-top, so it matches the 10px `gap` above the
+   caption regardless of margin-collapse behavior. */
+.sb-controls { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; }
 .sb-selectors { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 16px; }
 
 /* — cards — */
@@ -355,30 +336,10 @@ textarea.input { min-height: 90px; resize: vertical; }
   display: flex; flex-direction: column; gap: var(--space-2);
   padding: var(--space-3); border-radius: var(--radius-md); background: var(--color-surface);
 }
-.card-kicker { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--color-accent-700); }
-.card-title {
-  font-family: var(--font-heading); font-weight: var(--font-heading-weight);
-  font-size: 17px; line-height: 1.2;
-}
-.card-body { margin: 0; font-size: 13px; opacity: 0.8; flex: 1; }
-.card-meta {
-  display: flex; align-items: center; gap: 6px; font-size: 11px;
-  color: color-mix(in srgb, var(--color-text) 50%, transparent);
-}
+.card-kicker { font-size: var(--fs-3xs); letter-spacing: 0.1em; text-transform: uppercase; color: var(--color-accent-700); }
 .elev-sm { box-shadow: var(--shadow-sm); }
 .elev-md { box-shadow: var(--shadow-md); }
 .elev-lg { box-shadow: var(--shadow-lg); }
-
-/* — tags — */
-.tag {
-  display: inline-flex; align-items: center; font-size: 11px;
-  letter-spacing: 0.02em; padding: 3px 10px;
-  border-radius: calc(var(--radius-md) * 0.75);
-}
-.tag-accent { background: var(--color-accent-100); color: var(--color-accent-800); }
-.tag-accent-2 { background: var(--color-accent-2-100); color: var(--color-accent-2-800); }
-.tag-neutral { background: var(--color-neutral-100); color: var(--color-neutral-800); }
-.tag-outline { border: 1px solid var(--color-accent-700); color: var(--color-accent-700); }
 
 /* — navigation — */
 .nav {
@@ -388,10 +349,8 @@ textarea.input { min-height: 90px; resize: vertical; }
 }
 .nav-brand {
   font-family: var(--font-heading); font-weight: var(--font-heading-weight);
-  font-size: 18px; margin-right: auto;
+  font-size: var(--fs-lg); margin-right: auto;
 }
-.nav a { color: inherit; text-decoration: none; font-size: 14px; }
-.nav a:hover, .nav a[aria-current='page'] { color: var(--color-accent); }
 
 /* The compact, always-visible player-page search (see components/PlayerSearch.tsx):
    underline only, no box. */
@@ -413,9 +372,9 @@ textarea.input { min-height: 90px; resize: vertical; }
 .theme-toggle svg { display: block; }
 
 /* — tables — */
-.table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.table { width: 100%; border-collapse: collapse; font-size: var(--fs-md); }
 .table th {
-  text-align: left; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase;
+  text-align: left; font-size: var(--fs-2xs); letter-spacing: 0.08em; text-transform: uppercase;
   color: color-mix(in srgb, var(--color-text) 72%, transparent);
   padding: var(--space-2); border-bottom: 1px solid var(--color-divider);
 }
@@ -448,7 +407,7 @@ textarea.input { min-height: 90px; resize: vertical; }
 .dev-rail-label {
   position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%);
   margin-bottom: 3px; white-space: nowrap;
-  font-family: var(--font-heading); font-weight: 600; font-size: 11px;
+  font-family: var(--font-heading); font-weight: 600; font-size: var(--fs-2xs);
   letter-spacing: 0.04em; color: var(--color-text);
 }
 
@@ -464,20 +423,20 @@ textarea.input { min-height: 90px; resize: vertical; }
 }
 /* Column headers = the 7 stats (short label, full name in a tooltip). */
 .hm-colhead {
-  font-family: var(--font-heading); font-weight: 600; font-size: 13px;
+  font-family: var(--font-heading); font-weight: 600; font-size: var(--fs-sm);
   color: var(--color-neutral-700); text-align: center; padding-bottom: 4px;
 }
 /* Row headers = seasons, down the left edge — left-aligned so they line up with the
    section heading above (not indented by a right-aligned label column). */
 .hm-rowhead {
   display: flex; align-items: center; justify-content: flex-start;
-  font-family: var(--font-heading); font-weight: 600; font-size: 13px;
+  font-family: var(--font-heading); font-weight: 600; font-size: var(--fs-sm);
   color: var(--color-neutral-700);
 }
 .hm-rowhead.is-subject { color: var(--color-accent-700); font-weight: 700; }
 .hm-cell {
   position: relative; display: flex; align-items: center; justify-content: center;
-  min-height: 31px; border-radius: 3px; font-size: 13px; font-weight: 500;
+  min-height: 31px; border-radius: 3px; font-size: var(--fs-sm); font-weight: 500;
   font-variant-numeric: tabular-nums;
 }
 .hm-empty {
@@ -509,36 +468,16 @@ textarea.input { min-height: 90px; resize: vertical; }
 }
 .scale-ends {
   display: flex; justify-content: space-between; align-items: center;
-  margin-top: 5px; font-size: 11px;
+  margin-top: 5px; font-size: var(--fs-2xs);
 }
 .scale-ends b { font-weight: 600; }
-.hm-legend-key { display: inline-flex; align-items: center; gap: 6px; margin-top: 8px; font-size: 11px; }
+.hm-legend-key { display: inline-flex; align-items: center; gap: 6px; margin-top: 8px; font-size: var(--fs-2xs); }
 /* inline-block + vertical-align so the same dot works both in the flex legend and inline next
    to a table year; flex:none keeps it from shrinking inside the legend. */
 .hm-legend-dot { display: inline-block; vertical-align: middle; flex: none; width: 7px; height: 7px; border-radius: 50%; background: var(--color-neutral-600); }
 
-/* — dialog — */
-.dialog-backdrop {
-  position: fixed; inset: 0; display: grid; place-items: center;
-  padding: var(--space-4);
-  background: color-mix(in srgb, var(--color-neutral-900) 50%, transparent);
-}
-.dialog {
-  width: min(440px, 100%); display: flex; flex-direction: column; gap: var(--space-3);
-  padding: var(--space-4); border-radius: var(--radius-lg);
-  background: var(--color-surface); box-shadow: var(--shadow-lg);
-}
-.dialog-title {
-  font-family: var(--font-heading); font-weight: var(--font-heading-weight);
-  font-size: 20px;
-}
-.dialog-body { font-size: 14px; opacity: 0.85; }
-.dialog-actions { display: flex; justify-content: flex-end; gap: var(--space-2); margin-top: var(--space-2); }
-
-/* — blueprint frame: components are wireframe objects (see .blueprint
-     and .corner above) — square, transparent, hairline-bordered — */
-.card, .btn, .input, .tag, .dialog { border-radius: 0; }
-.card, .dialog { background: transparent; border: 1px solid var(--color-divider); }
+/* — square, transparent, hairline-bordered frame on the boxy components — */
+.card, .btn, .input { border-radius: 0; }
+.card { background: transparent; border: 1px solid var(--color-divider); }
 .btn { border: 1px solid var(--color-divider); }
-.btn-primary { border-color: var(--color-accent); }
 .btn-ghost { border-color: transparent; }
