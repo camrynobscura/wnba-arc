@@ -28,6 +28,12 @@ function ordinal(n: number): string {
   return `${n}${s[(v - 20) % 10] || s[v] || s[0]}`;
 }
 
+/** "2021" · "2019 & 2021" · "2018, 2019 & 2021" — the missed-season notice's year list. */
+function joinYears(years: number[]): string {
+  if (years.length <= 1) return years.join("");
+  return `${years.slice(0, -1).join(", ")} & ${years[years.length - 1]}`;
+}
+
 export function StatDrilldownView({ player, stat, target, positionAvailable, players, listError, onTargetChange, onBack, onSelectYear, onPick }: StatDrilldownViewProps) {
   const bars = stat.bars;
   const n = bars.length;
@@ -41,6 +47,12 @@ export function StatDrilldownView({ player, stat, target, positionAvailable, pla
   // "among {position}", matching the current Compare-against target.
   const showPct = stat.tableRows.some((r) => r.pctile != null);
   const pctWhere = target === "position" ? `among ${positionNoun(player.pos)}` : "in the league";
+  // Missed seasons (a gap in the timeline — "Did not play") get one plain-language note above the
+  // table instead of a "DNP" tag wrapping every row to two lines. Years listed oldest-first.
+  const missedYears = stat.tableRows.filter((r) => r.missed).map((r) => r.year).sort((a, b) => a - b);
+  const missedNote = missedYears.length
+    ? `No ${joinYears(missedYears)} season${missedYears.length > 1 ? "s" : ""} on record — did not play.`
+    : null;
 
   const renderRow = (r: StatTableRow) => {
     // Small-sample seasons aren't selectable (unless it's the fallback where a player has no
@@ -86,8 +98,8 @@ export function StatDrilldownView({ player, stat, target, positionAvailable, pla
           </td>
         </>
       )}
-      <td style={{ textAlign: "right" }}>
-        {r.missed ? <span className="text-muted">DNP — {r.reason}</span> : r.valFmt}
+      <td style={{ textAlign: "right" }} className={r.missed ? "text-muted" : undefined}>
+        {r.valFmt}
       </td>
       <td style={{ textAlign: "right" }} className="text-muted">
         {r.gp ?? "—"}
@@ -391,6 +403,11 @@ export function StatDrilldownView({ player, stat, target, positionAvailable, pla
           gives evenly-distributed columns and makes the table fit its container at any
           width (no horizontal scroll needed → nothing clips the header tooltips). */}
       <div style={{ marginTop: 22 }}>
+        {missedNote && (
+          <p role="note" className="text-muted" style={{ fontSize: 12.5, lineHeight: 1.4, margin: "0 0 12px", paddingLeft: 10, borderLeft: "2px solid var(--color-divider)" }}>
+            {missedNote}
+          </p>
+        )}
         {/* table-layout: fixed + no per-column widths ⇒ every column is an equal share of the
             100%-wide table (5, 6, or 7 columns depending on the stat). */}
         <table className="table" style={{ tableLayout: "fixed" }} aria-label="Season stats">
