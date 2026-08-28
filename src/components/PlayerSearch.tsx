@@ -204,7 +204,9 @@ export function PlayerSearch({ players, listError, onPick, variant = "hero" }: P
           placeholder={listError ? "Search unavailable" : players ? "Search players…" : "Loading roster…"}
           disabled={listError != null}
         />
-        {listbox({ top: 36, right: 0, minWidth: 260, maxWidth: "min(380px, calc(100vw - 32px))", maxHeight: 300 })}
+        {/* Fixed width (not min/max content-sizing) so the box doesn't shrink as you type and
+            the result set narrows — it stays locked at the max from the first keystroke. */}
+        {listbox({ top: 36, right: 0, width: "min(380px, calc(100vw - 32px))", maxHeight: 300 })}
         {srStatus}
       </div>
     );
