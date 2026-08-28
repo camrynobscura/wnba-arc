@@ -83,7 +83,7 @@
   /* Spacing scale — rem on a 4px grid (matches the type scale, honors the reader's font-size).
      Inline layout spacing snaps to these, always rounding UP. Component geometry (viz dimensions,
      control heights, hairline borders) stays raw px — this scale is for layout breathing room. */
-  --space-1: 0.25rem; /* 4 */
+  --space-1: 0.2rem; /* 3.2 */
   --space-2: 0.5rem; /* 8 */
   --space-3: 0.75rem; /* 12 */
   --space-4: 1rem; /* 16 */

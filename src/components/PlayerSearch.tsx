@@ -173,8 +173,13 @@ export function PlayerSearch({ players, listError, onPick, variant = "hero" }: P
               onMouseEnter={() => setHighlight(i)}
               onClick={() => pick(p.espn)}
             >
-              <span className="text-heading" style={{ fontSize: "var(--fs-base)" }}>{p.name}</span>
-              <span className="text-muted" style={{ fontFamily: "var(--font-body)", fontSize: "var(--fs-xs)", marginLeft: "auto" }}>
+              {/* Name never wraps (flexShrink 0 + nowrap); if the row is still tight, the
+                  secondary team/pos text truncates with an ellipsis instead. */}
+              <span className="text-heading" style={{ fontSize: "var(--fs-base)", whiteSpace: "nowrap", flexShrink: 0 }}>{p.name}</span>
+              <span
+                className="text-muted"
+                style={{ fontFamily: "var(--font-body)", fontSize: "var(--fs-xs)", marginLeft: "auto", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", minWidth: 0 }}
+              >
                 {[p.team, p.pos].filter(Boolean).join(" · ")}
               </span>
             </div>
@@ -199,7 +204,7 @@ export function PlayerSearch({ players, listError, onPick, variant = "hero" }: P
           placeholder={listError ? "Search unavailable" : players ? "Search players…" : "Loading roster…"}
           disabled={listError != null}
         />
-        {listbox({ top: 36, right: 0, minWidth: 260, maxWidth: "min(320px, calc(100vw - 32px))", maxHeight: 300 })}
+        {listbox({ top: 36, right: 0, minWidth: 260, maxWidth: "min(380px, calc(100vw - 32px))", maxHeight: 300 })}
         {srStatus}
       </div>
     );
