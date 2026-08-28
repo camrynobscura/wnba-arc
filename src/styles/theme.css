@@ -638,8 +638,8 @@ select.select-reset {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 42px;
-  padding: 2px;
+  min-height: 48px;
+  padding: 8px 3px;
   border: none;
   border-radius: 3px;
   background: transparent;
@@ -657,17 +657,19 @@ select.select-reset {
   display: flex;
   flex-direction: column;
   align-items: center;
-  line-height: 1.1;
+  gap: 2px;
+  line-height: 1.05;
 }
 .hm-val {
   font-size: var(--fs-sm);
   font-weight: 600;
 }
-/* Full var(--color-text) (no opacity) so the delta clears 4.5:1 on every colored cell — the
-   smaller size + lighter weight is enough to keep it visually secondary to the value. */
+/* The delta is kept quiet by WEIGHT + size + the gap above, NOT a lighter color: it must stay
+   full var(--color-text) to clear 4.5:1 on the saturated cells (the cell colors are tuned so
+   even the headline value only reaches ~4.7:1 — no headroom to lighten this). */
 .hm-delta {
   font-size: var(--fs-2xs);
-  font-weight: 500;
+  font-weight: 400;
 }
 /* Only a real (selectable) cell is clickable; hover reveals a ring so it reads as a control. */
 .hm-cell-btn {
