@@ -206,7 +206,7 @@ export function PlayerSearch({ players, listError, onPick, variant = "hero" }: P
         />
         {/* Fixed width (not min/max content-sizing) so the box doesn't shrink as you type and
             the result set narrows — it stays locked at the max from the first keystroke. */}
-        {listbox({ top: 36, right: 0, width: "min(380px, calc(100vw - 32px))", maxHeight: 300 })}
+        {listbox({ top: 36, right: 0, width: "min(340px, calc(100vw - 32px))", maxHeight: 300 })}
         {srStatus}
       </div>
     );
