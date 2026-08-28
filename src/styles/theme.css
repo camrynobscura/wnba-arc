@@ -296,7 +296,7 @@ figcaption {
   max-width: var(--app-width);
   width: 100%;
   margin: 0 auto;
-  padding: 18px 20px 16px;
+  padding: var(--space-5) var(--space-5) var(--space-4);
 }
 /* The top bar of a view: back-control on the left, player-jump on the right. */
 .view-header {
@@ -304,8 +304,8 @@ figcaption {
   align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
-  gap: 12px;
-  margin-bottom: 18px;
+  gap: var(--space-3);
+  margin-bottom: var(--space-5);
 }
 /* A colored swatch dot in a scale/color legend (the color is set inline per entry). */
 .legend-dot {
@@ -358,13 +358,13 @@ figcaption {
 .field > label {
   display: block;
   font-size: var(--fs-xs);
-  margin-bottom: 5px;
+  margin-bottom: var(--space-2);
   color: color-mix(in srgb, var(--color-text) 70%, transparent);
 }
 .input {
   width: 100%;
   min-height: 36px;
-  padding: 6px 10px;
+  padding: var(--space-2) var(--space-3);
   font: inherit;
   font-size: var(--fs-md);
   color: var(--color-text);
@@ -423,13 +423,13 @@ select.select-reset {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 10px;
+  gap: var(--space-3);
 }
 .sb-selectors {
   display: flex;
   flex-wrap: wrap;
   align-items: flex-start;
-  gap: 16px;
+  gap: var(--space-4);
 }
 
 /* — cards — */
@@ -747,7 +747,7 @@ select.select-reset {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-top: 5px;
+  margin-top: var(--space-2);
   font-size: var(--fs-2xs);
 }
 .scale-ends b {
@@ -757,7 +757,7 @@ select.select-reset {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  margin-top: 8px;
+  margin-top: var(--space-2);
   font-size: var(--fs-2xs);
 }
 /* inline-block + vertical-align so the same dot works both in the flex legend and inline next
@@ -864,7 +864,7 @@ select.select-reset {
   z-index: 100;
   background: var(--color-surface);
   color: var(--color-accent-700);
-  padding: 8px 14px;
+  padding: var(--space-2) var(--space-4);
   border: 1px solid var(--color-accent-700);
   border-radius: var(--radius-md);
   font-family: var(--font-heading);
