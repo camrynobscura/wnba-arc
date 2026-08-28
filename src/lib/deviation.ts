@@ -413,6 +413,136 @@ export function buildCaption(ctx: BaselineContext, playerName: string): string {
   return `Comparing ${firstName(playerName)}'s ${subject.year} against the WNBA league average that season.`;
 }
 
+// ── Deviation heatmap ─────────────────────────────────────────────────────────
+// One season × stat grid with a switchable reference frame. Same red/blue diverging
+// scale as the (now-removed) summary bars; the *reference* is the switch.
+
+const clamp = (x: number, a: number, b: number) => Math.max(a, Math.min(b, x));
+
+/** The self-mode color ruler never gets more sensitive than this fraction of the league
+    spread, so a stat whose whole career spans a league-trivial range (Kelsey Mitchell's
+    blocks) stays pale instead of painting tenths of a block as dramatic. Floor on the own
+    range; a player with real swings exceeds it and keeps their vivid trajectory. */
+const HEATMAP_STEP_FLOOR = 0.5;
+
+/** What each cell is measured against: the player's own career, their position peers, or
+    the whole league — that year in the peer modes. */
+export type HeatmapMode = "self" | "position" | "league";
+
+/** One season × one stat in the deviation heatmap. */
+export interface HeatmapCell {
+  year: number;
+  statKey: StatKey;
+  pct: boolean;
+  /** False → the player missed this season (render an empty gap, not clickable). */
+  played: boolean;
+  /** The raw stat value that season (null: missed, or no value for this stat). */
+  value: number | null;
+  valueFmt: string;
+  /** value − the mode's reference average; null when there's no reference or no value. */
+  delta: number | null;
+  deltaFmt: string;
+  /** −1…1 signed, normalized deviation for the cell color; null → neutral (no reference,
+      or a greyed small-sample cell). */
+  colorT: number | null;
+  up: boolean;
+  /** Too thin a sample for this stat that season → greyed, not heat-colored, not clickable. */
+  smallSample: boolean;
+  /** Whether the cell opens the drill-down: a played, full-sample season with a value. */
+  selectable: boolean;
+}
+
+export interface HeatmapGrid {
+  /** Seasons newest-first (grid rows); includes missed years as gaps. */
+  years: number[];
+  /** rows[yearIndex][statIndex] — parallel to `years` and STATS. */
+  rows: HeatmapCell[][];
+}
+
+/**
+ * Build the full season × stat grid for a reference mode.
+ * - **self:** each cell vs. the player's own career average, self-scaled to their own range
+ *   (floored at HEATMAP_STEP_FLOOR × the league spread so a trivial range can't saturate).
+ * - **league / position:** each cell vs. *that year's* league (or position) average, scaled in
+ *   z-score "steps" (deviation ÷ that group's spread, full at FULL_STEPS) — identical semantics
+ *   to the old bars, reusing stepGeometry. Shooting %s (no spread) fall back to a relative-% gap.
+ */
+export function buildHeatmapGrid(
+  player: PlayerDetail,
+  mode: HeatmapMode,
+  league: League,
+  positions: PositionLookup | null,
+  playerPosition: string | null,
+): HeatmapGrid {
+  const played = playedSeasons(player);
+  const seasons = [...player.seasons].reverse(); // newest-first: latest year on top
+  // Reference year for the self-mode league-step floor: the player's latest played season.
+  // (The floor only needs a representative league spread magnitude; it's stable across years.)
+  const floorYear = played.length ? Math.max(...played.map((s) => s.year)) : (seasons[0]?.year ?? 0);
+
+  // Self mode: per-stat own aggregate (career average + own-range ruler). Mirrors the old
+  // CareerHeatmap statAgg. Unused in the peer modes (each cell is independent there).
+  const selfAgg = new Map<StatKey, { avg: number | null; maxDev: number }>();
+  if (mode === "self") {
+    for (const st of STATS) {
+      const comparable = played.filter((s) => !isStatSmallSample(s, league, st.key));
+      const basis = comparable.length >= 2 ? comparable : played;
+      const avg = ownStatAverage(st.key, basis);
+      const vals = basis.map((s) => s[st.key]).filter((v): v is number => v != null);
+      const ownMaxDev = avg != null && vals.length ? Math.max(...vals.map((v) => Math.abs(v - avg)), 1e-9) : 1;
+      const leagueStep = league.stdev(floorYear, st.key);
+      const maxDev = leagueStep != null ? Math.max(ownMaxDev, HEATMAP_STEP_FLOOR * leagueStep) : ownMaxDev;
+      selfAgg.set(st.key, { avg, maxDev });
+    }
+  }
+
+  const rows = seasons.map((s) =>
+    STATS.map((st): HeatmapCell => {
+      const shell = { year: s.year, statKey: st.key, pct: st.pct } as const;
+      if (!s.played) {
+        return { ...shell, played: false, value: null, valueFmt: "—", delta: null, deltaFmt: "—", colorT: null, up: false, smallSample: false, selectable: false };
+      }
+      const value = s[st.key];
+      const small = isStatSmallSample(s, league, st.key);
+      const avg =
+        mode === "self"
+          ? selfAgg.get(st.key)!.avg
+          : mode === "position"
+            ? (playerPosition != null && positions != null ? positions.avg(s.year, playerPosition, st.key) : null)
+            : league.avg(s.year, st.key);
+
+      const scored = value != null && avg != null && !small;
+      const delta = scored ? value - avg : null;
+      let colorT: number | null = null;
+      if (scored) {
+        if (mode === "self") {
+          colorT = clamp((value - avg) / selfAgg.get(st.key)!.maxDev, -1, 1);
+        } else {
+          const spread = isCountingStat(st.key)
+            ? (mode === "position" ? positions!.stdev(s.year, playerPosition!, st.key) : league.stdev(s.year, st.key))
+            : null;
+          // Reuse the bars' geometry, then read its signed magnitude back out as a −1…1 ruler.
+          const geo = stepGeometry(value, avg, spread) ?? barGeometry(value, avg);
+          colorT = (geo.up ? 1 : -1) * (geo.barPct / 50);
+        }
+      }
+      return {
+        ...shell,
+        played: true,
+        value,
+        valueFmt: fmtV(value, st.pct),
+        delta,
+        deltaFmt: delta != null ? fmtRaw(delta, st.pct) : "—",
+        colorT,
+        up: (delta ?? 0) >= 0,
+        smallSample: small,
+        selectable: value != null && !small,
+      };
+    }),
+  );
+  return { years: seasons.map((s) => s.year), rows };
+}
+
 export interface StatBar {
   year: number;
   yy: string;

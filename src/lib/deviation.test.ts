@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
+  buildHeatmapGrid,
   buildRows,
   buildStatDetail,
   getBaselineContext,
@@ -10,6 +11,8 @@ import {
   makePositionLookup,
   ownStatAverage,
   positionNoun,
+  type HeatmapCell,
+  type HeatmapGrid,
   type League,
   type PositionLookup,
 } from "./deviation";
@@ -370,6 +373,93 @@ describe("buildRows — step bars and relative-% fallback", () => {
     const pts = rowFor(rows, "pts");
     expect(pts.smallSample).toBe(true);
     expect(pts.barPct).toBe(0);
+  });
+});
+
+describe("buildHeatmapGrid — the switchable-reference heatmap", () => {
+  const cell = (g: HeatmapGrid, year: number, key: string): HeatmapCell =>
+    g.rows[g.years.indexOf(year)].find((c) => c.statKey === key)!;
+
+  it("lays out rows newest-first, one per season × every stat", () => {
+    const L = league([2020, 2021, 2022]);
+    const p = player([playedSeason(2020, 40), playedSeason(2021, 40), playedSeason(2022, 40)]);
+    const g = buildHeatmapGrid(p, "league", L, POS, "F");
+    expect(g.years).toEqual([2022, 2021, 2020]);
+    expect(g.rows).toHaveLength(3);
+    expect(g.rows[0]).toHaveLength(STATS.length);
+  });
+
+  it("self mode: colors each season vs the player's own career average, self-scaled", () => {
+    // pts 10 & 20 → career avg 15, own range 5 (floor 0.5×league-step 5 = 2.5, so 5 wins).
+    // 2020 (10) → (10−15)/5 = −1 ; 2022 (20) → +1. Deltas −5 / +5.
+    const L = league([2020, 2022]);
+    const p = player([playedSeason(2020, 40, { pts: 10 }), playedSeason(2022, 40, { pts: 20 })]);
+    const g = buildHeatmapGrid(p, "self", L, POS, "F");
+    expect(cell(g, 2022, "pts").colorT).toBeCloseTo(1, 5);
+    expect(cell(g, 2022, "pts").delta).toBeCloseTo(5, 5);
+    expect(cell(g, 2020, "pts").colorT).toBeCloseTo(-1, 5);
+    expect(cell(g, 2020, "pts").delta).toBeCloseTo(-5, 5);
+  });
+
+  it("league mode: colors in z-score steps vs THAT year's league (same ruler as the old bars)", () => {
+    // pts 18 vs league 12, step 5 → 1.2 steps → 1.2/3 = 0.4 colorT. Delta +6.
+    const L = league([2022]);
+    const p = player([playedSeason(2022, 40, { pts: 18 })]);
+    const g = buildHeatmapGrid(p, "league", L, POS, "F");
+    expect(cell(g, 2022, "pts").colorT).toBeCloseTo(0.4, 5);
+    expect(cell(g, 2022, "pts").delta).toBeCloseTo(6, 5);
+    expect(cell(g, 2022, "pts").up).toBe(true);
+  });
+
+  it("position mode: colors against the POSITION's own average + spread", () => {
+    // Center pts 16 vs center avg 10, center step 4 → 1.5 steps → 0.5 colorT. Delta +6.
+    const L = league([2024]);
+    const P = positions([2024]);
+    const p = player([playedSeason(2024, 40, { pts: 16 })], "C");
+    const g = buildHeatmapGrid(p, "position", L, P, "C");
+    expect(cell(g, 2024, "pts").colorT).toBeCloseTo(0.5, 5);
+    expect(cell(g, 2024, "pts").delta).toBeCloseTo(6, 5);
+  });
+
+  it("shooting %s fall back to a relative-% gap in peer modes (no spread)", () => {
+    // tpp .44 vs league .33 → relative .333 → .333/.5 = .667 colorT; delta +11 pp.
+    const L = league([2022]);
+    const p = player([playedSeason(2022, 40, { tpp: 0.44 })]);
+    const g = buildHeatmapGrid(p, "league", L, POS, "F");
+    expect(cell(g, 2022, "tpp").colorT).toBeCloseTo(0.6667, 3);
+    expect(cell(g, 2022, "tpp").deltaFmt).toBe("+11.0 pp");
+  });
+
+  it("missed seasons are gaps: no color, no value, not clickable", () => {
+    const L = league([2021, 2022]);
+    const p = player([{ year: 2021, played: false, reason: "did not play" }, playedSeason(2022, 40)]);
+    const c = cell(buildHeatmapGrid(p, "league", L, POS, "F"), 2021, "pts");
+    expect(c.played).toBe(false);
+    expect(c.colorT).toBeNull();
+    expect(c.valueFmt).toBe("—");
+    expect(c.selectable).toBe(false);
+  });
+
+  it("small-sample cells are greyed (no color/delta) and not clickable", () => {
+    // A full-games season but 1-of-1 threes → tpp is attempt-thin.
+    const L = league([2022]);
+    const p = player([playedSeason(2022, 40, { fg3Made: 1, fg3Att: 1 })]);
+    const c = cell(buildHeatmapGrid(p, "league", L, POS, "F"), 2022, "tpp");
+    expect(c.smallSample).toBe(true);
+    expect(c.colorT).toBeNull();
+    expect(c.delta).toBeNull();
+    expect(c.selectable).toBe(false);
+  });
+
+  it("position mode with no bucket that year: no color, but the cell still opens the drill-down", () => {
+    // /positions has only 2024; the 2022 center row has no bucket → neutral, but selectable.
+    const L = league([2022, 2024]);
+    const p = player([playedSeason(2022, 40, { pts: 20 }), playedSeason(2024, 40, { pts: 20 })], "C");
+    const c = cell(buildHeatmapGrid(p, "position", L, positions([2024]), "C"), 2022, "pts");
+    expect(c.colorT).toBeNull();
+    expect(c.delta).toBeNull();
+    expect(c.value).toBe(20);
+    expect(c.selectable).toBe(true);
   });
 });
 
