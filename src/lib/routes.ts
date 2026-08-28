@@ -1,5 +1,5 @@
 import { STATS } from "../data/stats";
-import type { ComparisonTarget, StatKey } from "./deviation";
+import type { ComparisonTarget, HeatmapMode, StatKey } from "./deviation";
 
 /** Minimal roster shape the path helpers need — kept structural so routes.ts stays decoupled
  *  from the API types (and so tests can pass plain objects). */
@@ -52,7 +52,13 @@ export function toStatKey(seg: string | undefined): StatKey | null {
   return STATS.some((st) => st.key === seg) ? (seg as StatKey) : null;
 }
 
-/** Read the compare-target from the `vs` query value: "position" or the league default. */
+/** Read the compare-target from the `vs` query value: "position" or the league default. Used by
+ *  the drill-down, which has no "self" baseline — so `vs=self` reads through as league here. */
 export function toTarget(vs: string | null): ComparisonTarget {
   return vs === "position" ? "position" : "league";
+}
+
+/** Read the heatmap reference mode from the `vs` query value; default (absent/unknown) = self. */
+export function toMode(vs: string | null): HeatmapMode {
+  return vs === "league" ? "league" : vs === "position" ? "position" : "self";
 }

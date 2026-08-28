@@ -314,30 +314,9 @@ export function getBaselineValue(statKey: StatDef["key"], ctx: BaselineContext):
   return ctx.league.avg(y, statKey);
 }
 
-export interface DeviationRow {
-  key: StatDef["key"];
-  short: string;
-  label: string;
-  curVal: number | null;
-  baseVal: number | null;
-  curFmt: string;
-  baseFmt: string;
-  rawFmt: string;
-  up: boolean;
-  /** Bar length as a percent of the row's half-width (0–50). */
-  barPct: number;
-  /** Left edge of the bar as a percent of the row width. */
-  leftPct: number;
-  barColor: string;
-  deltaColor: string;
-  /** True when the subject season is too thin a sample for THIS stat (few games, or for a
-      shooting % too few attempts) — the deviation isn't meaningful, so the view shows a
-      "small sample" note instead of a bar. */
-  smallSample: boolean;
-}
-
 /** Bar geometry: relative deviation clamped at ±BAR_FULL_SCALE, centered on the baseline.
-    The fallback ruler for shooting %s and for pre-004 data with no spread. */
+    The fallback ruler for shooting %s and for pre-004 data with no spread. Retained (with
+    stepGeometry) because buildHeatmapGrid reads their signed magnitude for peer-mode cell color. */
 function barGeometry(cur: number | null, base: number | null): { up: boolean; barPct: number; leftPct: number } {
   if (cur == null || base == null) return { up: false, barPct: 0, leftPct: 50 };
   const ratio = base ? (cur - base) / base : 0;
@@ -361,49 +340,6 @@ function stepGeometry(
   const barPct = +(Math.min(Math.abs(steps) / FULL_STEPS, 1) * 50).toFixed(2);
   const up = cur - base >= 0;
   return { up, barPct, leftPct: up ? 50 : 50 - barPct };
-}
-
-export function buildRows(ctx: BaselineContext): DeviationRow[] {
-  const { subject, league, positions, target, playerPosition } = ctx;
-  return STATS.map((st) => {
-    const cur = subject[st.key];
-    const base = getBaselineValue(st.key, ctx);
-    // Too few attempts (or games) for this stat → the subject value is noise, so no bar/delta.
-    const smallSample = isStatSmallSample(subject, league, st.key);
-
-    // A counting stat's bar measures in "steps" of the comparison group's spread, from the
-    // subject year's group: the position in position mode, otherwise the league. Shooting %s
-    // and pre-004 data have no spread → null → the bar falls back to relative-%. (The percentile
-    // gloss lives in the stat drill-down, not here.)
-    let spread: number | null = null;
-    if (isCountingStat(st.key) && cur != null) {
-      spread =
-        target === "position" && playerPosition != null && positions != null
-          ? positions.stdev(subject.year, playerPosition, st.key)
-          : league.stdev(subject.year, st.key);
-    }
-
-    const { up, barPct, leftPct } = smallSample
-      ? { up: false, barPct: 0, leftPct: 50 }
-      : (stepGeometry(cur, base, spread) ?? barGeometry(cur, base));
-    const hasDelta = !smallSample && cur != null && base != null;
-    return {
-      key: st.key,
-      short: st.short,
-      label: st.label,
-      curVal: cur,
-      baseVal: base,
-      curFmt: fmtV(cur, st.pct),
-      baseFmt: fmtV(base, st.pct),
-      rawFmt: hasDelta ? fmtRaw(cur - base, st.pct) : "—",
-      up,
-      barPct,
-      leftPct,
-      barColor: up ? "var(--hm-above)" : "var(--hm-below)",
-      deltaColor: up ? "var(--hm-above-text)" : "var(--hm-below-text)",
-      smallSample,
-    };
-  });
 }
 
 export function buildCaption(ctx: BaselineContext, playerName: string): string {

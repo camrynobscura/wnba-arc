@@ -1,72 +1,59 @@
-import { useMemo } from "react";
 import { useNavigate, useOutletContext, useSearchParams } from "react-router-dom";
 import { SummaryView } from "../components/SummaryView";
 import { useAppData } from "../appData";
 import type { PlayerOutletCtx } from "./PlayerLayout";
-import { buildCaption, buildRows, getBaselineContext, type ComparisonTarget, type StatKey } from "../lib/deviation";
-import { playerPath, statPath, toTarget } from "../lib/routes";
+import type { HeatmapMode, StatKey } from "../lib/deviation";
+import { playerPath, statPath, toMode } from "../lib/routes";
 
-/** "/player/:slug" (index) — the season summary. Reads the subject season + compare-target from
- *  the `?year=`/`?vs=` query params; the URL is the source of truth for both. */
+/** "/player/:slug" (index) — the season heatmap. `?vs=` is the reference mode (self / league /
+ *  position); the URL is the source of truth. Clicking a cell opens that season's drill-down. */
 export function SummaryRoute() {
   const { detail, league, positions } = useOutletContext<PlayerOutletCtx>();
   const { players, loadError } = useAppData();
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
 
-  const yearParam = searchParams.get("year");
-  const subjectYear = yearParam ? Number(yearParam) : null; // out-of-range falls back in getBaselineContext
   const positionAvailable = detail.pos != null && positions != null;
-  // Honor ?vs=position only when position data is actually available, so the dropdown's value
-  // always matches an offered option.
-  const target: ComparisonTarget = toTarget(searchParams.get("vs")) === "position" && positionAvailable ? "position" : "league";
+  const requested = toMode(searchParams.get("vs"));
+  // Only honor position mode when it's actually available (else fall to the default).
+  const mode: HeatmapMode = requested === "position" && !positionAvailable ? "self" : requested;
 
-  const ctx = useMemo(
-    () => getBaselineContext(detail, league, positions, subjectYear, target),
-    [detail, league, positions, subjectYear, target],
-  );
-  const rows = useMemo(() => buildRows(ctx), [ctx]);
-  const caption = useMemo(() => buildCaption(ctx, detail.name), [ctx, detail.name]);
-
-  // Season / compare-target are view modifiers, not navigations → replace the history entry so
-  // clicking through years doesn't stack a dozen back-button steps. League is the default, so
-  // it drops the param (keeps URLs clean).
-  const setYear = (year: number) =>
+  // The reference mode is a view modifier, not a navigation → replace the history entry. Self is
+  // the default, so it drops the param (clean URLs).
+  const setMode = (m: HeatmapMode) =>
     setSearchParams(
       (prev) => {
-        prev.set("year", String(year));
-        return prev;
-      },
-      { replace: true },
-    );
-  const setTarget = (t: ComparisonTarget) =>
-    setSearchParams(
-      (prev) => {
-        if (t === "position") prev.set("vs", "position");
-        else prev.delete("vs");
+        if (m === "self") prev.delete("vs");
+        else prev.set("vs", m);
         return prev;
       },
       { replace: true },
     );
 
-  const qs = searchParams.toString();
-  // Opening a stat carries the current year+vs so the drill-down opens on the same season/target.
-  const openStat = (key: StatKey) => navigate(`${statPath(detail.name, detail.espn, key, players)}${qs ? `?${qs}` : ""}`);
-  // Picking a new player is a fresh navigation — reset to league + default season (no query).
+  // Open a cell → that season's drill-down for that stat, carrying the current mode so Back
+  // returns to the same view (the drill-down reads vs=self as league, its default — see toTarget).
+  const openCell = (year: number, key: StatKey) => {
+    const params = new URLSearchParams(searchParams);
+    params.set("year", String(year));
+    const qs = params.toString();
+    navigate(`${statPath(detail.name, detail.espn, key, players)}${qs ? `?${qs}` : ""}`);
+  };
+  // Picking a new player is a fresh navigation — reset to the default mode (no query).
   const pick = (espn: string) => navigate(playerPath(players?.find((p) => p.espn === espn)?.name ?? "", espn, players));
 
   return (
     <SummaryView
       player={detail}
-      ctx={ctx}
-      rows={rows}
-      caption={caption}
+      league={league}
+      positions={positions}
+      playerPosition={detail.pos}
+      positionAvailable={positionAvailable}
+      mode={mode}
       players={players}
       listError={loadError}
-      onTargetChange={setTarget}
-      onSubjectYearChange={setYear}
+      onModeChange={setMode}
       onGoHome={() => navigate("/")}
-      onOpenStat={openStat}
+      onOpenCell={openCell}
       onPick={pick}
     />
   );

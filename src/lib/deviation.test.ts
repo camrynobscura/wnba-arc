@@ -1,7 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
   buildHeatmapGrid,
-  buildRows,
   buildStatDetail,
   getBaselineContext,
   getBaselineValue,
@@ -324,58 +323,6 @@ describe("isStatSmallSample — per-stat gate (games OR attempts)", () => {
   });
 });
 
-describe("buildRows — step bars and relative-% fallback", () => {
-  const rowFor = (rows: ReturnType<typeof buildRows>, key: string) => rows.find((r) => r.key === key)!;
-
-  it("league mode: a counting bar measures in league-steps, NOT relative-%", () => {
-    // pts 18 vs league avg 12, league step 5 → (18−12)/5 = 1.2 steps → 1.2/3 × 50 = 20% bar.
-    // Relative-% would read (18−12)/12 = 0.5 → a FULL (50%) bar; the step ruler is what avoids that.
-    const L = league([2022]);
-    const p = player([playedSeason(2022, 40, { pts: 18 })]);
-    const rows = buildRows(getBaselineContext(p, L, POS, 2022, "league"));
-    const pts = rowFor(rows, "pts");
-    expect(pts.barPct).toBeCloseTo(20, 5);
-    expect(pts.up).toBe(true);
-  });
-
-  it("position mode: bar uses the POSITION's own spread, not the league's", () => {
-    // Center pts 16 vs center avg 10, center step 4 → (16−10)/4 = 1.5 → 25% (league step 5 → 20%).
-    const P = positions([2024]);
-    const L = league([2024]);
-    const p = player([playedSeason(2024, 40, { pts: 16 })], "C");
-    const rows = buildRows(getBaselineContext(p, L, P, 2024, "position"));
-    expect(rowFor(rows, "pts").barPct).toBeCloseTo(25, 5); // center step 4 (would be 20 on the league's 5)
-  });
-
-  it("shooting %s keep the relative-% bar", () => {
-    // tpp 0.44 vs league 0.33 → relative (0.44−0.33)/0.33 = 0.333 → 0.333/0.5 × 50 = 33.3% bar.
-    const L = league([2022]);
-    const p = player([playedSeason(2022, 40, { tpp: 0.44 })]);
-    const rows = buildRows(getBaselineContext(p, L, POS, 2022, "league"));
-    expect(rowFor(rows, "tpp").barPct).toBeCloseTo(33.33, 1);
-  });
-
-  it("falls back to relative-% when the league spread is absent (pre-004 data)", () => {
-    // A league row with no stdev (older API) → the counting bar degrades to relative-%, not broken.
-    const Lnull = makeLeague([
-      { year: 2022, scheduledGames: SLATE, pts: 12, reb: 5, ast: 3, stl: 1, blk: 0.8, fgp: 0.43, tpp: 0.33, tsPct: 0.52, stdev: null, pctiles: null },
-    ]);
-    const p = player([playedSeason(2022, 40, { pts: 18 })]);
-    const rows = buildRows(getBaselineContext(p, Lnull, POS, 2022, "league"));
-    expect(rowFor(rows, "pts").barPct).toBeCloseTo(50, 5); // relative-% (18−12)/12 = 0.5 → full bar
-  });
-
-  it("suppresses the bar for a small-sample subject", () => {
-    // A games-thin subject (3 of 40) → no bar, even in league mode.
-    const L = league([2022]);
-    const p = player([playedSeason(2022, 3, { pts: 18 })]);
-    const rows = buildRows(getBaselineContext(p, L, POS, 2022, "league"));
-    const pts = rowFor(rows, "pts");
-    expect(pts.smallSample).toBe(true);
-    expect(pts.barPct).toBe(0);
-  });
-});
-
 describe("buildHeatmapGrid — the switchable-reference heatmap", () => {
   const cell = (g: HeatmapGrid, year: number, key: string): HeatmapCell =>
     g.rows[g.years.indexOf(year)].find((c) => c.statKey === key)!;
@@ -428,6 +375,16 @@ describe("buildHeatmapGrid — the switchable-reference heatmap", () => {
     const g = buildHeatmapGrid(p, "league", L, POS, "F");
     expect(cell(g, 2022, "tpp").colorT).toBeCloseTo(0.6667, 3);
     expect(cell(g, 2022, "tpp").deltaFmt).toBe("+11.0 pp");
+  });
+
+  it("peer mode falls back to relative-% color when the league spread is absent (pre-004 data)", () => {
+    const Lnull = makeLeague([
+      { year: 2022, scheduledGames: SLATE, pts: 12, reb: 5, ast: 3, stl: 1, blk: 0.8, fgp: 0.43, tpp: 0.33, tsPct: 0.52, stdev: null, pctiles: null },
+    ]);
+    const p = player([playedSeason(2022, 40, { pts: 18 })]);
+    const c = cell(buildHeatmapGrid(p, "league", Lnull, POS, "F"), 2022, "pts");
+    expect(c.colorT).toBeCloseTo(1, 5); // relative (18−12)/12 = 0.5 → 0.5/0.5 = full
+    expect(c.delta).toBeCloseTo(6, 5);
   });
 
   it("missed seasons are gaps: no color, no value, not clickable", () => {

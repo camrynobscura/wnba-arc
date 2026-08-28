@@ -1,12 +1,9 @@
-import { photoUrl, type StatDef } from "../data/stats";
-import type { PlayerDetail, PlayerSummary } from "../data/api";
+import { photoUrl } from "../data/stats";
+import type { PlayerDetail, PlayerSummary, SeasonMissed } from "../data/api";
 import { PlayerSearch } from "./PlayerSearch";
-import { firstName, isSmallSample, positionNoun, type BaselineContext, type ComparisonTarget, type DeviationRow } from "../lib/deviation";
+import type { HeatmapMode, League, PositionLookup, StatKey } from "../lib/deviation";
 import { PlayerPhoto } from "./PlayerPhoto";
-import { DeviationBlocks } from "./DeviationBlocks";
-import { CareerHeatmap } from "./CareerHeatmap";
-import { ScaleKey } from "./ScaleKey";
-import { LabeledSelect } from "./Select";
+import { DeviationHeatmap } from "./DeviationHeatmap";
 
 /** "2019, 2021–2024" — collapse consecutive years into ranges for a compact list. */
 function compressYears(years: number[]): string {
@@ -27,60 +24,44 @@ function compressYears(years: number[]): string {
 
 interface SummaryViewProps {
   player: PlayerDetail;
-  ctx: BaselineContext;
-  rows: DeviationRow[];
-  caption: string;
+  league: League;
+  positions: PositionLookup | null;
+  playerPosition: string | null;
+  /** Whether "vs their position" can be offered (position known AND /positions loaded). */
+  positionAvailable: boolean;
+  mode: HeatmapMode;
   /** Full roster + its load error, for the in-row "search more players" box. */
   players: PlayerSummary[] | null;
   listError: string | null;
-  onTargetChange: (target: ComparisonTarget) => void;
-  onSubjectYearChange: (year: number) => void;
+  onModeChange: (m: HeatmapMode) => void;
   onGoHome: () => void;
-  onOpenStat: (key: StatDef["key"]) => void;
+  onOpenCell: (year: number, key: StatKey) => void;
   onPick: (espn: string) => void;
 }
 
 export function SummaryView({
   player,
-  ctx,
-  rows,
-  caption,
+  league,
+  positions,
+  playerPosition,
+  positionAvailable,
+  mode,
   players,
   listError,
-  onTargetChange,
-  onSubjectYearChange,
+  onModeChange,
   onGoHome,
-  onOpenStat,
+  onOpenCell,
   onPick,
 }: SummaryViewProps) {
-  const {
-    subject,
-    league,
-    target,
-    selectableYears,
-    nonSelectableSmallSample,
-    missedSeasons,
-    positionAvailable,
-    playerPosition,
-    positionSampleMissing,
-  } = ctx;
-  // Group missed (no-data) seasons by reason so a player with several gaps gets one
-  // compact line ("No seasons on record for 2019, 2021–2024") rather than many.
+  // Missed (no-data) seasons, grouped by reason so several gaps read as one compact line — the
+  // heatmap shows the gaps, but only this note carries *why* (injury / maternity / overseas).
+  const missed = player.seasons.filter((s): s is SeasonMissed => !s.played);
   const missedByReason = new Map<string, number[]>();
-  for (const m of missedSeasons) {
+  for (const m of missed) {
     const reason = (m.reason || "did not play").toLowerCase();
     missedByReason.set(reason, [...(missedByReason.get(reason) ?? []), m.year]);
   }
   const missedGroups = [...missedByReason.entries()];
-  // Only full (non-small-sample) seasons are offered as the subject.
-  const years = selectableYears;
-  // A small-sample row is almost always "too few attempts" (the subject is a full-games season);
-  // it's only "too few games" in the degenerate fallback where the player has no full season.
-  const smallSampleReason = isSmallSample(subject, league) ? "too few games" : "too few attempts";
-  // The scale key names the actual reference the bars measure against, so the shared red/blue
-  // never reads ambiguously between this section (vs peers) and the heatmap (vs own career).
-  const positionAvgLabel: Record<string, string> = { G: "guard avg", F: "forward avg", C: "center avg" };
-  const scaleNoun = target === "position" ? (positionAvgLabel[playerPosition ?? ""] ?? "position avg") : "league avg";
 
   return (
     <main id="main" className="view-main">
@@ -114,124 +95,20 @@ export function SummaryView({
         </div>
       </div>
 
-      <CareerHeatmap player={player} league={league} subjectYear={subject.year} />
+      <DeviationHeatmap
+        player={player}
+        league={league}
+        positions={positions}
+        playerPosition={playerPosition}
+        positionAvailable={positionAvailable}
+        mode={mode}
+        onModeChange={onModeChange}
+        onOpenCell={onOpenCell}
+      />
 
-      <h2 style={{ fontSize: "var(--fs-xl)", margin: "0 0 var(--space-2)" }}>{firstName(player.name)} vs the League</h2>
-
-      {/* Controls (.sb-* in theme.css). Desktop: the comparison control left, season picker
-          right. Mobile: a single left-aligned column. Pick a season, then compare it to that
-          same year's whole-league average or its position peers — the caption spans full-width
-          beneath. (The old "their own" baseline + Window control were removed; the Career Trend
-          heatmap above already tells the own-trajectory story. See DECISIONS.) */}
-      <div className="sb-controls">
-        <div className="sb-selectors">
-          <LabeledSelect
-            label="Season"
-            id="season-select"
-            value={String(subject.year)}
-            options={years.map((y) => ({ value: String(y), label: String(y) }))}
-            onChange={(v) => onSubjectYearChange(Number(v))}
-          />
-          <LabeledSelect
-            label="Compare against"
-            value={target}
-            options={[
-              { value: "league", label: "League avg" },
-              // Offered only once /positions has loaded and the player has a known position.
-              ...(positionAvailable ? [{ value: "position", label: `Other ${positionNoun(playerPosition)}` }] : []),
-            ]}
-            onChange={(v) => onTargetChange(v as ComparisonTarget)}
-          />
-        </div>
-        <p className="text-muted" style={{ fontSize: "var(--fs-sm)", margin: 0 }}>
-          {caption}
-        </p>
-      </div>
-
-      {/* Same diverging gradient key as the Career Trend heatmap, placed identically —
-          left-aligned directly above the bars it describes. */}
-      <div className="scale-legend" style={{ marginTop: "var(--space-3)", marginBottom: "var(--space-3)" }}>
-        <ScaleKey noun={scaleNoun} />
-      </div>
-
-      {/* A list of stats you can drill into (semantic <ul> — the list-reset keeps it visually
-          identical). Each row is one <button> so keyboard/SR users get a real control. */}
-      <ul style={{ listStyle: "none", margin: 0, padding: "var(--space-4) 0 0", borderTop: "2px solid var(--color-divider)" }}>
-        {rows.map((row) => {
-          // Fold the value + delta into the button's accessible name. An aria-label OVERRIDES a
-          // control's inner text, so without this a screen reader announces "Points, open history"
-          // and never the numbers on screen — the whole point of the row.
-          const readout = row.smallSample
-            ? "small sample"
-            : row.rawFmt === "—"
-              ? `average ${row.baseFmt}`
-              : `${row.rawFmt} versus average ${row.baseFmt}`;
-          return (
-          <li key={row.key}>
-          <button
-            className="btn-reset row-hover"
-            aria-label={`${row.label}: ${row.curFmt}, ${readout} — open year-by-year history`}
-            style={{
-              textAlign: "left",
-              width: "100%",
-              display: "grid",
-              // Side columns sized tight to their content (label / number) so the bar
-              // track (1fr) spreads as wide as possible in both directions. Columns are
-              // uniform across rows so every bar's center baseline stays vertically aligned.
-              // Label column is wide enough to keep the longest label ("True Shooting %")
-              // on one line in the condensed heading font.
-              gridTemplateColumns: "120px 1fr 56px",
-              alignItems: "center",
-              gap: "var(--space-3)",
-              padding: "var(--space-4) var(--space-2)",
-              borderBottom: "1px solid var(--color-divider)",
-            }}
-            onClick={() => onOpenStat(row.key)}
-          >
-            <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-1)", lineHeight: 1.05 }}>
-              <div className="text-heading" style={{ fontSize: "var(--fs-lg)" }}>{row.label}</div>
-              <div className="text-muted" style={{ fontSize: "var(--fs-2xs)" }}>
-                {scaleNoun} {row.baseFmt}
-              </div>
-            </div>
-            {/* A little breathing room between the label and where the bar track starts. A
-                subject season with too few attempts for this stat shows a note, not a bar —
-                the deviation off a 1-of-1 shooting line would be meaningless. */}
-            <div style={{ paddingLeft: "var(--space-3)" }}>
-              {row.smallSample ? (
-                <span className="text-muted" style={{ fontSize: "var(--fs-xs)" }}>small sample — {smallSampleReason}</span>
-              ) : (
-                <DeviationBlocks up={row.up} barPct={row.barPct} barColor={row.barColor} />
-              )}
-            </div>
-            <div style={{ textAlign: "right", display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "var(--space-1)", lineHeight: 1.05 }}>
-              <span className="text-heading" style={{ fontSize: "var(--fs-lg)", color: row.smallSample ? "var(--color-neutral-500)" : undefined }}>{row.curFmt}</span>
-              <span style={{ fontSize: "var(--fs-2xs)", color: row.deltaColor }}>{row.rawFmt}</span>
-            </div>
-          </button>
-          </li>
-          );
-        })}
-      </ul>
-
-      {/* Data-omission notes — placed directly beneath the bars they qualify (which seasons
-          aren't selectable / shown, and why). */}
-      {(nonSelectableSmallSample.length > 0 || missedGroups.length > 0 || positionSampleMissing) && (
-        <div role="note" className="note-card" style={{ margin: "var(--space-4) 0 0" }}>
-          {positionSampleMissing && (
-            <div>
-              <strong style={{ fontWeight: 600 }}>No same-position average for {subject.year}</strong>{" "}
-              — too few {positionNoun(playerPosition)} on record that season to compare.
-            </div>
-          )}
-          {nonSelectableSmallSample.length > 0 && (
-            <div>
-              <strong style={{ fontWeight: 600 }}>
-                {compressYears(nonSelectableSmallSample.map((s) => s.year))} not shown
-              </strong>{" "}
-              — too few games played.
-            </div>
-          )}
+      {/* Missed-season reasons — the one thing the grid's gaps can't show on their own. */}
+      {missedGroups.length > 0 && (
+        <div role="note" className="note-card" style={{ margin: "var(--space-5) 0 0" }}>
           {missedGroups.map(([reason, years]) => (
             <div key={`ms-${reason}`}>
               <strong style={{ fontWeight: 600 }}>
@@ -242,10 +119,6 @@ export function SummaryView({
           ))}
         </div>
       )}
-
-      <p className="text-muted" style={{ fontSize: "var(--fs-xs)", marginTop: "var(--space-3)" }}>
-        Bars show how far each stat sits above or below average — the further out, the more exceptional. Click a stat for its year-by-year history and percentile ranking →
-      </p>
     </main>
   );
 }
