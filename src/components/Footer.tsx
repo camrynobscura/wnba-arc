@@ -28,7 +28,7 @@ export function Footer({ lastScrapedAt }: FooterProps) {
         maxWidth: "var(--app-width)",
         marginLeft: "auto",
         marginRight: "auto",
-        padding: "0 20px 24px",
+        padding: "0 var(--space-5) var(--space-6)",
       }}
     >
       {/* A small bordered chip echoing the nav's About / theme boxes, so it reads
@@ -39,7 +39,7 @@ export function Footer({ lastScrapedAt }: FooterProps) {
           display: "inline-block",
           fontSize: "var(--fs-xs)",
           letterSpacing: "0.02em",
-          padding: "6px 10px",
+          padding: "var(--space-2) var(--space-3)",
           border: "1px solid var(--color-divider)",
         }}
       >

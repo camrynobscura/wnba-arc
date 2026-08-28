@@ -16,18 +16,18 @@ interface SelectViewProps {
 
 export function SelectView({ featured, players, listError, onPick }: SelectViewProps) {
   return (
-    <main id="main" style={{ maxWidth: "var(--app-width)", width: "100%", margin: "0 auto", padding: "36px 20px 36px" }}>
-      <h1 style={{ fontSize: "var(--fs-3xl)", marginBottom: 10 }}>How far from normal is this season?</h1>
-      <p className="text-muted" style={{ fontSize: "var(--fs-base)", marginBottom: 28 }}>
+    <main id="main" style={{ maxWidth: "var(--app-width)", width: "100%", margin: "0 auto", padding: "var(--space-10) var(--space-5) var(--space-10)" }}>
+      <h1 style={{ fontSize: "var(--fs-3xl)", marginBottom: "var(--space-3)" }}>How far from normal is this season?</h1>
+      <p className="text-muted" style={{ fontSize: "var(--fs-base)", marginBottom: "var(--space-8)" }}>
         Pick a current WNBA player. See how any of their seasons sits above or below their own baseline — or the league.
       </p>
 
       <PlayerSearch variant="hero" players={players} listError={listError} onPick={onPick} />
 
-      <div style={{ marginTop: 34 }}>
+      <div style={{ marginTop: "var(--space-10)" }}>
         <h2
           className="text-muted"
-          style={{ fontSize: "var(--fs-sm)", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 8 }}
+          style={{ fontSize: "var(--fs-sm)", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: "var(--space-2)" }}
         >
           Featured players
         </h2>
@@ -38,7 +38,7 @@ export function SelectView({ featured, players, listError, onPick }: SelectViewP
             padding: 0,
             display: "grid",
             gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))",
-            columnGap: 24,
+            columnGap: "var(--space-6)",
             borderTop: "2px solid var(--color-divider)",
           }}
         >
@@ -51,8 +51,8 @@ export function SelectView({ featured, players, listError, onPick }: SelectViewP
                   width: "100%",
                   display: "flex",
                   alignItems: "center",
-                  gap: 14,
-                  padding: "12px 12px",
+                  gap: "var(--space-4)",
+                  padding: "var(--space-3) var(--space-3)",
                   borderBottom: "1px solid var(--color-divider)",
                 }}
                 onClick={() => onPick(f.espn)}

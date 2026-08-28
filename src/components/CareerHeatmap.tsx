@@ -89,14 +89,14 @@ export function CareerHeatmap({ player, league, subjectYear }: CareerHeatmapProp
 
   return (
     <>
-      <section aria-label="Career Trend" style={{ margin: "4px 0 2px" }}>
-        <div style={{ marginBottom: 12 }}>
+      <section aria-label="Career Trend" style={{ margin: "var(--space-1) 0 var(--space-1)" }}>
+        <div style={{ marginBottom: "var(--space-3)" }}>
           <h2 style={{ fontSize: "var(--fs-xl)", margin: 0 }}>Career Trend</h2>
-          <div className="text-muted" style={{ fontSize: "var(--fs-xs)", marginTop: 8 }}>Each cell vs {firstName(player.name)}'s career average.</div>
+          <div className="text-muted" style={{ fontSize: "var(--fs-xs)", marginTop: "var(--space-2)" }}>Each cell vs {firstName(player.name)}'s career average.</div>
         </div>
         {/* Diverging color key — sits directly above the grid it describes. The small-sample
             key lives BELOW the grid (after it), like the drill-down's table key. */}
-        <div className="scale-legend" style={{ marginBottom: 14 }}>
+        <div className="scale-legend" style={{ marginBottom: "var(--space-4)" }}>
           <ScaleKey noun="baseline" />
         </div>
 
@@ -159,13 +159,13 @@ export function CareerHeatmap({ player, league, subjectYear }: CareerHeatmapProp
           ))}
         </div>
         {anySmall && (
-          <div className="hm-legend-key text-muted" style={{ marginTop: 12 }}>
+          <div className="hm-legend-key text-muted" style={{ marginTop: "var(--space-3)" }}>
             <span className="hm-legend-dot" aria-hidden="true" /> small sample (few games or attempts)
           </div>
         )}
       </section>
 
-      <hr style={{ border: 0, borderTop: "1px solid var(--color-divider)", margin: "20px 0 18px" }} />
+      <hr style={{ border: 0, borderTop: "1px solid var(--color-divider)", margin: "var(--space-5) 0 var(--space-5)" }} />
     </>
   );
 }

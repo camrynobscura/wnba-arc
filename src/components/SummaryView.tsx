@@ -82,7 +82,7 @@ export function SummaryView({
     <main id="main" className="view-main">
       {/* Top row: back to all players (left) + jump straight to another player (right). */}
       <div className="view-header">
-        <button className="btn btn-ghost" style={{ gap: 8 }} onClick={onGoHome}>
+        <button className="btn btn-ghost" style={{ gap: "var(--space-2)" }} onClick={onGoHome}>
           <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
             <path d="M19 12H5M12 19l-7-7 7-7" />
           </svg>
@@ -95,15 +95,15 @@ export function SummaryView({
         style={{
           display: "flex",
           alignItems: "center",
-          gap: 14,
-          paddingBottom: 16,
-          marginBottom: 14,
+          gap: "var(--space-4)",
+          paddingBottom: "var(--space-4)",
+          marginBottom: "var(--space-4)",
           borderBottom: "2px solid var(--color-divider)",
         }}
       >
         <PlayerPhoto src={photoUrl(player.espn)} name={player.name} size={54} />
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div className="card-kicker" style={{ marginBottom: 3 }}>
+          <div className="card-kicker" style={{ marginBottom: "var(--space-1)" }}>
             {player.team} · {player.pos} · #{player.jersey}
           </div>
           <h1 style={{ fontSize: "var(--fs-2xl)", margin: 0, lineHeight: 1 }}>{player.name}</h1>
@@ -112,7 +112,7 @@ export function SummaryView({
 
       <CareerHeatmap player={player} league={league} subjectYear={subject.year} />
 
-      <h2 style={{ fontSize: "var(--fs-xl)", margin: "0 0 8px" }}>{firstName(player.name)} vs the League</h2>
+      <h2 style={{ fontSize: "var(--fs-xl)", margin: "0 0 var(--space-2)" }}>{firstName(player.name)} vs the League</h2>
 
       {/* Controls (.sb-* in theme.css). Desktop: the comparison control left, season picker
           right. Mobile: a single left-aligned column. Pick a season, then compare it to that
@@ -146,13 +146,13 @@ export function SummaryView({
 
       {/* Same diverging gradient key as the Career Trend heatmap, placed identically —
           left-aligned directly above the bars it describes. */}
-      <div className="scale-legend" style={{ marginTop: 10, marginBottom: 10 }}>
+      <div className="scale-legend" style={{ marginTop: "var(--space-3)", marginBottom: "var(--space-3)" }}>
         <ScaleKey noun="baseline" />
       </div>
 
       {/* A list of stats you can drill into (semantic <ul> — the list-reset keeps it visually
           identical). Each row is one <button> so keyboard/SR users get a real control. */}
-      <ul style={{ listStyle: "none", margin: 0, padding: "14px 0 0", borderTop: "2px solid var(--color-divider)" }}>
+      <ul style={{ listStyle: "none", margin: 0, padding: "var(--space-4) 0 0", borderTop: "2px solid var(--color-divider)" }}>
         {rows.map((row, idx) => {
           // Fold the value + delta into the button's accessible name. An aria-label OVERRIDES a
           // control's inner text, so without this a screen reader announces "Points, open history"
@@ -178,8 +178,8 @@ export function SummaryView({
               // on one line in the condensed heading font.
               gridTemplateColumns: "120px 1fr 56px",
               alignItems: "center",
-              gap: 10,
-              padding: "16px 8px",
+              gap: "var(--space-3)",
+              padding: "var(--space-4) var(--space-2)",
               borderBottom: "1px solid var(--color-divider)",
             }}
             onClick={() => onOpenStat(row.key)}
@@ -193,7 +193,7 @@ export function SummaryView({
             {/* A little breathing room between the label and where the bar track starts. A
                 subject season with too few attempts for this stat shows a note, not a bar —
                 the deviation off a 1-of-1 shooting line would be meaningless. */}
-            <div style={{ paddingLeft: 12 }}>
+            <div style={{ paddingLeft: "var(--space-3)" }}>
               {row.smallSample ? (
                 <span className="text-muted" style={{ fontSize: "var(--fs-xs)" }}>small sample — {smallSampleReason}</span>
               ) : (
@@ -218,9 +218,9 @@ export function SummaryView({
           style={{
             display: "flex",
             flexDirection: "column",
-            gap: 4,
-            margin: "14px 0 0",
-            padding: "10px 12px",
+            gap: "var(--space-1)",
+            margin: "var(--space-4) 0 0",
+            padding: "var(--space-3) var(--space-3)",
             fontSize: "var(--fs-xs)",
             lineHeight: 1.4,
             color: "var(--color-neutral-700)",
@@ -254,7 +254,7 @@ export function SummaryView({
         </div>
       )}
 
-      <p className="text-muted" style={{ fontSize: "var(--fs-xs)", marginTop: 10 }}>
+      <p className="text-muted" style={{ fontSize: "var(--fs-xs)", marginTop: "var(--space-3)" }}>
         Bars show how far each stat sits above or below its baseline — the further out, the more exceptional. Click a stat for its year-by-year history and percentile ranking →
       </p>
     </main>

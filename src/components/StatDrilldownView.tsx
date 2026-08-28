@@ -85,7 +85,7 @@ export function StatDrilldownView({ player, stat, target, positionAvailable, pla
         {r.smallSample && !r.missed && (
           // Just a dot (keyed below the table) — the repeated "small sample" text wrapped the
           // year to two lines. role/aria-label keep it meaningful without visible text.
-          <span className="hm-legend-dot" role="img" aria-label="small sample" style={{ marginLeft: 6 }} />
+          <span className="hm-legend-dot" role="img" aria-label="small sample" style={{ marginLeft: "var(--space-2)" }} />
         )}
       </td>
       {stat.component && (
@@ -123,7 +123,7 @@ export function StatDrilldownView({ player, stat, target, positionAvailable, pla
     <main id="main" className="view-main">
       {/* Top row: back to this player's summary (left) + jump to another player (right). */}
       <div className="view-header">
-        <button className="btn btn-ghost" style={{ gap: 8 }} onClick={onBack}>
+        <button className="btn btn-ghost" style={{ gap: "var(--space-2)" }} onClick={onBack}>
           <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
             <path d="M19 12H5M12 19l-7-7 7-7" />
           </svg>
@@ -132,20 +132,20 @@ export function StatDrilldownView({ player, stat, target, positionAvailable, pla
         <PlayerSearch variant="compact" players={players} listError={listError} onPick={onPick} />
       </div>
 
-      <div className="card-kicker" style={{ marginBottom: 4 }}>
+      <div className="card-kicker" style={{ marginBottom: "var(--space-1)" }}>
         {player.name} · career history
       </div>
-      <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
+      <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", flexWrap: "wrap", gap: "var(--space-3)" }}>
         <div>
           <h1 style={{ margin: 0, fontSize: "var(--fs-2xl)" }}>{stat.label}</h1>
           {/* Every stat gets a unit subtitle so the header height is consistent: counting
               stats are per-game averages; shooting %s are whole-season rates. */}
-          <div className="text-muted" style={{ fontSize: "var(--fs-xs)", marginTop: 2 }}>
+          <div className="text-muted" style={{ fontSize: "var(--fs-xs)", marginTop: "var(--space-1)" }}>
             {stat.pct ? "season rate" : "per game"}
           </div>
         </div>
         <div style={{ textAlign: "right" }}>
-          <div style={{ display: "flex", alignItems: "baseline", gap: 8, justifyContent: "flex-end" }}>
+          <div style={{ display: "flex", alignItems: "baseline", gap: "var(--space-2)", justifyContent: "flex-end" }}>
             <span
               className="text-heading"
               style={{ fontSize: "var(--fs-2xl)", lineHeight: 1, color: stat.subjectSmallSample ? "var(--color-neutral-500)" : undefined }}
@@ -160,7 +160,7 @@ export function StatDrilldownView({ player, stat, target, positionAvailable, pla
               </span>
             )}
           </div>
-          <div className="text-muted" style={{ fontSize: "var(--fs-xs)", marginTop: 2 }}>
+          <div className="text-muted" style={{ fontSize: "var(--fs-xs)", marginTop: "var(--space-1)" }}>
             {stat.year} · baseline {stat.baseFmt}
           </div>
         </div>
@@ -169,23 +169,23 @@ export function StatDrilldownView({ player, stat, target, positionAvailable, pla
         {stat.caption}
       </p>
       {stat.positionNote && (
-        <p role="note" className="text-muted" style={{ fontSize: "var(--fs-xs)", lineHeight: 1.4, margin: "0 0 18px", paddingLeft: 10, borderLeft: "2px solid var(--color-divider)" }}>
+        <p role="note" className="text-muted" style={{ fontSize: "var(--fs-xs)", lineHeight: 1.4, margin: "0 0 var(--space-5)", paddingLeft: "var(--space-3)", borderLeft: "2px solid var(--color-divider)" }}>
           {stat.positionNote}
         </p>
       )}
 
       {/* Legend + baseline toggle */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 10, marginBottom: 10 }}>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: "6px 16px", fontSize: "var(--fs-xs)" }}>
-          <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "var(--space-3)", marginBottom: "var(--space-3)" }}>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-2) var(--space-4)", fontSize: "var(--fs-xs)" }}>
+          <span style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
             <span aria-hidden="true" className="legend-dot" style={{ background: "var(--hm-above)" }} />
             Above baseline
           </span>
-          <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <span style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
             <span aria-hidden="true" className="legend-dot" style={{ background: "var(--hm-below)" }} />
             Below baseline
           </span>
-          <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <span style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
             <span aria-hidden="true" className="legend-dot" style={{ background: "var(--color-neutral-600)" }} />
             Baseline
           </span>
@@ -201,14 +201,14 @@ export function StatDrilldownView({ player, stat, target, positionAvailable, pla
         />
       </div>
 
-      <div className="card" style={{ padding: "18px 18px 12px" }}>
+      <div className="card" style={{ padding: "var(--space-5) var(--space-5) var(--space-3)" }}>
         {stat.chartFallback ? (
-          <div className="text-muted" style={{ padding: "48px 8px", textAlign: "center", fontSize: "var(--fs-sm)" }}>
+          <div className="text-muted" style={{ padding: "var(--space-12) var(--space-2)", textAlign: "center", fontSize: "var(--fs-sm)" }}>
             {stat.chartFallback}
           </div>
         ) : (
           <>
-        <div style={{ position: "relative", height: PLOT_H, paddingLeft: 4 }}>
+        <div style={{ position: "relative", height: PLOT_H, paddingLeft: "var(--space-1)" }}>
           {/* Gridlines + y-axis labels */}
           {stat.axisTicks.map((t) => (
             <div
@@ -224,7 +224,7 @@ export function StatDrilldownView({ player, stat, target, positionAvailable, pla
                   fontSize: "var(--fs-3xs)",
                   color: "var(--color-neutral-700)",
                   background: "var(--color-bg)",
-                  paddingRight: 4,
+                  paddingRight: "var(--space-1)",
                 }}
               >
                 {t.label}
@@ -385,7 +385,7 @@ export function StatDrilldownView({ player, stat, target, positionAvailable, pla
         </div>
 
         {/* X-axis year labels */}
-        <div style={{ display: "flex", marginTop: 6 }}>
+        <div style={{ display: "flex", marginTop: "var(--space-2)" }}>
           {bars.map((b) => (
             <div key={b.year} style={{ flex: 1, textAlign: "center", minWidth: 0 }}>
               <span
@@ -402,7 +402,7 @@ export function StatDrilldownView({ player, stat, target, positionAvailable, pla
         )}
       </div>
       {!stat.chartFallback && (
-        <p className="text-muted" style={{ fontSize: "var(--fs-xs)", marginTop: 14 }}>
+        <p className="text-muted" style={{ fontSize: "var(--fs-xs)", marginTop: "var(--space-4)" }}>
           Each season shows two dots — {firstName(player.name)}'s {stat.label.toLowerCase()} (red above the baseline, blue
           below) and grey = the baseline; the gap between them is that season's deviation. The selected season is labeled
           with both values (hover any season to read its numbers). Tap a season to compare it. Low-sample seasons are left
@@ -413,9 +413,9 @@ export function StatDrilldownView({ player, stat, target, positionAvailable, pla
       {/* Yearly table (F2) — one full-width table, zebra-striped. table-layout: fixed
           gives evenly-distributed columns and makes the table fit its container at any
           width (no horizontal scroll needed → nothing clips the header tooltips). */}
-      <div style={{ marginTop: 22 }}>
+      <div style={{ marginTop: "var(--space-6)" }}>
         {missedNote && (
-          <p role="note" className="text-muted" style={{ fontSize: "var(--fs-xs)", lineHeight: 1.4, margin: "0 0 12px", paddingLeft: 10, borderLeft: "2px solid var(--color-divider)" }}>
+          <p role="note" className="text-muted" style={{ fontSize: "var(--fs-xs)", lineHeight: 1.4, margin: "0 0 var(--space-3)", paddingLeft: "var(--space-3)", borderLeft: "2px solid var(--color-divider)" }}>
             {missedNote}
           </p>
         )}
@@ -457,7 +457,7 @@ export function StatDrilldownView({ player, stat, target, positionAvailable, pla
           <tbody>{stat.tableRows.map(renderRow)}</tbody>
         </table>
         {anySmallRow && (
-          <div className="hm-legend-key text-muted" style={{ marginTop: 10 }}>
+          <div className="hm-legend-key text-muted" style={{ marginTop: "var(--space-3)" }}>
             <span className="hm-legend-dot" aria-hidden="true" /> {smallSampleKey}
           </div>
         )}

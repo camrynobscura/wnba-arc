@@ -23,7 +23,7 @@ export function Header({ onGoHome, onAbout }: HeaderProps) {
         style={{
           display: "flex",
           alignItems: "baseline",
-          gap: 10,
+          gap: "var(--space-3)",
         }}
         onClick={onGoHome}
       >

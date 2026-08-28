@@ -6,14 +6,14 @@ interface AboutViewProps {
 // divider + generous top space, so the three sections read as clear tiers under
 // the page title rather than sitting flush with the paragraphs beneath them.
 const sectionStyle: React.CSSProperties = {
-  marginTop: 40,
-  paddingTop: 28,
+  marginTop: "var(--space-10)",
+  paddingTop: "var(--space-8)",
   borderTop: "1px solid var(--color-divider)",
 };
 const h2Style: React.CSSProperties = {
   fontSize: "var(--fs-2xl)",
   letterSpacing: "-0.01em",
-  marginBottom: 14,
+  marginBottom: "var(--space-4)",
 };
 
 /**
@@ -24,16 +24,16 @@ const h2Style: React.CSSProperties = {
  */
 export function AboutView({ onBack }: AboutViewProps) {
   return (
-    <main id="main" style={{ maxWidth: "var(--app-width)", width: "100%", margin: "0 auto", padding: "36px 20px 48px" }}>
-      <button className="btn btn-ghost" style={{ marginBottom: 20, paddingInline: 0 }} onClick={onBack}>
+    <main id="main" style={{ maxWidth: "var(--app-width)", width: "100%", margin: "0 auto", padding: "var(--space-10) var(--space-5) var(--space-12)" }}>
+      <button className="btn btn-ghost" style={{ marginBottom: "var(--space-5)", paddingInline: 0 }} onClick={onBack}>
         ← Back
       </button>
 
-      <h1 style={{ fontSize: "var(--fs-4xl)", marginBottom: 4 }}>About ARC</h1>
+      <h1 style={{ fontSize: "var(--fs-4xl)", marginBottom: "var(--space-1)" }}>About ARC</h1>
 
-      <section style={{ marginTop: 24 }}>
+      <section style={{ marginTop: "var(--space-6)" }}>
         <h2 style={h2Style}>What ARC shows</h2>
-        <p style={{ marginBottom: 12 }}>
+        <p style={{ marginBottom: "var(--space-3)" }}>
           Is this the best season of a player's career, or just another year at the office? A single stat line
           rarely tells you.
         </p>
@@ -46,12 +46,12 @@ export function AboutView({ onBack }: AboutViewProps) {
 
       <section style={sectionStyle}>
         <h2 style={h2Style}>How to read it</h2>
-        <p style={{ marginBottom: 12 }}>
+        <p style={{ marginBottom: "var(--space-3)" }}>
           Each player has two views. <strong>Career Trend</strong> grids every season against that player's own career
           average (warmer above, cooler below), so a whole career reads at a glance. The <strong>league comparison</strong>{" "}
           below it takes one season and shows how each stat stacks up against everyone else that year.
         </p>
-        <p style={{ marginBottom: 12 }}>
+        <p style={{ marginBottom: "var(--space-3)" }}>
           <strong>Two controls.</strong> Pick the <strong>season</strong>, then choose what to compare it against — the
           whole <strong>league</strong> average, or other players at the same <strong>position</strong> (guards,
           forwards, or centers) — for that same year.
@@ -69,18 +69,18 @@ export function AboutView({ onBack }: AboutViewProps) {
 
       <section style={sectionStyle}>
         <h2 style={h2Style}>The data</h2>
-        <p style={{ marginBottom: 12 }}>
+        <p style={{ marginBottom: "var(--space-3)" }}>
           ARC pulls from ESPN and refreshes nightly, so the current season keeps up as games are played.
         </p>
-        <p style={{ marginBottom: 12 }}>
+        <p style={{ marginBottom: "var(--space-3)" }}>
           <strong>Who's in.</strong> Any player who's appeared in the last three seasons. Players who miss a year for
           injury, maternity, or an overseas stint stick around, with the gap shown right in their timeline.
         </p>
-        <p style={{ marginBottom: 12 }}>
+        <p style={{ marginBottom: "var(--space-3)" }}>
           <strong>Small samples.</strong> A season where the player appeared in less than 25% of the schedule is left
           out of baselines, so a handful of games can't skew the math.
         </p>
-        <p style={{ marginBottom: 12 }}>
+        <p style={{ marginBottom: "var(--space-3)" }}>
           <strong>What's missing.</strong> A few stats need data ESPN doesn't share (rebound percentages, and all-in-one
           metrics like PER), so ARC leaves them out rather than guessing.
         </p>
