@@ -579,6 +579,15 @@ select.select-reset {
 /* — deviation heatmap (the summary view) — see components/DeviationHeatmap.tsx. Cells are
      <button>s in a roving-tabindex ARIA grid; backgrounds are a diverging color-mix computed
      inline (vs a neutral base token), value + gap stacked inside. */
+/* Scroll wrapper: visible (no clip) on desktop so the header InfoTip bubbles can pop above the
+   grid; scrolls horizontally only on a phone, where 8 value+gap columns can't fit 320px — the
+   grid scrolls instead of the page (WCAG 1.4.10 lets a data grid scroll). Keyboard focus into an
+   off-screen cell auto-scrolls it into view. */
+@media (max-width: 480px) {
+  .hm-scroll {
+    overflow-x: auto;
+  }
+}
 .heatmap {
   display: grid;
   gap: 2px;

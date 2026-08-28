@@ -139,11 +139,15 @@ export function DeviationHeatmap({
         <ScaleKey noun={noun} />
       </div>
 
+      {/* Scroll wrapper: on a phone the 8 stat columns with value+gap can't fit 320px, so the
+          grid scrolls horizontally there (a data grid may — WCAG 1.4.10) instead of pushing the
+          page. Scoped to mobile via CSS so desktop keeps overflow:visible and its header tooltips. */}
+      <div className="hm-scroll">
       <div
         role="grid"
         aria-label={`${firstName(player.name)}'s seasons vs. ${refPhrase}`}
         className="heatmap"
-        style={{ gridTemplateColumns: `var(--hm-yearcol) repeat(${nCols}, minmax(44px, 1fr))` }}
+        style={{ gridTemplateColumns: `var(--hm-yearcol) repeat(${nCols}, minmax(40px, 1fr))` }}
         onKeyDown={onGridKeyDown}
       >
         {/* Header row: corner + stat column labels (short, full name in a tooltip). */}
@@ -178,6 +182,7 @@ export function DeviationHeatmap({
             ))}
           </div>
         ))}
+      </div>
       </div>
 
       {anySmall && (
