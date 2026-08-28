@@ -696,10 +696,12 @@ select.select-reset {
   color: var(--color-neutral-600);
   font-weight: 400;
 }
-/* Small-sample season: shown (with its value) but greyed, never heat-colored. */
+/* Small-sample season: shown (with its value) but greyed, never heat-colored. neutral-700
+   (not -600) keeps the value at ≥4.5:1 AA in both themes — the cell still reads a real number
+   (a11y audit 2026-08-27: -600 was 3.39:1 light / 4.22:1 dark). */
 .hm-muted {
   background: color-mix(in srgb, var(--color-text) 6%, transparent);
-  color: var(--color-neutral-600);
+  color: var(--color-neutral-700);
   font-weight: 400;
 }
 .hm-ss::after {
