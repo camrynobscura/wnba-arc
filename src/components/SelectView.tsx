@@ -18,13 +18,13 @@ export function SelectView({ featured, players, listError, onPick }: SelectViewP
   return (
     <main id="main" style={{ maxWidth: "var(--app-width)", width: "100%", margin: "0 auto", padding: "var(--space-10) var(--space-5) var(--space-10)" }}>
       <h1 style={{ fontSize: "var(--fs-3xl)", marginBottom: "var(--space-3)" }}>How far from normal is this season?</h1>
-      <p className="text-muted" style={{ fontSize: "var(--fs-base)", marginBottom: "var(--space-8)" }}>
+      <p className="text-muted" style={{ fontSize: "var(--fs-base)", marginBottom: "var(--space-6)" }}>
         Pick a current WNBA player. See how any of their seasons sits above or below their own baseline — or the league.
       </p>
 
       <PlayerSearch variant="hero" players={players} listError={listError} onPick={onPick} />
 
-      <div style={{ marginTop: "var(--space-10)" }}>
+      <div style={{ marginTop: "var(--space-8)" }}>
         <h2
           className="text-muted"
           style={{ fontSize: "var(--fs-sm)", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: "var(--space-2)" }}

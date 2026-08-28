@@ -50,9 +50,6 @@ export function StatDrilldownView({ player, stat, target, positionAvailable, pla
   // Missed seasons (a gap in the timeline — "Did not play") get one plain-language note above the
   // table instead of a "DNP" tag wrapping every row to two lines. Years listed oldest-first.
   const missedYears = stat.tableRows.filter((r) => r.missed).map((r) => r.year).sort((a, b) => a - b);
-  const missedNote = missedYears.length
-    ? `No ${joinYears(missedYears)} season${missedYears.length > 1 ? "s" : ""} on record — did not play.`
-    : null;
 
   const renderRow = (r: StatTableRow) => {
     // Small-sample seasons aren't selectable (unless it's the fallback where a player has no
@@ -169,9 +166,9 @@ export function StatDrilldownView({ player, stat, target, positionAvailable, pla
         {stat.caption}
       </p>
       {stat.positionNote && (
-        <p role="note" className="text-muted" style={{ fontSize: "var(--fs-xs)", lineHeight: 1.4, margin: "0 0 var(--space-5)", paddingLeft: "var(--space-3)", borderLeft: "2px solid var(--color-divider)" }}>
+        <div role="note" className="note-card" style={{ margin: "0 0 var(--space-5)" }}>
           {stat.positionNote}
-        </p>
+        </div>
       )}
 
       {/* Legend + baseline toggle */}
@@ -414,10 +411,15 @@ export function StatDrilldownView({ player, stat, target, positionAvailable, pla
           gives evenly-distributed columns and makes the table fit its container at any
           width (no horizontal scroll needed → nothing clips the header tooltips). */}
       <div style={{ marginTop: "var(--space-6)" }}>
-        {missedNote && (
-          <p role="note" className="text-muted" style={{ fontSize: "var(--fs-xs)", lineHeight: 1.4, margin: "0 0 var(--space-3)", paddingLeft: "var(--space-3)", borderLeft: "2px solid var(--color-divider)" }}>
-            {missedNote}
-          </p>
+        {missedYears.length > 0 && (
+          <div role="note" className="note-card" style={{ margin: "0 0 var(--space-3)" }}>
+            <div>
+              <strong style={{ fontWeight: 600 }}>
+                No {joinYears(missedYears)} season{missedYears.length > 1 ? "s" : ""} on record
+              </strong>{" "}
+              — did not play.
+            </div>
+          </div>
         )}
         {/* table-layout: fixed + no per-column widths ⇒ every column is an equal share of the
             100%-wide table (5, 6, or 7 columns depending on the stat). */}

@@ -184,7 +184,7 @@ export function SummaryView({
             }}
             onClick={() => onOpenStat(row.key)}
           >
-            <div style={{ lineHeight: 1.05 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-1)", lineHeight: 1.05 }}>
               <div className="text-heading" style={{ fontSize: "var(--fs-lg)" }}>{row.label}</div>
               <div className="text-muted" style={{ fontSize: "var(--fs-2xs)" }}>
                 baseline {row.baseFmt}
@@ -200,7 +200,7 @@ export function SummaryView({
                 <DeviationBlocks up={row.up} barPct={row.barPct} barColor={row.barColor} showBaselineLabel={idx === 0} />
               )}
             </div>
-            <div style={{ textAlign: "right", display: "flex", flexDirection: "column", alignItems: "flex-end", lineHeight: 1.05 }}>
+            <div style={{ textAlign: "right", display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "var(--space-1)", lineHeight: 1.05 }}>
               <span className="text-heading" style={{ fontSize: "var(--fs-lg)", color: row.smallSample ? "var(--color-neutral-500)" : undefined }}>{row.curFmt}</span>
               <span style={{ fontSize: "var(--fs-2xs)", color: row.deltaColor }}>{row.rawFmt}</span>
             </div>
@@ -213,22 +213,7 @@ export function SummaryView({
       {/* Data-omission notes — placed directly beneath the bars they qualify (which seasons
           aren't selectable / shown, and why). */}
       {(nonSelectableSmallSample.length > 0 || missedGroups.length > 0 || positionSampleMissing) && (
-        <div
-          role="note"
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: "var(--space-1)",
-            margin: "var(--space-4) 0 0",
-            padding: "var(--space-3) var(--space-3)",
-            fontSize: "var(--fs-xs)",
-            lineHeight: 1.4,
-            color: "var(--color-neutral-700)",
-            background: "color-mix(in srgb, var(--color-text) 3.5%, transparent)",
-            borderLeft: "2px solid var(--color-divider)",
-            borderRadius: "0 var(--radius-md) var(--radius-md) 0",
-          }}
-        >
+        <div role="note" className="note-card" style={{ margin: "var(--space-4) 0 0" }}>
           {positionSampleMissing && (
             <div>
               <strong style={{ fontWeight: 600 }}>No same-position baseline for {subject.year}</strong>{" "}

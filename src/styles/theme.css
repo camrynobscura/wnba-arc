@@ -457,6 +457,22 @@ select.select-reset {
   box-shadow: var(--shadow-lg);
 }
 
+/* Inset note / callout — soft-tinted card with a left accent border. Shared by the
+   data-omission notes (missed seasons, small samples, no-position baseline) on the summary
+   and drill-down so they read identically. Each caller sets its own margin. */
+.note-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-3);
+  font-size: var(--fs-xs);
+  line-height: 1.4;
+  color: var(--color-neutral-700);
+  background: color-mix(in srgb, var(--color-text) 3.5%, transparent);
+  border-left: 2px solid var(--color-divider);
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
+}
+
 /* — header / nav — the top bar and the controls that live in it — */
 .nav {
   display: flex;
