@@ -109,7 +109,7 @@ export function CareerHeatmap({ player, league, subjectYear }: CareerHeatmapProp
         {/* Diverging color key — sits directly above the grid it describes. The small-sample
             key lives BELOW the grid (after it), like the drill-down's table key. */}
         <div className="scale-legend" aria-hidden="true" style={{ marginBottom: "var(--space-4)" }}>
-          <ScaleKey noun="baseline" />
+          <ScaleKey noun="career avg" />
         </div>
 
         {/* No overflow wrapper: with 7 fixed columns the grid fits from ~300px up, and an

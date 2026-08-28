@@ -158,7 +158,7 @@ export function StatDrilldownView({ player, stat, target, positionAvailable, pla
             )}
           </div>
           <div className="text-muted" style={{ fontSize: "var(--fs-xs)", marginTop: "var(--space-1)" }}>
-            {stat.year} · baseline {stat.baseFmt}
+            {stat.year} · avg {stat.baseFmt}
           </div>
         </div>
       </div>
@@ -176,15 +176,15 @@ export function StatDrilldownView({ player, stat, target, positionAvailable, pla
         <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-2) var(--space-4)", fontSize: "var(--fs-xs)" }}>
           <span style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
             <span aria-hidden="true" className="legend-dot" style={{ background: "var(--hm-above)" }} />
-            Above baseline
+            Above average
           </span>
           <span style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
             <span aria-hidden="true" className="legend-dot" style={{ background: "var(--hm-below)" }} />
-            Below baseline
+            Below average
           </span>
           <span style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
             <span aria-hidden="true" className="legend-dot" style={{ background: "var(--color-neutral-600)" }} />
-            Baseline
+            Average
           </span>
         </div>
         <LabeledSelect
@@ -260,8 +260,8 @@ export function StatDrilldownView({ player, stat, target, positionAvailable, pla
                 key={b.year}
                 onClick={selectable ? () => onSelectYear(b.year) : undefined}
                 disabled={!selectable}
-                aria-label={`${b.year}: ${b.valFmt}, baseline ${b.baseFmt ?? "—"} — compare this season`}
-                title={`${b.year}: ${b.valFmt} · baseline ${b.baseFmt ?? "—"}`}
+                aria-label={`${b.year}: ${b.valFmt}, average ${b.baseFmt ?? "—"} — compare this season`}
+                title={`${b.year}: ${b.valFmt} · avg ${b.baseFmt ?? "—"}`}
                 style={{
                   position: "absolute",
                   left: `${colX(i)}%`,
@@ -400,8 +400,8 @@ export function StatDrilldownView({ player, stat, target, positionAvailable, pla
       </div>
       {!stat.chartFallback && (
         <p className="text-muted" style={{ fontSize: "var(--fs-xs)", marginTop: "var(--space-4)" }}>
-          Each season shows two dots — {firstName(player.name)}'s {stat.label.toLowerCase()} (red above the baseline, blue
-          below) and grey = the baseline; the gap between them is that season's deviation. The selected season is labeled
+          Each season shows two dots — {firstName(player.name)}'s {stat.label.toLowerCase()} (red above average, blue
+          below) and grey = the average; the gap between them is that season's deviation. The selected season is labeled
           with both values (hover any season to read its numbers). Tap a season to compare it. Low-sample seasons are left
           off the chart — the table below has the full history.
         </p>
@@ -452,7 +452,7 @@ export function StatDrilldownView({ player, stat, target, positionAvailable, pla
                 </th>
               )}
               <th scope="col">
-                <InfoTip label="vs base" tip="Difference from that season's baseline (the league or same-position average that year)" />
+                <InfoTip label="vs avg" tip="How far above or below that season's league or same-position average" />
               </th>
             </tr>
           </thead>

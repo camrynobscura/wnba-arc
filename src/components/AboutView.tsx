@@ -78,7 +78,7 @@ export function AboutView({ onBack }: AboutViewProps) {
         </p>
         <p style={{ marginBottom: "var(--space-3)" }}>
           <strong>Small samples.</strong> A season where the player appeared in less than 25% of the schedule is left
-          out of baselines, so a handful of games can't skew the math.
+          out of the averages, so a handful of games can't skew the math.
         </p>
         <p style={{ marginBottom: "var(--space-3)" }}>
           <strong>What's missing.</strong> A few stats need data ESPN doesn't share (rebound percentages, and all-in-one

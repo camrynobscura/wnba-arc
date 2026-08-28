@@ -77,6 +77,10 @@ export function SummaryView({
   // A small-sample row is almost always "too few attempts" (the subject is a full-games season);
   // it's only "too few games" in the degenerate fallback where the player has no full season.
   const smallSampleReason = isSmallSample(subject, league) ? "too few games" : "too few attempts";
+  // The scale key names the actual reference the bars measure against, so the shared red/blue
+  // never reads ambiguously between this section (vs peers) and the heatmap (vs own career).
+  const positionAvgLabel: Record<string, string> = { G: "guard avg", F: "forward avg", C: "center avg" };
+  const scaleNoun = target === "position" ? (positionAvgLabel[playerPosition ?? ""] ?? "position avg") : "league avg";
 
   return (
     <main id="main" className="view-main">
@@ -147,21 +151,21 @@ export function SummaryView({
       {/* Same diverging gradient key as the Career Trend heatmap, placed identically —
           left-aligned directly above the bars it describes. */}
       <div className="scale-legend" style={{ marginTop: "var(--space-3)", marginBottom: "var(--space-3)" }}>
-        <ScaleKey noun="baseline" />
+        <ScaleKey noun={scaleNoun} />
       </div>
 
       {/* A list of stats you can drill into (semantic <ul> — the list-reset keeps it visually
           identical). Each row is one <button> so keyboard/SR users get a real control. */}
       <ul style={{ listStyle: "none", margin: 0, padding: "var(--space-4) 0 0", borderTop: "2px solid var(--color-divider)" }}>
-        {rows.map((row, idx) => {
+        {rows.map((row) => {
           // Fold the value + delta into the button's accessible name. An aria-label OVERRIDES a
           // control's inner text, so without this a screen reader announces "Points, open history"
           // and never the numbers on screen — the whole point of the row.
           const readout = row.smallSample
             ? "small sample"
             : row.rawFmt === "—"
-              ? `baseline ${row.baseFmt}`
-              : `${row.rawFmt} versus baseline ${row.baseFmt}`;
+              ? `average ${row.baseFmt}`
+              : `${row.rawFmt} versus average ${row.baseFmt}`;
           return (
           <li key={row.key}>
           <button
@@ -187,7 +191,7 @@ export function SummaryView({
             <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-1)", lineHeight: 1.05 }}>
               <div className="text-heading" style={{ fontSize: "var(--fs-lg)" }}>{row.label}</div>
               <div className="text-muted" style={{ fontSize: "var(--fs-2xs)" }}>
-                baseline {row.baseFmt}
+                {scaleNoun} {row.baseFmt}
               </div>
             </div>
             {/* A little breathing room between the label and where the bar track starts. A
@@ -197,7 +201,7 @@ export function SummaryView({
               {row.smallSample ? (
                 <span className="text-muted" style={{ fontSize: "var(--fs-xs)" }}>small sample — {smallSampleReason}</span>
               ) : (
-                <DeviationBlocks up={row.up} barPct={row.barPct} barColor={row.barColor} showBaselineLabel={idx === 0} />
+                <DeviationBlocks up={row.up} barPct={row.barPct} barColor={row.barColor} />
               )}
             </div>
             <div style={{ textAlign: "right", display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "var(--space-1)", lineHeight: 1.05 }}>
@@ -216,7 +220,7 @@ export function SummaryView({
         <div role="note" className="note-card" style={{ margin: "var(--space-4) 0 0" }}>
           {positionSampleMissing && (
             <div>
-              <strong style={{ fontWeight: 600 }}>No same-position baseline for {subject.year}</strong>{" "}
+              <strong style={{ fontWeight: 600 }}>No same-position average for {subject.year}</strong>{" "}
               — too few {positionNoun(playerPosition)} on record that season to compare.
             </div>
           )}
@@ -240,7 +244,7 @@ export function SummaryView({
       )}
 
       <p className="text-muted" style={{ fontSize: "var(--fs-xs)", marginTop: "var(--space-3)" }}>
-        Bars show how far each stat sits above or below its baseline — the further out, the more exceptional. Click a stat for its year-by-year history and percentile ranking →
+        Bars show how far each stat sits above or below average — the further out, the more exceptional. Click a stat for its year-by-year history and percentile ranking →
       </p>
     </main>
   );

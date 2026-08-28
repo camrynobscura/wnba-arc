@@ -7,8 +7,6 @@ interface DeviationBlocksProps {
   barPct: number;
   /** Fill color for the lit blocks (accent above / neutral below). */
   barColor: string;
-  /** Show the "baseline" caption above the centre line (only the topmost row). */
-  showBaselineLabel?: boolean;
 }
 
 /** Blocks per side of the baseline. Raise for thinner blocks. */
@@ -28,7 +26,7 @@ const CENTER_MIN = 45;
  * cue on top of color; the last lit block partial-fills so exact magnitude is preserved.
  * Mirrors mockups/segmented-bars.html variant 01.
  */
-export function DeviationBlocks({ up, barPct, barColor, showBaselineLabel }: DeviationBlocksProps) {
+export function DeviationBlocks({ up, barPct, barColor }: DeviationBlocksProps) {
   const mag = Math.min(barPct / 50, 1) * N; // number of lit blocks (fractional)
   return (
     <div className="dev-blocks">
@@ -36,9 +34,9 @@ export function DeviationBlocks({ up, barPct, barColor, showBaselineLabel }: Dev
         <Half side="left" mag={mag} active={!up && barPct > 0} color={barColor} />
         <Half side="right" mag={mag} active={up && barPct > 0} color={barColor} />
       </div>
-      <div className="dev-rail" aria-hidden="true">
-        {showBaselineLabel && <span className="dev-rail-label">baseline</span>}
-      </div>
+      {/* Centre tick marking the zero line (= the league/position average). The ScaleKey above
+          names it; the per-stat number lives under each stat label. */}
+      <div className="dev-rail" aria-hidden="true" />
     </div>
   );
 }

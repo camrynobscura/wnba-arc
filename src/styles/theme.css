@@ -643,18 +643,6 @@ select.select-reset {
   border-radius: 1px;
   pointer-events: none;
 }
-.dev-rail-label {
-  position: absolute;
-  bottom: 100%;
-  left: 50%;
-  transform: translateX(-50%);
-  white-space: nowrap;
-  font-family: var(--font-heading);
-  font-weight: 600;
-  font-size: var(--fs-2xs);
-  letter-spacing: 0.04em;
-  color: var(--color-text);
-}
 
 /* — career heatmap (summary view overview) — see components/CareerHeatmap.tsx —
      cell backgrounds are computed inline (diverging color-mix vs a neutral token). */
