@@ -92,23 +92,37 @@ export function CareerHeatmap({ player, league, subjectYear }: CareerHeatmapProp
       <section aria-label="Career Trend" style={{ margin: "var(--space-1) 0 var(--space-1)" }}>
         <div style={{ marginBottom: "var(--space-3)" }}>
           <h2 style={{ fontSize: "var(--fs-xl)", margin: 0 }}>Career Trend</h2>
-          <div className="text-muted" style={{ fontSize: "var(--fs-xs)", marginTop: "var(--space-2)" }}>Each cell vs {firstName(player.name)}'s career average.</div>
+          {/* "Each cell" is meaningless to a screen reader (the grid below is aria-hidden), so
+              this caption is visual-only; the sr-only line beneath is the text alternative. */}
+          <div className="text-muted" aria-hidden="true" style={{ fontSize: "var(--fs-xs)", marginTop: "var(--space-2)" }}>Each cell vs {firstName(player.name)}'s career average.</div>
+          <p className="sr-only">
+            Shown visually as a color grid comparing each season to {firstName(player.name)}'s career average.
+            The same season-by-season values are in the stats below and in each stat's year-by-year breakdown.
+          </p>
         </div>
+        {/* The color grid is a *visual* overview — the color pattern is the payload, and every
+            value is available accessibly in the deviation bars below + each drill-down table. So
+            the grid and its two legends (color key + small-sample key) are hidden from the
+            accessibility tree; a screen reader would otherwise read a wall of context-free numbers
+            (no cell has a row/column association). The heading + sr-only alt above stay in the
+            tree so the section keeps its place in the outline. (A11y review 2026-08-28.) */}
         {/* Diverging color key — sits directly above the grid it describes. The small-sample
             key lives BELOW the grid (after it), like the drill-down's table key. */}
-        <div className="scale-legend" style={{ marginBottom: "var(--space-4)" }}>
+        <div className="scale-legend" aria-hidden="true" style={{ marginBottom: "var(--space-4)" }}>
           <ScaleKey noun="baseline" />
         </div>
 
         {/* No overflow wrapper: with 7 fixed columns the grid fits from ~300px up, and an
             overflow container would clip the InfoTip header bubbles (they pop upward). The
             year column width + label form are responsive via CSS vars / media query below. */}
-        <div className="heatmap" style={{ gridTemplateColumns: `var(--hm-yearcol) repeat(${STATS.length}, minmax(34px, 1fr))` }}>
+        <div className="heatmap" aria-hidden="true" style={{ gridTemplateColumns: `var(--hm-yearcol) repeat(${STATS.length}, minmax(34px, 1fr))` }}>
           {/* Header row: corner + stat column labels (short, full name in a tooltip). */}
           <div />
           {STATS.map((st) => (
             <div key={`h-${st.key}`} className="hm-colhead">
-              <InfoTip label={st.short} tip={st.desc} />
+              {/* focusable={false}: this header lives inside the aria-hidden grid, so a
+                  focusable tooltip trigger here would be an aria-hidden-focus failure. */}
+              <InfoTip label={st.short} tip={st.desc} focusable={false} />
             </div>
           ))}
 
@@ -159,8 +173,8 @@ export function CareerHeatmap({ player, league, subjectYear }: CareerHeatmapProp
           ))}
         </div>
         {anySmall && (
-          <div className="hm-legend-key text-muted" style={{ marginTop: "var(--space-3)" }}>
-            <span className="hm-legend-dot" aria-hidden="true" /> small sample (few games or attempts)
+          <div className="hm-legend-key text-muted" aria-hidden="true" style={{ marginTop: "var(--space-3)" }}>
+            <span className="hm-legend-dot" /> small sample (few games or attempts)
           </div>
         )}
       </section>

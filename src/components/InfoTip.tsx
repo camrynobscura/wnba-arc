@@ -5,6 +5,14 @@ interface InfoTipProps {
   label: string;
   /** Plain-language explanation shown on hover/focus. */
   tip: string;
+  /**
+   * Keyboard-focusable (and in the a11y tree via aria-describedby) by default. Pass false
+   * only when the InfoTip lives inside an `aria-hidden` visual (the Career Trend heatmap):
+   * a focusable element inside aria-hidden is an axe `aria-hidden-focus` failure, and the
+   * tooltip content there is redundant with the accessible stats below. Sighted mouse users
+   * still get the hover tooltip; keyboard/AT users simply don't reach the hidden grid.
+   */
+  focusable?: boolean;
 }
 
 // Only ONE tooltip is open at a time. A module-level registry holds the open tip's id;
@@ -25,7 +33,7 @@ function setOpenTip(id: string | null) {
  * mouse users. Open/close is JS-driven (see the registry above); Escape dismisses it
  * (WCAG 1.4.13), and the bubble is a child of the trigger so it stays hoverable.
  */
-export function InfoTip({ label, tip }: InfoTipProps) {
+export function InfoTip({ label, tip, focusable = true }: InfoTipProps) {
   const id = useId();
   const [, rerender] = useState(0);
 
@@ -46,15 +54,15 @@ export function InfoTip({ label, tip }: InfoTipProps) {
   return (
     <span
       className="infotip"
-      tabIndex={0}
-      aria-describedby={id}
+      // Focus affordances only when focusable: inside an aria-hidden visual they'd be an
+      // aria-hidden-focus violation, so there we keep mouse-hover only.
+      tabIndex={focusable ? 0 : undefined}
+      aria-describedby={focusable ? id : undefined}
       onMouseEnter={() => setOpenTip(id)}
       onMouseLeave={close}
-      onFocus={() => setOpenTip(id)}
-      onBlur={close}
-      onKeyDown={(e) => {
-        if (e.key === "Escape") close();
-      }}
+      onFocus={focusable ? () => setOpenTip(id) : undefined}
+      onBlur={focusable ? close : undefined}
+      onKeyDown={focusable ? (e) => { if (e.key === "Escape") close(); } : undefined}
     >
       {label}
       <span role="tooltip" id={id} className={"infotip-bubble" + (open ? " is-open" : "")}>
