@@ -479,6 +479,39 @@ export function buildHeatmapGrid(
   return { years: seasons.map((s) => s.year), rows };
 }
 
+/** 1 → "1st", 2 → "2nd", 94 → "94th" — for percentile readouts (the reveal strip + the
+    drill-down table). Handles the teens: 11th/12th/13th, 111th. */
+export function ordinal(n: number): string {
+  const s = ["th", "st", "nd", "rd"];
+  const v = n % 100;
+  return `${n}${s[(v - 20) % 10] || s[v] || s[0]}`;
+}
+
+/**
+ * The percentile (0–100) a heatmap cell's season ranks at within its comparison group — the
+ * rank the reveal strip shows next to the value + gap. Null whenever there's no rank to give:
+ * **self mode** (a rank is among *other* players; "vs their own career" has no population),
+ * a **shooting %** (no ladder), a missed / small-sample / valueless cell, or a position mode
+ * whose bucket is absent that year. Reads the same per-year ladders as the drill-down's
+ * "Pct" column, so the two always agree.
+ */
+export function cellPercentile(
+  cell: HeatmapCell,
+  mode: HeatmapMode,
+  league: League,
+  positions: PositionLookup | null,
+  playerPosition: string | null,
+): number | null {
+  if (mode === "self" || !cell.played || cell.smallSample || cell.value == null) return null;
+  if (!isCountingStat(cell.statKey)) return null;
+  if (mode === "position") {
+    return playerPosition != null && positions != null
+      ? positions.pctile(cell.year, playerPosition, cell.statKey, cell.value)
+      : null;
+  }
+  return league.pctile(cell.year, cell.statKey, cell.value);
+}
+
 export interface StatBar {
   year: number;
   yy: string;

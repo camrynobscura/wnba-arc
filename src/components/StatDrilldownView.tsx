@@ -1,5 +1,5 @@
 import type { PlayerDetail, PlayerSummary } from "../data/api";
-import { firstName, positionNoun, type ComparisonTarget, type StatDetail, type StatTableRow } from "../lib/deviation";
+import { firstName, ordinal, positionNoun, type ComparisonTarget, type StatDetail, type StatTableRow } from "../lib/deviation";
 import { InfoTip } from "./InfoTip";
 import { PlayerSearch } from "./PlayerSearch";
 import { LabeledSelect } from "./Select";
@@ -20,13 +20,6 @@ interface StatDrilldownViewProps {
 }
 
 const PLOT_H = 220; // px
-
-/** 1 → "1st", 2 → "2nd", 94 → "94th" — for the drill-down's percentile line. */
-function ordinal(n: number): string {
-  const s = ["th", "st", "nd", "rd"];
-  const v = n % 100;
-  return `${n}${s[(v - 20) % 10] || s[v] || s[0]}`;
-}
 
 /** "2021" · "2019 & 2021" · "2018, 2019 & 2021" — the missed-season notice's year list. */
 function joinYears(years: number[]): string {

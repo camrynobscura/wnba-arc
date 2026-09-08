@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { espnForSlug, playerPath, slugifyName, statPath, toStatKey, toTarget } from "./routes";
+import { espnForSlug, playerPath, slugifyName, statPath, toMode, toStatKey, toTarget } from "./routes";
 
 const roster = [
   { espn: "3149391", name: "A'ja Wilson" },
@@ -85,5 +85,22 @@ describe("toTarget", () => {
     expect(toTarget("league")).toBe("league");
     expect(toTarget(null)).toBe("league");
     expect(toTarget("garbage")).toBe("league");
+  });
+});
+
+describe("toMode — the heatmap's reference mode from ?vs=", () => {
+  it("reads league and position, else defaults to self", () => {
+    expect(toMode("league")).toBe("league");
+    expect(toMode("position")).toBe("position");
+    expect(toMode("self")).toBe("self");
+    expect(toMode(null)).toBe("self");
+    expect(toMode("garbage")).toBe("self");
+  });
+
+  it("agrees with toTarget on what the drill-down sees: self reads through as league", () => {
+    // The drill-down has no "self" baseline, so a vs=self URL must resolve to league there while
+    // the heatmap keeps self — the two readers of the same param, kept consistent.
+    expect(toTarget("self")).toBe("league");
+    expect(toMode("self")).toBe("self");
   });
 });

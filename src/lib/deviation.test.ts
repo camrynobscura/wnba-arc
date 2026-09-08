@@ -2,12 +2,14 @@ import { describe, it, expect } from "vitest";
 import {
   buildHeatmapGrid,
   buildStatDetail,
+  cellPercentile,
   getBaselineContext,
   getBaselineValue,
   isSmallSample,
   isStatSmallSample,
   makeLeague,
   makePositionLookup,
+  ordinal,
   ownStatAverage,
   positionNoun,
   type HeatmapCell,
@@ -417,6 +419,75 @@ describe("buildHeatmapGrid — the switchable-reference heatmap", () => {
     expect(c.delta).toBeNull();
     expect(c.value).toBe(20);
     expect(c.selectable).toBe(true);
+  });
+});
+
+describe("cellPercentile — the reveal strip's rank (peer modes, counting stats only)", () => {
+  const cell = (g: HeatmapGrid, year: number, key: string): HeatmapCell =>
+    g.rows[g.years.indexOf(year)].find((c) => c.statKey === key)!;
+
+  it("league mode: ranks a counting stat on THAT year's league ladder", () => {
+    // pts 18 on the fixture's 0→40 league ladder → 45th (same answer as the drill-down's Pct column).
+    const L = league([2022]);
+    const p = player([playedSeason(2022, 40, { pts: 18 })]);
+    const g = buildHeatmapGrid(p, "league", L, POS, "F");
+    expect(cellPercentile(cell(g, 2022, "pts"), "league", L, POS, "F")).toBeCloseTo(45, 5);
+  });
+
+  it("position mode: uses the POSITION's own ladder, not the league's", () => {
+    // Center pts 16 on the center 0→20 ladder → 80th (the league's 0→40 ladder would say 40th).
+    const L = league([2024]);
+    const P = positions([2024]);
+    const p = player([playedSeason(2024, 40, { pts: 16 })], "C");
+    const g = buildHeatmapGrid(p, "position", L, P, "C");
+    expect(cellPercentile(cell(g, 2024, "pts"), "position", L, P, "C")).toBeCloseTo(80, 5);
+  });
+
+  it("is null in self mode — 'vs their own career' has no population to rank within", () => {
+    const L = league([2020, 2022]);
+    const p = player([playedSeason(2020, 40, { pts: 10 }), playedSeason(2022, 40, { pts: 20 })]);
+    const g = buildHeatmapGrid(p, "self", L, POS, "F");
+    expect(cellPercentile(cell(g, 2022, "pts"), "self", L, POS, "F")).toBeNull();
+  });
+
+  it("is null for a shooting % (no ladder)", () => {
+    const L = league([2022]);
+    const p = player([playedSeason(2022, 40, { tpp: 0.44 })]);
+    const g = buildHeatmapGrid(p, "league", L, POS, "F");
+    expect(cellPercentile(cell(g, 2022, "tpp"), "league", L, POS, "F")).toBeNull();
+  });
+
+  it("is null for a small-sample cell", () => {
+    // 3 of 40 games → the cell is greyed/not compared, so it gets no rank either.
+    const L = league([2022]);
+    const p = player([playedSeason(2022, 3, { pts: 18 })]);
+    const g = buildHeatmapGrid(p, "league", L, POS, "F");
+    expect(cellPercentile(cell(g, 2022, "pts"), "league", L, POS, "F")).toBeNull();
+  });
+
+  it("is null in position mode when that year has no same-position bucket", () => {
+    // /positions has only 2024; the 2022 season has no center bucket → no rank.
+    const L = league([2022, 2024]);
+    const P = positions([2024]);
+    const p = player([playedSeason(2022, 40, { pts: 20 }), playedSeason(2024, 40, { pts: 20 })], "C");
+    const g = buildHeatmapGrid(p, "position", L, P, "C");
+    expect(cellPercentile(cell(g, 2022, "pts"), "position", L, P, "C")).toBeNull();
+  });
+});
+
+describe("ordinal", () => {
+  it("handles 1/2/3 endings and the teens", () => {
+    expect(ordinal(1)).toBe("1st");
+    expect(ordinal(2)).toBe("2nd");
+    expect(ordinal(3)).toBe("3rd");
+    expect(ordinal(4)).toBe("4th");
+    expect(ordinal(11)).toBe("11th");
+    expect(ordinal(12)).toBe("12th");
+    expect(ordinal(13)).toBe("13th");
+    expect(ordinal(21)).toBe("21st");
+    expect(ordinal(94)).toBe("94th");
+    expect(ordinal(100)).toBe("100th");
+    expect(ordinal(111)).toBe("111th");
   });
 });
 
