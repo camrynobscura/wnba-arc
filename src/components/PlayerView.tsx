@@ -1,9 +1,10 @@
 import { photoUrl } from "../data/stats";
 import type { PlayerDetail, PlayerSummary, SeasonMissed } from "../data/api";
 import { PlayerSearch } from "./PlayerSearch";
-import type { HeatmapMode, League, PositionLookup, StatKey } from "../lib/deviation";
+import type { ComparisonTarget, HeatmapMode, League, PositionLookup, StatDetail, StatKey } from "../lib/deviation";
 import { PlayerPhoto } from "./PlayerPhoto";
 import { DeviationHeatmap } from "./DeviationHeatmap";
+import { StatDrilldownView } from "./StatDrilldownView";
 
 /** "2019, 2021–2024" — collapse consecutive years into ranges for a compact list. */
 function compressYears(years: number[]): string {
@@ -22,7 +23,7 @@ function compressYears(years: number[]): string {
   return parts.join(", ");
 }
 
-interface SummaryViewProps {
+interface PlayerViewProps {
   player: PlayerDetail;
   league: League;
   positions: PositionLookup | null;
@@ -30,30 +31,49 @@ interface SummaryViewProps {
   /** Whether "vs their position" can be offered (position known AND /positions loaded). */
   positionAvailable: boolean;
   mode: HeatmapMode;
+  /** The drill-down's stat + its built detail, description, and comparison target. */
+  statKey: StatKey;
+  statDesc: string;
+  statDetail: StatDetail;
+  target: ComparisonTarget;
   /** Full roster + its load error, for the in-row "search more players" box. */
   players: PlayerSummary[] | null;
   listError: string | null;
   onModeChange: (m: HeatmapMode) => void;
-  onGoHome: () => void;
-  /** Go to one stat's year-by-year history (the heatmap's reveal-strip link / Enter on a cell). */
+  onStatChange: (key: StatKey) => void;
+  /** Like onStatChange, but also brings the drill-down section into view (a heatmap cell's
+      "See … history" link / Enter). */
   onDrill: (key: StatKey) => void;
+  onSelectYear: (year: number) => void;
+  onGoHome: () => void;
   onPick: (espn: string) => void;
 }
 
-export function SummaryView({
+/**
+ * The whole player page, on one canvas: the season × stat heatmap (overview, switchable
+ * reference) on top, and the year-by-year drill-down for one stat beneath it. Overview → detail
+ * without a navigation; the selected stat lives in the URL so the page is still shareable.
+ */
+export function PlayerView({
   player,
   league,
   positions,
   playerPosition,
   positionAvailable,
   mode,
+  statKey,
+  statDesc,
+  statDetail,
+  target,
   players,
   listError,
   onModeChange,
-  onGoHome,
+  onStatChange,
   onDrill,
+  onSelectYear,
+  onGoHome,
   onPick,
-}: SummaryViewProps) {
+}: PlayerViewProps) {
   // Missed (no-data) seasons, grouped by reason so several gaps read as one compact line — the
   // heatmap shows the gaps, but only this note carries *why* (injury / maternity / overseas).
   const missed = player.seasons.filter((s): s is SeasonMissed => !s.played);
@@ -120,6 +140,16 @@ export function SummaryView({
           ))}
         </div>
       )}
+
+      <StatDrilldownView
+        player={player}
+        stat={statDetail}
+        statKey={statKey}
+        desc={statDesc}
+        target={target}
+        onStatChange={onStatChange}
+        onSelectYear={onSelectYear}
+      />
     </main>
   );
 }

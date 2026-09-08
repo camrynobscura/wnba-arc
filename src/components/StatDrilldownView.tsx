@@ -1,33 +1,33 @@
-import type { PlayerDetail, PlayerSummary } from "../data/api";
-import { firstName, ordinal, positionNoun, type ComparisonTarget, type StatDetail, type StatTableRow } from "../lib/deviation";
+import type { PlayerDetail } from "../data/api";
+import { STATS } from "../data/stats";
+import { firstName, ordinal, positionNoun, type ComparisonTarget, type StatDetail, type StatKey, type StatTableRow } from "../lib/deviation";
 import { InfoTip } from "./InfoTip";
-import { PlayerSearch } from "./PlayerSearch";
 import { LabeledSelect } from "./Select";
 
 interface StatDrilldownViewProps {
   player: PlayerDetail;
   stat: StatDetail;
+  /** Which stat is shown — drives the section's stat dropdown. */
+  statKey: StatKey;
+  /** The stat's one-line plain-language description (STATS[].desc), shown under its name. */
+  desc: string;
+  /** What each season is compared against — names the percentile group ("in the league" /
+      "among guards"). Follows the page's comparison control; not chosen here. */
   target: ComparisonTarget;
-  /** Whether the same-position baseline is offered (position known + /positions loaded). */
-  positionAvailable: boolean;
-  /** Full roster + its load error, for the in-row "search more players" box. */
-  players: PlayerSummary[] | null;
-  listError: string | null;
-  onTargetChange: (target: ComparisonTarget) => void;
-  onBack: () => void;
+  onStatChange: (key: StatKey) => void;
   onSelectYear: (year: number) => void;
-  onPick: (espn: string) => void;
 }
 
 const PLOT_H = 220; // px
 
-/** "2021" · "2019 & 2021" · "2018, 2019 & 2021" — the missed-season notice's year list. */
-function joinYears(years: number[]): string {
-  if (years.length <= 1) return years.join("");
-  return `${years.slice(0, -1).join(", ")} & ${years[years.length - 1]}`;
-}
-
-export function StatDrilldownView({ player, stat, target, positionAvailable, players, listError, onTargetChange, onBack, onSelectYear, onPick }: StatDrilldownViewProps) {
+/**
+ * One stat's year-by-year history — a per-season dumbbell chart (value dot vs. that year's
+ * baseline dot) plus the full yearly table. Rendered as a **section of the player page**, below
+ * the heatmap, not its own route: the heatmap is the overview, this is the detail for the one
+ * stat picked in the dropdown (or reached via a heatmap cell's "See … history" link / Enter).
+ * The heading has tabIndex=-1 so that link can move focus here for keyboard/screen-reader users.
+ */
+export function StatDrilldownView({ player, stat, statKey, desc, target, onStatChange, onSelectYear }: StatDrilldownViewProps) {
   const bars = stat.bars;
   const n = bars.length;
   const colX = (i: number) => ((i + 0.5) / n) * 100; // column center, % from left
@@ -37,12 +37,9 @@ export function StatDrilldownView({ player, stat, target, positionAvailable, pla
   const smallSampleKey = stat.component ? "small sample (few games or attempts)" : "small sample (few games)";
   // The percentile ("Pct") column shows only for counting stats with ladders — shooting %s and
   // pre-004 data have no percentile, so it's hidden then. It ranks the season "in the league" or
-  // "among {position}", matching the current Compare-against target.
+  // "among {position}", matching the page's comparison control.
   const showPct = stat.tableRows.some((r) => r.pctile != null);
   const pctWhere = target === "position" ? `among ${positionNoun(player.pos)}` : "in the league";
-  // Missed seasons (a gap in the timeline — "Did not play") get one plain-language note above the
-  // table instead of a "DNP" tag wrapping every row to two lines. Years listed oldest-first.
-  const missedYears = stat.tableRows.filter((r) => r.missed).map((r) => r.year).sort((a, b) => a - b);
 
   const renderRow = (r: StatTableRow) => {
     // Small-sample seasons aren't selectable (unless it's the fallback where a player has no
@@ -110,27 +107,26 @@ export function StatDrilldownView({ player, stat, target, positionAvailable, pla
   };
 
   return (
-    <main id="main" className="view-main">
-      {/* Top row: back to this player's summary (left) + jump to another player (right). */}
-      <div className="view-header">
-        <button className="btn btn-ghost" style={{ gap: "var(--space-2)" }} onClick={onBack}>
-          <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
-            <path d="M19 12H5M12 19l-7-7 7-7" />
-          </svg>
-          <span>{player.name}</span>
-        </button>
-        <PlayerSearch variant="compact" players={players} listError={listError} onPick={onPick} />
-      </div>
-
+    <section
+      id="drilldown"
+      aria-labelledby="drilldown-title"
+      style={{ marginTop: "var(--space-8)", paddingTop: "var(--space-6)", borderTop: "2px solid var(--color-divider)" }}
+    >
       <div className="card-kicker" style={{ marginBottom: "var(--space-1)" }}>
-        {player.name} · career history
+        Year by year
       </div>
       <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", flexWrap: "wrap", gap: "var(--space-3)" }}>
         <div>
-          <h1 style={{ margin: 0, fontSize: "var(--fs-2xl)" }}>{stat.label}</h1>
-          {/* Every stat gets a unit subtitle so the header height is consistent: counting
-              stats are per-game averages; shooting %s are whole-season rates. */}
+          {/* tabIndex=-1: a programmatic focus target for the heatmap's "See … history" link. */}
+          <h2 id="drilldown-title" tabIndex={-1} style={{ margin: 0, fontSize: "var(--fs-2xl)" }}>{stat.label}</h2>
+          {/* The stat's description lives here — always visible, on every device — rather than
+              only behind the heatmap's header tooltip. */}
           <div className="text-muted" style={{ fontSize: "var(--fs-xs)", marginTop: "var(--space-1)" }}>
+            {desc}
+          </div>
+          {/* Every stat gets a unit line so the header height is consistent: counting stats are
+              per-game averages; shooting %s are whole-season rates. */}
+          <div className="text-muted" style={{ fontSize: "var(--fs-2xs)", marginTop: "var(--space-1)" }}>
             {stat.pct ? "season rate" : "per game"}
           </div>
         </div>
@@ -164,7 +160,7 @@ export function StatDrilldownView({ player, stat, target, positionAvailable, pla
         </div>
       )}
 
-      {/* Legend + baseline toggle */}
+      {/* Legend + the stat picker (the section's one selector; comparison follows the page). */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "var(--space-3)", marginBottom: "var(--space-3)" }}>
         <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-2) var(--space-4)", fontSize: "var(--fs-xs)" }}>
           <span style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
@@ -181,13 +177,10 @@ export function StatDrilldownView({ player, stat, target, positionAvailable, pla
           </span>
         </div>
         <LabeledSelect
-          ariaLabel="Compare against"
-          value={target}
-          options={[
-            { value: "league", label: "League avg" },
-            ...(positionAvailable ? [{ value: "position", label: `Other ${positionNoun(player.pos)}` }] : []),
-          ]}
-          onChange={(v) => onTargetChange(v as ComparisonTarget)}
+          ariaLabel="Stat"
+          value={statKey}
+          options={STATS.map((s) => ({ value: s.key, label: s.label }))}
+          onChange={(v) => onStatChange(v as StatKey)}
         />
       </div>
 
@@ -402,18 +395,9 @@ export function StatDrilldownView({ player, stat, target, positionAvailable, pla
 
       {/* Yearly table (F2) — one full-width table, zebra-striped. table-layout: fixed
           gives evenly-distributed columns and makes the table fit its container at any
-          width (no horizontal scroll needed → nothing clips the header tooltips). */}
+          width (no horizontal scroll needed → nothing clips the header tooltips). Missed
+          seasons show as "—" rows; the page-level note above the section carries the reason. */}
       <div style={{ marginTop: "var(--space-6)" }}>
-        {missedYears.length > 0 && (
-          <div role="note" className="note-card" style={{ margin: "0 0 var(--space-3)" }}>
-            <div>
-              <strong style={{ fontWeight: 600 }}>
-                No {joinYears(missedYears)} season{missedYears.length > 1 ? "s" : ""} on record
-              </strong>{" "}
-              — did not play.
-            </div>
-          </div>
-        )}
         {/* table-layout: fixed + no per-column widths ⇒ every column is an equal share of the
             100%-wide table (5, 6, or 7 columns depending on the stat). */}
         <table className="table" aria-label="Season stats">
@@ -457,6 +441,6 @@ export function StatDrilldownView({ player, stat, target, positionAvailable, pla
           </div>
         )}
       </div>
-    </main>
+    </section>
   );
 }

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Navigate, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import { getLeague, getMeta, getPlayers, getPositions, type LeagueSeason, type PlayerSummary, type PositionSeason } from "./data/api";
 import { makeLeague, makePositionLookup } from "./lib/deviation";
@@ -7,8 +7,7 @@ import { Header } from "./components/Header";
 import { SelectRoute } from "./routes/SelectRoute";
 import { AboutRoute } from "./routes/AboutRoute";
 import { PlayerLayout } from "./routes/PlayerLayout";
-import { SummaryRoute } from "./routes/SummaryRoute";
-import { StatRoute } from "./routes/StatRoute";
+import { PlayerRoute } from "./routes/PlayerRoute";
 
 /**
  * App shell: loads the app-wide data (roster + per-year league/position averages + freshness)
@@ -67,9 +66,12 @@ export default function App() {
         <Routes>
           <Route path="/" element={<SelectRoute />} />
           <Route path="/about" element={<AboutRoute />} />
+          {/* One page for both: the bare path shows the default drill-down stat, ":stat" picks one.
+              (They were two routes — summary + a separate drill-down page — until the drill-down
+              moved inline beneath the heatmap.) */}
           <Route path="/player/:slug" element={<PlayerLayout />}>
-            <Route index element={<SummaryRoute />} />
-            <Route path=":stat" element={<StatRoute />} />
+            <Route index element={<PlayerRoute />} />
+            <Route path=":stat" element={<PlayerRoute />} />
           </Route>
           {/* Anything unrecognized → the landing page. */}
           <Route path="*" element={<Navigate to="/" replace />} />
@@ -79,12 +81,21 @@ export default function App() {
   );
 }
 
+/** The "/player/<slug>" prefix of a pathname, or null off the player page. */
+const playerBase = (p: string): string | null => p.match(/^\/player\/[^/]+/)?.[0] ?? null;
+
 /** Reset scroll to the top on a real navigation (pathname change) — but NOT on a query-param
- *  change, so clicking a bar to re-baseline the season doesn't yank the page to the top. */
+ *  change (re-baselining a season), and NOT when only the drill-down stat changed for the same
+ *  player ("/player/x" → "/player/x/blk"): that's a view modifier on one page, and jumping to
+ *  the top would fight the "See … history" scroll into the section. */
 function ScrollToTop() {
   const { pathname } = useLocation();
+  const prev = useRef<string | null>(null);
   useEffect(() => {
-    window.scrollTo(0, 0);
+    const base = playerBase(pathname);
+    const samePlayer = base != null && prev.current != null && playerBase(prev.current) === base;
+    prev.current = pathname;
+    if (!samePlayer) window.scrollTo(0, 0);
   }, [pathname]);
   return null;
 }
