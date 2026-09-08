@@ -409,27 +409,47 @@ function CellPopover({ cell, anchor, noun, pct, pctWhere, pinned, popoverRef, on
       onPointerEnter={onPointerEnter}
       onPointerLeave={onPointerLeave}
     >
-      <div className="hm-popover-line">
-        <b>{cell.year} · {stat}</b>
-        {!cell.played ? (
-          <span className="text-muted"> — did not play</span>
-        ) : (
-          <>
-            {" "}
-            <span style={{ fontWeight: 600 }}>{cell.valueFmt}</span>
-            {cell.smallSample ? (
-              <span className="text-muted"> — small sample, not compared</span>
-            ) : cell.delta == null ? (
-              <span className="text-muted"> · no {noun} that season</span>
-            ) : (
-              <>
-                <span> · {cell.deltaFmt} vs {noun}</span>
-                {pct != null && <span> · {ordinal(Math.round(pct))} percentile {pctWhere}</span>}
-              </>
-            )}
-          </>
-        )}
+      {/* A column with a clear hierarchy: year (eyebrow) → stat (heading) → value (hero) → the
+          reference avg / difference / rank as label–value rows → the link. */}
+      <div className="card-kicker hm-popover-year">{cell.year}</div>
+      <div className="text-heading hm-popover-stat">{stat}</div>
+      <div className="text-heading hm-popover-value" style={cell.smallSample ? { color: "var(--color-neutral-500)" } : undefined}>
+        {cell.played ? cell.valueFmt : "—"}
       </div>
+      {!cell.played ? (
+        <div className="text-muted hm-popover-note">Did not play</div>
+      ) : (
+        <>
+          {(cell.refValue != null || cell.delta != null || pct != null) && (
+            <dl className="hm-popover-rows">
+              {cell.refValue != null && (
+                <>
+                  <dt>{noun.charAt(0).toUpperCase() + noun.slice(1)}</dt>
+                  <dd>{cell.refFmt}</dd>
+                </>
+              )}
+              {cell.delta != null && (
+                <>
+                  <dt>Difference</dt>
+                  <dd className="hm-popover-delta" style={{ color: cell.up ? "var(--hm-above-text)" : "var(--hm-below-text)" }}>
+                    {cell.deltaFmt}
+                  </dd>
+                </>
+              )}
+              {pct != null && (
+                <>
+                  <dt>Percentile</dt>
+                  <dd>
+                    {ordinal(Math.round(pct))} <span className="text-muted">{pctWhere}</span>
+                  </dd>
+                </>
+              )}
+            </dl>
+          )}
+          {cell.smallSample && <div className="text-muted hm-popover-note">Small sample — not compared</div>}
+          {!cell.smallSample && cell.delta == null && <div className="text-muted hm-popover-note">No {noun} that season</div>}
+        </>
+      )}
       <button type="button" className="btn btn-ghost hm-popover-link" onClick={onDrill}>
         See {stat.toLowerCase()} history ↓
       </button>

@@ -346,6 +346,7 @@ describe("buildHeatmapGrid — the switchable-reference heatmap", () => {
     const g = buildHeatmapGrid(p, "self", L, POS, "F");
     expect(cell(g, 2022, "pts").colorT).toBeCloseTo(1, 5);
     expect(cell(g, 2022, "pts").delta).toBeCloseTo(5, 5);
+    expect(cell(g, 2022, "pts").refValue).toBe(15); // the career avg of 10 & 20 — shown in the popover
     expect(cell(g, 2020, "pts").colorT).toBeCloseTo(-1, 5);
     expect(cell(g, 2020, "pts").delta).toBeCloseTo(-5, 5);
   });
@@ -358,6 +359,7 @@ describe("buildHeatmapGrid — the switchable-reference heatmap", () => {
     expect(cell(g, 2022, "pts").colorT).toBeCloseTo(0.4, 5);
     expect(cell(g, 2022, "pts").delta).toBeCloseTo(6, 5);
     expect(cell(g, 2022, "pts").up).toBe(true);
+    expect(cell(g, 2022, "pts").refValue).toBe(12); // that year's league avg — shown in the popover
   });
 
   it("position mode: colors against the POSITION's own average + spread", () => {

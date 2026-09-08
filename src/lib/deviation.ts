@@ -375,7 +375,11 @@ export interface HeatmapCell {
   /** The raw stat value that season (null: missed, or no value for this stat). */
   value: number | null;
   valueFmt: string;
-  /** value − the mode's reference average; null when there's no reference or no value. */
+  /** The reference average this cell is measured against — the career average, or that year's
+      league / position average; null when there's none. Shown in the cell popover. */
+  refValue: number | null;
+  refFmt: string;
+  /** value − refValue; null when there's no reference or no value. */
   delta: number | null;
   deltaFmt: string;
   /** −1…1 signed, normalized deviation for the cell color; null → neutral (no reference,
@@ -437,7 +441,7 @@ export function buildHeatmapGrid(
     STATS.map((st): HeatmapCell => {
       const shell = { year: s.year, statKey: st.key, pct: st.pct } as const;
       if (!s.played) {
-        return { ...shell, played: false, value: null, valueFmt: "—", delta: null, deltaFmt: "—", colorT: null, up: false, smallSample: false, selectable: false };
+        return { ...shell, played: false, value: null, valueFmt: "—", refValue: null, refFmt: "—", delta: null, deltaFmt: "—", colorT: null, up: false, smallSample: false, selectable: false };
       }
       const value = s[st.key];
       const small = isStatSmallSample(s, league, st.key);
@@ -468,6 +472,8 @@ export function buildHeatmapGrid(
         played: true,
         value,
         valueFmt: fmtV(value, st.pct),
+        refValue: avg,
+        refFmt: fmtV(avg, st.pct),
         delta,
         deltaFmt: delta != null ? fmtRaw(delta, st.pct) : "—",
         colorT,

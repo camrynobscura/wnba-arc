@@ -648,7 +648,11 @@ select.select-reset {
   color: inherit;
   font-family: inherit;
   font-size: var(--fs-sm);
-  font-weight: 600;
+  /* 500, not 600: the numbers read harsh in bold on the saturated cells. Softened via WEIGHT
+     rather than opacity — the heat colors are tuned so this text only clears ~4.7:1 on the worst
+     cell, and a visible opacity drop (measured: 0.85 → 4.02–4.32:1) breaks AA. Weight leaves the
+     contrast ratio untouched. */
+  font-weight: 500;
   font-variant-numeric: tabular-nums;
   cursor: pointer;
   appearance: none;
@@ -669,9 +673,10 @@ select.select-reset {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: var(--space-1);
-  max-width: min(300px, calc(100vw - 16px));
-  padding: var(--space-2) var(--space-3);
+  gap: 2px;
+  min-width: 180px;
+  max-width: min(260px, calc(100vw - 16px));
+  padding: var(--space-3) var(--space-4);
   font-size: var(--fs-xs);
   line-height: 1.35;
   color: var(--color-text);
@@ -680,11 +685,45 @@ select.select-reset {
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-md);
 }
-.hm-popover b {
+/* A column with a typographic hierarchy: eyebrow (year) → heading (stat) → hero (value) →
+   quiet label/value rows → the link. Each tier differs in size, weight, and color. */
+.hm-popover-year {
+  margin: 0; /* .card-kicker supplies the small uppercase muted letter-spaced style */
+}
+.hm-popover-stat {
+  font-size: var(--fs-lg);
+  line-height: 1.1;
+}
+.hm-popover-value {
+  font-size: var(--fs-2xl);
+  line-height: 1;
+  margin: 2px 0 6px;
+  font-variant-numeric: tabular-nums;
+}
+.hm-popover-rows {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 2px var(--space-4);
+  width: 100%;
+  margin: 0;
+}
+.hm-popover-rows dt {
+  color: var(--color-neutral-700);
+}
+.hm-popover-rows dd {
+  margin: 0;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.hm-popover-delta {
   font-weight: 600;
+}
+.hm-popover-note {
+  margin-top: 2px;
 }
 .hm-popover-link {
   padding-inline: 0;
+  margin-top: var(--space-1);
   font-size: var(--fs-xs);
 }
 .hm-cell:focus-visible {
