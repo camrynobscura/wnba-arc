@@ -384,7 +384,8 @@ export interface HeatmapCell {
   up: boolean;
   /** Too thin a sample for this stat that season → greyed, not heat-colored, not clickable. */
   smallSample: boolean;
-  /** Whether the cell opens the drill-down: a played, full-sample season with a value. */
+  /** A comparable cell — a played, full-sample season with a value (the ones that get a gap and
+      a color). Not an interaction flag: every cell reveals its details, and history is per-stat. */
   selectable: boolean;
 }
 

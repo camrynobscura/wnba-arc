@@ -35,7 +35,8 @@ interface SummaryViewProps {
   listError: string | null;
   onModeChange: (m: HeatmapMode) => void;
   onGoHome: () => void;
-  onOpenCell: (year: number, key: StatKey) => void;
+  /** Go to one stat's year-by-year history (the heatmap's reveal-strip link / Enter on a cell). */
+  onDrill: (key: StatKey) => void;
   onPick: (espn: string) => void;
 }
 
@@ -50,7 +51,7 @@ export function SummaryView({
   listError,
   onModeChange,
   onGoHome,
-  onOpenCell,
+  onDrill,
   onPick,
 }: SummaryViewProps) {
   // Missed (no-data) seasons, grouped by reason so several gaps read as one compact line — the
@@ -103,7 +104,7 @@ export function SummaryView({
         positionAvailable={positionAvailable}
         mode={mode}
         onModeChange={onModeChange}
-        onOpenCell={onOpenCell}
+        onDrill={onDrill}
       />
 
       {/* Missed-season reasons — the one thing the grid's gaps can't show on their own. */}

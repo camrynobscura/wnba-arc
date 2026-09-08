@@ -30,12 +30,12 @@ export function SummaryRoute() {
       { replace: true },
     );
 
-  // Open a cell → that season's drill-down for that stat, carrying the current mode so Back
-  // returns to the same view (the drill-down reads vs=self as league, its default — see toTarget).
-  const openCell = (year: number, key: StatKey) => {
-    const params = new URLSearchParams(searchParams);
-    params.set("year", String(year));
-    const qs = params.toString();
+  // Go to one stat's history (the reveal strip's link / Enter on a cell), carrying the current
+  // mode so Back returns to the same view (the drill-down reads vs=self as league — see toTarget).
+  // No season is carried: the history shows every season, so a cell's year added nothing. (Until
+  // P4 folds the drill-down inline, this still navigates to the separate page.)
+  const drill = (key: StatKey) => {
+    const qs = searchParams.toString();
     navigate(`${statPath(detail.name, detail.espn, key, players)}${qs ? `?${qs}` : ""}`);
   };
   // Picking a new player is a fresh navigation — reset to the default mode (no query).
@@ -53,7 +53,7 @@ export function SummaryRoute() {
       listError={loadError}
       onModeChange={setMode}
       onGoHome={() => navigate("/")}
-      onOpenCell={openCell}
+      onDrill={drill}
       onPick={pick}
     />
   );
