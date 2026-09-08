@@ -658,19 +658,34 @@ select.select-reset {
 .hm-cell:hover {
   box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--color-text) 32%, transparent);
 }
-/* Reveal strip: the hovered / tapped / focused cell's full line (value · gap · rank) plus a link
-   to that stat's history. Reserved height so revealing never shifts the page. */
-.hm-reveal {
+/* Cell popover: the hovered / tapped / focused cell's full line (value · gap · rank) plus a link
+   to that stat's history, anchored to the cell. `fixed` (viewport coords set inline from the
+   cell's rect) so it's never clipped by the mobile horizontal-scroll wrapper and always lands
+   where the finger/pointer is — not in a strip that may be a screen away on a long career.
+   z-index above the sticky header (5), matching the InfoTip bubble. */
+.hm-popover {
+  position: fixed;
+  z-index: 20;
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-2) var(--space-4);
-  min-height: 44px;
-  margin-top: var(--space-3);
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-1);
+  max-width: min(300px, calc(100vw - 16px));
+  padding: var(--space-2) var(--space-3);
   font-size: var(--fs-xs);
+  line-height: 1.35;
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-divider);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
 }
-.hm-reveal b {
+.hm-popover b {
   font-weight: 600;
+}
+.hm-popover-link {
+  padding-inline: 0;
+  font-size: var(--fs-xs);
 }
 .hm-cell:focus-visible {
   outline: 2px solid var(--color-accent-700);
