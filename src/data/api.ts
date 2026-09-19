@@ -118,8 +118,13 @@ export interface PositionSeason {
 // ── fetch plumbing ───────────────────────────────────────────────────────────
 
 /** Where the wnba-data read API lives. Set `VITE_API_BASE` at build time (e.g. in the
- *  Netlify env) to point at the deployed API; falls back to the local dev server. */
-const BASE_URL = import.meta.env.VITE_API_BASE ?? "http://localhost:3001";
+ *  Netlify env) to point at the deployed API. Unset (local dev) it falls back to the
+ *  same-origin `/api` path, which the Vite dev server proxies to the API (vite.config.ts).
+ *  A relative path means the browser never makes a cross-origin request in dev, so the app
+ *  works from any device that can reach the dev server (a phone on the same wifi), not only
+ *  from `localhost` on the machine running the API. `||` rather than `??` so an empty
+ *  `VITE_API_BASE=` in a stray .env counts as unset instead of producing `""` + path. */
+const BASE_URL = import.meta.env.VITE_API_BASE || "/api";
 
 /**
  * GET a path from the API and parse the JSON body, typed as T.

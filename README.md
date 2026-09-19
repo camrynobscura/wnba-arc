@@ -133,13 +133,19 @@ with axe across Chromium, Firefox, and WebKit — zero violations.
 
 ## Running locally
 
-Requires Node 20+ and a running instance of the data API.
+Requires Node 20+ and a running instance of the data API on its default port (3001).
 
 ```bash
 npm install
-cp .env.example .env      # then set VITE_API_BASE to your data API's URL
-npm run dev               # http://localhost:5173
+npm run dev               # http://localhost:5173 (or the next free port)
 ```
+
+No `.env` is needed in dev: the Vite dev server proxies `/api` to the data API
+(`vite.config.ts`), so the browser never makes a cross-origin request. `VITE_API_BASE` is
+only for production builds, where it points at the deployed API (see `.env.example`).
+
+To try it on a phone, start the dev server with `npm run dev -- --host` and open the
+network URL Vite prints; the proxy means the phone needs no access to the API itself.
 
 Other scripts:
 
