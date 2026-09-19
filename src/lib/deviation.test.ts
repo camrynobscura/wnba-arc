@@ -40,6 +40,8 @@ function playedSeason(year: number, gp: number, stats: Partial<SeasonPlayed> = {
     played: true,
     age: 25,
     gp,
+    pool: null,
+    rank: null,
     min: 30,
     pts: 15,
     reb: 6,

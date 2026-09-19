@@ -49,6 +49,13 @@ export interface SeasonPlayed {
   fg3Att: number;
   // Advanced (added to the displayed set). A decimal like the other percentage stats.
   tsPct: number | null; // true shooting %
+  /** Qualified player-seasons in that year's league pool (the same set the averages and ladders come
+      from); null if the year has no league row. Denominator for `rank` ("3rd of 141"). The pool is
+      the players in the database: complete for the roster window, only still-active players before. */
+  pool: number | null;
+  /** This season's place in that pool per counting stat, 1 = best, ties share a rank; null when the
+      season didn't qualify (small sample) or there's no pool. */
+  rank: { pts: number; reb: number; ast: number; stl: number; blk: number } | null;
 }
 
 export interface SeasonMissed {
