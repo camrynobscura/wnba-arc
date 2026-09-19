@@ -906,3 +906,113 @@ select.select-reset {
 .btn-ghost {
   border-color: transparent;
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   STAT DRILL-DOWN — the career summary plates, the chart's league band, and
+   the table's rank column. (See components/StatDrilldownView.tsx.)
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* — career summary: a row of "plates" — equal columns however many facts there are (4 or 5),
+   each a bordered cell whose label sits ON the border like a fieldset legend. The label and the
+   border share one grey (neutral-700 — passes as text on both grounds, which the lighter
+   neutral-600 does not); the number is the only ink. Chosen over tiles/lines on a side-by-side
+   preview (DECISIONS, 2026-09-18). */
+.cs {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  gap: var(--space-3);
+  margin: var(--space-4) 0 0;
+  padding-top: 6px; /* room for the label that overhangs the top border */
+}
+.cs-plate {
+  position: relative;
+  border: 1px solid var(--color-neutral-700);
+  padding: var(--space-4) var(--space-2) var(--space-3);
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.cs-k {
+  position: absolute;
+  top: -7px;
+  left: 8px;
+  padding: 0 5px;
+  background: var(--color-bg);
+  font-family: var(--font-heading);
+  font-weight: var(--font-heading-weight);
+  font-size: var(--fs-2xs);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-neutral-700);
+  white-space: nowrap;
+}
+.cs-v {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-weight: var(--font-heading-weight);
+  font-size: var(--fs-2xl);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+/* The word after the number — the stat's name ("1.9 steals") or a qualifier ("1st of 158"): one
+   quiet treatment for both, muted; the gap is the word space alone (none before a "%"). */
+.cs-q {
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  color: var(--color-neutral-700);
+}
+.cs-n {
+  margin: var(--space-1) 0 0;
+  font-size: var(--fs-xs);
+  color: var(--color-neutral-700);
+}
+/* Phones: five equal columns of a ~280px row would be ~50px each. Wrap to three per row instead,
+   the leftover two stretching to fill the second row (3 + 2); exactly four plates (a shooting %,
+   which has no rank) go two and two. The number steps down one size so "36th of 186" still fits. */
+@media (max-width: 520px) {
+  .cs {
+    display: flex;
+    flex-wrap: wrap;
+  }
+  .cs-plate {
+    flex: 1 1 calc(33.333% - var(--space-3));
+    padding: var(--space-3) var(--space-1) var(--space-2);
+  }
+  .cs-plate:first-child:nth-last-child(4),
+  .cs-plate:first-child:nth-last-child(4) ~ .cs-plate {
+    flex-basis: calc(50% - var(--space-3));
+  }
+  .cs-v {
+    font-size: var(--fs-xl);
+  }
+}
+
+/* — the chart's band: the middle 80% of the comparison group each year, drawn as one faint
+   polygon behind the dots (10th to 90th percentile), the median dotted. Kept very light so it
+   reads as context, not as a series — the "lighter polygon" of the band-style comparison. */
+.dd-band {
+  fill: var(--color-neutral-900);
+  opacity: 0.05;
+}
+.dd-median {
+  fill: none;
+  stroke: var(--color-neutral-500);
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+  vector-effect: non-scaling-stroke;
+}
+.legend-band {
+  display: inline-block;
+  width: 18px;
+  height: 10px;
+  background: var(--color-neutral-900);
+  opacity: 0.12;
+  border-radius: 2px;
+}
+/* The rank column ("9th of 186") must not wrap inside the fixed-layout table. */
+.table td.nowrap {
+  white-space: nowrap;
+}

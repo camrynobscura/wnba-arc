@@ -4,17 +4,18 @@ import { PlayerView } from "../components/PlayerView";
 import { STATS } from "../data/stats";
 import { useAppData } from "../appData";
 import type { PlayerOutletCtx } from "./PlayerLayout";
-import { buildStatDetail, getBaselineContext, type ComparisonTarget, type HeatmapMode, type StatKey } from "../lib/deviation";
-import { playerPath, statPath, toMode, toStatKey, toTarget } from "../lib/routes";
+import { buildStatDetail, selfModeAvailable, type HeatmapMode, type StatKey } from "../lib/deviation";
+import { playerPath, statPath, toMode, toStatKey } from "../lib/routes";
 
 /** The drill-down stat shown when the URL has no `:stat` segment ("/player/aja-wilson"). */
 const DEFAULT_STAT: StatKey = "pts";
 
 /**
  * "/player/:slug" and "/player/:slug/:stat" — ONE page: the heatmap overview plus the drill-down
- * for one stat beneath it. The URL is the source of truth: `:stat` is the drill-down's stat,
- * `?vs=` the reference mode (self / league / position — the drill-down reads self as league via
- * toTarget, since it has no self baseline), `?year=` the drill-down's subject season.
+ * for one stat beneath it. The URL is the source of truth: `:stat` is the drill-down's stat and
+ * `?vs=` the reference mode (self / league / position) that BOTH sections follow. (A `?year=`
+ * subject season used to drive the drill-down; the cell popover carries per-season detail now,
+ * so an old link with `?year=` simply ignores it.)
  */
 export function PlayerRoute() {
   const { detail, league, positions } = useOutletContext<PlayerOutletCtx>();
@@ -24,38 +25,28 @@ export function PlayerRoute() {
   const navigate = useNavigate();
 
   const positionAvailable = detail.pos != null && positions != null;
-  // Honor position mode only when it's actually available (else fall to the default).
+  const canSelf = selfModeAvailable(detail);
+  // Honor a mode only where it's available: position needs the lookup and a known position; self
+  // needs ≥2 seasons. Resolved once here, so the heatmap and the drill-down read the same mode.
   const requested = toMode(searchParams.get("vs"));
-  const mode: HeatmapMode = requested === "position" && !positionAvailable ? "self" : requested;
-  const target: ComparisonTarget = toTarget(searchParams.get("vs")) === "position" && positionAvailable ? "position" : "league";
+  const mode: HeatmapMode =
+    requested === "position" && !positionAvailable ? (canSelf ? "self" : "league") : requested === "self" && !canSelf ? "league" : requested;
 
   // No :stat → the default; an unknown segment → bounce to the bare player path (below).
   const statKey: StatKey | null = statParam == null ? DEFAULT_STAT : toStatKey(statParam);
   const statDef = useMemo(() => (statKey ? (STATS.find((s) => s.key === statKey) ?? null) : null), [statKey]);
-
-  const yearParam = searchParams.get("year");
-  const subjectYear = yearParam ? Number(yearParam) : null; // out-of-range falls back in getBaselineContext
-  const ctx = useMemo(
-    () => getBaselineContext(detail, league, positions, subjectYear, target),
-    [detail, league, positions, subjectYear, target],
+  const statDetail = useMemo(
+    () => (statDef ? buildStatDetail(detail, statDef, mode, league, positions, detail.pos) : null),
+    [detail, statDef, mode, league, positions],
   );
-  const statDetail = useMemo(() => (statDef ? buildStatDetail(detail, statDef, ctx) : null), [detail, statDef, ctx]);
 
-  // Mode / year / stat are all view modifiers, not navigations → `replace`, so flipping through
-  // them doesn't stack a dozen back-button steps. Self is the default mode, so it drops the param.
+  // Mode / stat are view modifiers, not navigations → `replace`, so flipping through them doesn't
+  // stack a dozen back-button steps. Self is the default mode, so it drops the param.
   const setMode = (m: HeatmapMode) =>
     setSearchParams(
       (prev) => {
         if (m === "self") prev.delete("vs");
         else prev.set("vs", m);
-        return prev;
-      },
-      { replace: true },
-    );
-  const setYear = (year: number) =>
-    setSearchParams(
-      (prev) => {
-        prev.set("year", String(year));
         return prev;
       },
       { replace: true },
@@ -92,13 +83,11 @@ export function PlayerRoute() {
       statKey={statKey}
       statDesc={statDef.desc}
       statDetail={statDetail}
-      target={target}
       players={players}
       listError={loadError}
       onModeChange={setMode}
       onStatChange={selectStat}
       onDrill={drill}
-      onSelectYear={setYear}
       onGoHome={() => navigate("/")}
       onPick={pick}
     />

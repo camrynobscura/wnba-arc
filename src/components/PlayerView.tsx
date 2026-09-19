@@ -1,7 +1,7 @@
 import { photoUrl } from "../data/stats";
 import type { PlayerDetail, PlayerSummary, SeasonMissed } from "../data/api";
 import { PlayerSearch } from "./PlayerSearch";
-import type { ComparisonTarget, HeatmapMode, League, PositionLookup, StatDetail, StatKey } from "../lib/deviation";
+import type { HeatmapMode, League, PositionLookup, StatDetail, StatKey } from "../lib/deviation";
 import { PlayerPhoto } from "./PlayerPhoto";
 import { teamTint } from "../data/teams";
 import { DeviationHeatmap } from "./DeviationHeatmap";
@@ -32,11 +32,10 @@ interface PlayerViewProps {
   /** Whether "vs their position" can be offered (position known AND /positions loaded). */
   positionAvailable: boolean;
   mode: HeatmapMode;
-  /** The drill-down's stat + its built detail, description, and comparison target. */
+  /** The drill-down's stat, its built detail (for the page's mode), and its description. */
   statKey: StatKey;
   statDesc: string;
   statDetail: StatDetail;
-  target: ComparisonTarget;
   /** Full roster + its load error, for the in-row "search more players" box. */
   players: PlayerSummary[] | null;
   listError: string | null;
@@ -45,7 +44,6 @@ interface PlayerViewProps {
   /** Like onStatChange, but also brings the drill-down section into view (a heatmap cell's
       "See … history" link / Enter). */
   onDrill: (key: StatKey) => void;
-  onSelectYear: (year: number) => void;
   onGoHome: () => void;
   onPick: (espn: string) => void;
 }
@@ -65,13 +63,11 @@ export function PlayerView({
   statKey,
   statDesc,
   statDetail,
-  target,
   players,
   listError,
   onModeChange,
   onStatChange,
   onDrill,
-  onSelectYear,
   onGoHome,
   onPick,
 }: PlayerViewProps) {
@@ -147,9 +143,10 @@ export function PlayerView({
         stat={statDetail}
         statKey={statKey}
         desc={statDesc}
-        target={target}
+        mode={mode}
+        positionAvailable={positionAvailable}
         onStatChange={onStatChange}
-        onSelectYear={onSelectYear}
+        onModeChange={onModeChange}
       />
     </main>
   );

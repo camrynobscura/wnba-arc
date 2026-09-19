@@ -16,7 +16,7 @@ export interface StatDef {
 }
 
 export const STATS: StatDef[] = [
-  { key: "pts", short: "PTS", label: "Points", pct: false, desc: "Points — points the player scores per game." },
+  { key: "pts", short: "PTS", label: "Points", pct: false, desc: "Points — how many the player scores per game." },
   { key: "reb", short: "REB", label: "Rebounds", pct: false, desc: "Rebounds — securing the ball after a miss, per game (offense + defense)." },
   { key: "ast", short: "AST", label: "Assists", pct: false, desc: "Assists — passes that lead directly to a teammate's basket, per game." },
   { key: "stl", short: "STL", label: "Steals", pct: false, desc: "Steals — taking the ball away from the offense, per game." },
@@ -31,4 +31,13 @@ export const STATS: StatDef[] = [
 /** ESPN headshot URL for a player, built from their espn id. */
 export function photoUrl(espnId: string): string {
   return `https://a.espncdn.com/i/headshots/wnba/players/full/${espnId}.png`;
+}
+
+/** The description without its "Name — " lead-in, capitalized: what the drill-down shows under
+    a heading that already says the name (the heatmap's header tooltips keep the full form, where
+    the name is the context). "Points — how many the player scores per game." → "How many the
+    player scores per game." */
+export function statDescBody(desc: string): string {
+  const body = desc.replace(/^[^—]+—\s*/, "");
+  return body.charAt(0).toUpperCase() + body.slice(1);
 }

@@ -1,6 +1,18 @@
 import type { PlayerDetail } from "../data/api";
-import { STATS } from "../data/stats";
-import { firstName, ordinal, positionNoun, type ComparisonTarget, type StatDetail, type StatKey, type StatTableRow } from "../lib/deviation";
+import { STATS, statDescBody } from "../data/stats";
+import {
+  compareOptions,
+  firstName,
+  ordinal,
+  positionNoun,
+  scaleNoun,
+  selfModeAvailable,
+  type HeatmapMode,
+  type StatDetail,
+  type StatKey,
+  type StatTableRow,
+} from "../lib/deviation";
+import { CareerSummary } from "./CareerSummary";
 import { InfoTip } from "./InfoTip";
 import { LabeledSelect } from "./Select";
 
@@ -9,25 +21,27 @@ interface StatDrilldownViewProps {
   stat: StatDetail;
   /** Which stat is shown — drives the section's stat dropdown. */
   statKey: StatKey;
-  /** The stat's one-line plain-language description (STATS[].desc), shown under its name. */
+  /** The stat's one-line description (STATS[].desc); shown under its name without the lead-in. */
   desc: string;
-  /** What each season is compared against — names the percentile group ("in the league" /
-      "among guards"). Follows the page's comparison control; not chosen here. */
-  target: ComparisonTarget;
+  /** The page's reference mode. The section shows a second, synced "Compare to" control so the
+      reader can switch without scrolling back to the heatmap; both write the same URL state. */
+  mode: HeatmapMode;
+  positionAvailable: boolean;
   onStatChange: (key: StatKey) => void;
-  onSelectYear: (year: number) => void;
+  onModeChange: (mode: HeatmapMode) => void;
 }
 
 const PLOT_H = 220; // px
 
 /**
- * One stat's year-by-year history — a per-season dumbbell chart (value dot vs. that year's
- * baseline dot) plus the full yearly table. Rendered as a **section of the player page**, below
- * the heatmap, not its own route: the heatmap is the overview, this is the detail for the one
- * stat picked in the dropdown (or reached via a heatmap cell's "See … history" link / Enter).
- * The heading has tabIndex=-1 so that link can move focus here for keyboard/screen-reader users.
+ * One stat's year-by-year history — the career at a glance (plates), a per-season dumbbell chart
+ * (the season's value vs. its reference, with the comparison group's middle 80% banded behind
+ * it), and the full yearly table. A **section of the player page**, below the heatmap, not its
+ * own route: the heatmap is the overview, this is the detail for the one stat in the dropdown
+ * (or reached via a heatmap cell's "See … history" link / Enter). The heading has tabIndex=-1 so
+ * that link can move focus here for keyboard/screen-reader users.
  */
-export function StatDrilldownView({ player, stat, statKey, desc, target, onStatChange, onSelectYear }: StatDrilldownViewProps) {
+export function StatDrilldownView({ player, stat, statKey, desc, mode, positionAvailable, onStatChange, onModeChange }: StatDrilldownViewProps) {
   const bars = stat.bars;
   const n = bars.length;
   const colX = (i: number) => ((i + 0.5) / n) * 100; // column center, % from left
@@ -35,40 +49,32 @@ export function StatDrilldownView({ player, stat, statKey, desc, target, onStatC
   // stat-aware: a shooting % can be thin on games OR attempts; a counting stat only on games.
   const anySmallRow = stat.tableRows.some((r) => r.smallSample && !r.missed);
   const smallSampleKey = stat.component ? "small sample (few games or attempts)" : "small sample (few games)";
-  // The percentile ("Pct") column shows only for counting stats with ladders — shooting %s and
-  // pre-004 data have no percentile, so it's hidden then. It ranks the season "in the league" or
-  // "among {position}", matching the page's comparison control.
+  // The percentile ("Pct") column shows only in the peer modes for counting stats (shooting %s
+  // and self mode have no ladder); the rank column whenever the API sent a rank.
   const showPct = stat.tableRows.some((r) => r.pctile != null);
-  const pctWhere = target === "position" ? `among ${positionNoun(player.pos)}` : "in the league";
+  const showRank = stat.tableRows.some((r) => r.rank != null);
+  const pctWhere = mode === "position" ? `among ${positionNoun(player.pos)}` : "in the league";
+  const groupNoun = mode === "position" ? positionNoun(player.pos) : "the league";
+  const refNoun = scaleNoun(mode, player.pos);
+  const modeOptions = compareOptions(selfModeAvailable(player), positionAvailable, player.pos);
 
-  const renderRow = (r: StatTableRow) => {
-    // Small-sample seasons aren't selectable (unless it's the fallback where a player has no
-    // full season — then r.selectable is true). Missed seasons are never clickable.
-    const clickable = !r.missed && r.selectable;
-    return (
-    <tr
-      key={r.year}
-      // Whole-row click is a mouse convenience; keyboard/SR use the year <button>.
-      onClick={clickable ? () => onSelectYear(r.year) : undefined}
-      style={{
-        cursor: clickable ? "pointer" : "default",
-        // Selected year: a neutral wash (color is reserved for data), overriding zebra + hover. Others fall
-        // through to the CSS zebra striping in theme.css.
-        background: r.isSubject ? "color-mix(in srgb, var(--color-neutral-900) 10%, transparent)" : undefined,
-      }}
-    >
-      <td style={{ fontWeight: r.isSubject ? 700 : 400 }}>
-        {clickable ? (
-          <button
-            className="btn-reset"
-            onClick={() => onSelectYear(r.year)}
-            aria-label={`${r.year} — compare this season`}
-          >
-            {r.year}
-          </button>
-        ) : (
-          r.year
-        )}
+  // The band: one faint polygon through every charted season that has a ladder (top edge = 90th
+  // percentile, bottom = 10th), the median dotted. Drawn in percent coordinates on an SVG that
+  // stretches to the plot, behind the columns.
+  const banded = bars.map((b, i) => ({ b, i })).filter(({ b }) => b.band != null);
+  const bandPoints =
+    banded.length >= 2
+      ? [
+          ...banded.map(({ b, i }) => `${colX(i)},${100 - b.band!.hiPct}`),
+          ...banded.map(({ b, i }) => `${colX(i)},${100 - b.band!.loPct}`).reverse(),
+        ].join(" ")
+      : null;
+  const medianPoints = banded.map(({ b, i }) => `${colX(i)},${100 - b.band!.midPct}`).join(" ");
+
+  const renderRow = (r: StatTableRow) => (
+    <tr key={r.year}>
+      <td>
+        {r.year}
         {r.smallSample && !r.missed && (
           // Just a dot (keyed below the table) — the repeated "small sample" text wrapped the
           // year to two lines. role/aria-label keep it meaningful without visible text.
@@ -77,34 +83,28 @@ export function StatDrilldownView({ player, stat, statKey, desc, target, onStatC
       </td>
       {stat.component && (
         <>
-          <td className="text-muted">
-            {r.missed || r.made == null ? "—" : r.made}
-          </td>
-          <td className="text-muted">
-            {r.missed || r.att == null ? "—" : r.att}
-          </td>
+          <td className="text-muted">{r.missed || r.made == null ? "—" : r.made}</td>
+          <td className="text-muted">{r.missed || r.att == null ? "—" : r.att}</td>
         </>
       )}
-      <td className={r.missed ? "text-muted" : undefined}>
-        {r.valFmt}
-      </td>
-      <td className="text-muted">
-        {r.gp ?? "—"}
-      </td>
-      <td className="text-muted">
-        {r.min != null ? r.min.toFixed(1) : "—"}
-      </td>
-      {showPct && (
-        <td>
-          {r.pctile != null ? ordinal(Math.round(r.pctile)) : <span className="text-muted">—</span>}
+      <td className={r.missed ? "text-muted" : undefined}>{r.valFmt}</td>
+      <td className="text-muted">{r.gp ?? "—"}</td>
+      <td className="text-muted">{r.min != null ? r.min.toFixed(1) : "—"}</td>
+      {showPct && <td>{r.pctile != null ? ordinal(Math.round(r.pctile)) : <span className="text-muted">—</span>}</td>}
+      {showRank && (
+        <td className="nowrap">
+          {r.rank != null && r.pool != null ? (
+            <>
+              {ordinal(r.rank)} <span className="text-muted">of {r.pool}</span>
+            </>
+          ) : (
+            <span className="text-muted">—</span>
+          )}
         </td>
       )}
-      <td style={{ color: r.missed ? undefined : r.deltaColor }}>
-        {r.deltaFmt}
-      </td>
+      <td style={{ color: r.missed ? undefined : r.deltaColor }}>{r.deltaFmt}</td>
     </tr>
-    );
-  };
+  );
 
   return (
     <section
@@ -112,46 +112,33 @@ export function StatDrilldownView({ player, stat, statKey, desc, target, onStatC
       aria-labelledby="drilldown-title"
       style={{ marginTop: "var(--space-8)", paddingTop: "var(--space-6)", borderTop: "2px solid var(--color-divider)" }}
     >
-      <div className="card-kicker" style={{ marginBottom: "var(--space-1)" }}>
-        Year by year
-      </div>
-      <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", flexWrap: "wrap", gap: "var(--space-3)" }}>
+      {/* Header row, like the heatmap's: name + description on the left, the section's two
+          controls on the right (they wrap under the description on a phone). The controls sit
+          ABOVE everything they change — the plates, the chart, the table — not below the plates,
+          where flipping one changed content the reader had already passed. The comparison control
+          is a synced copy of the page's: changing it here changes the heatmap too (one state). */}
+      <div style={{ display: "flex", flexWrap: "wrap", alignItems: "flex-end", justifyContent: "space-between", gap: "var(--space-3)" }}>
         <div>
           {/* tabIndex=-1: a programmatic focus target for the heatmap's "See … history" link. */}
-          <h2 id="drilldown-title" tabIndex={-1} style={{ margin: 0, fontSize: "var(--fs-2xl)" }}>{stat.label}</h2>
-          {/* The stat's description lives here — always visible, on every device — rather than
-              only behind the heatmap's header tooltip. */}
-          <div className="text-muted" style={{ fontSize: "var(--fs-xs)", marginTop: "var(--space-1)" }}>
-            {desc}
-          </div>
-          {/* Every stat gets a unit line so the header height is consistent: counting stats are
-              per-game averages; shooting %s are whole-season rates. */}
-          <div className="text-muted" style={{ fontSize: "var(--fs-2xs)", marginTop: "var(--space-1)" }}>
-            {stat.pct ? "season rate" : "per game"}
+          <h2 id="drilldown-title" tabIndex={-1} style={{ margin: 0, fontSize: "var(--fs-2xl)" }}>
+            {stat.label}
+          </h2>
+          {/* The description without its "Points — " lead-in: the heading already says the name. */}
+          <div className="text-muted" style={{ fontSize: "var(--fs-sm)", marginTop: "var(--space-1)" }}>
+            {statDescBody(desc)}
           </div>
         </div>
-        <div style={{ textAlign: "right" }}>
-          <div style={{ display: "flex", alignItems: "baseline", gap: "var(--space-2)", justifyContent: "flex-end" }}>
-            <span
-              className="text-heading"
-              style={{ fontSize: "var(--fs-2xl)", lineHeight: 1, color: stat.subjectSmallSample ? "var(--color-neutral-500)" : undefined }}
-            >
-              {stat.curFmt}
-            </span>
-            {stat.subjectSmallSample ? (
-              <span className="text-muted" style={{ fontSize: "var(--fs-sm)" }}>small sample</span>
-            ) : (
-              <span className="text-heading" style={{ fontSize: "var(--fs-lg)", color: stat.deltaColor }}>
-                {stat.rawFmt}
-              </span>
-            )}
-          </div>
-          <div className="text-muted" style={{ fontSize: "var(--fs-xs)", marginTop: "var(--space-1)" }}>
-            {stat.year} · avg {stat.baseFmt}
-          </div>
+        <div style={{ display: "flex", gap: "var(--space-3)", flexWrap: "wrap" }}>
+          <LabeledSelect label="Stat" value={statKey} options={STATS.map((s) => ({ value: s.key, label: s.label }))} onChange={(v) => onStatChange(v as StatKey)} />
+          <LabeledSelect label="Compare to" value={mode} options={modeOptions} onChange={(v) => onModeChange(v as HeatmapMode)} />
         </div>
       </div>
-      <p className="text-muted" style={{ fontSize: "var(--fs-sm)", margin: stat.positionNote ? "8px 0 8px" : "8px 0 18px" }}>
+
+      {stat.summary && <CareerSummary summary={stat.summary} unit={stat.unit} mode={mode} />}
+
+      {/* Scoped to what follows ("each season below") so it can't read as a description of the
+          plates above it — they are career facts, not per-season comparisons. */}
+      <p className="text-muted" style={{ fontSize: "var(--fs-sm)", margin: `var(--space-4) 0 ${stat.positionNote ? "var(--space-2)" : "var(--space-4)"}` }}>
         {stat.caption}
       </p>
       {stat.positionNote && (
@@ -160,252 +147,170 @@ export function StatDrilldownView({ player, stat, statKey, desc, target, onStatC
         </div>
       )}
 
-      {/* Legend + the stat picker (the section's one selector; comparison follows the page). */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "var(--space-3)", marginBottom: "var(--space-3)" }}>
+      {/* Legend for the chart. */}
+      <div style={{ marginBottom: "var(--space-3)" }}>
         <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-2) var(--space-4)", fontSize: "var(--fs-xs)" }}>
           <span style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
             <span aria-hidden="true" className="legend-dot" style={{ background: "var(--hm-above)" }} />
-            Above average
+            Above {refNoun}
           </span>
           <span style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
             <span aria-hidden="true" className="legend-dot" style={{ background: "var(--hm-below)" }} />
-            Below average
+            Below {refNoun}
           </span>
           <span style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
             <span aria-hidden="true" className="legend-dot" style={{ background: "var(--color-neutral-600)" }} />
-            Average
+            {refNoun.charAt(0).toUpperCase() + refNoun.slice(1)}
           </span>
+          {stat.hasBand && (
+            <span style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
+              <span aria-hidden="true" className="legend-band" />
+              Middle 80% of {groupNoun} that year
+            </span>
+          )}
         </div>
-        <LabeledSelect
-          ariaLabel="Stat"
-          value={statKey}
-          options={STATS.map((s) => ({ value: s.key, label: s.label }))}
-          onChange={(v) => onStatChange(v as StatKey)}
-        />
       </div>
 
-      <div className="card" style={{ padding: "var(--space-5) var(--space-5) var(--space-3)" }}>
+      {/* The plot is decorative for assistive tech: every number it draws is in the table below,
+          and the note under it explains the band. Hover titles serve mouse users. */}
+      <div className="card" aria-hidden="true" style={{ padding: "var(--space-5) var(--space-5) var(--space-3)" }}>
         {stat.chartFallback ? (
           <div className="text-muted" style={{ padding: "var(--space-12) var(--space-2)", textAlign: "center", fontSize: "var(--fs-sm)" }}>
             {stat.chartFallback}
           </div>
         ) : (
           <>
-        <div style={{ position: "relative", height: PLOT_H, paddingLeft: "var(--space-1)" }}>
-          {/* Gridlines + y-axis labels */}
-          {stat.axisTicks.map((t) => (
-            <div
-              key={t.label + t.yPct}
-              aria-hidden="true"
-              style={{ position: "absolute", left: 0, right: 0, top: `${100 - t.yPct}%`, borderTop: "1px solid var(--color-divider)" }}
-            >
-              <span
-                style={{
-                  position: "absolute",
-                  left: 0,
-                  top: -7,
-                  fontSize: "var(--fs-3xs)",
-                  color: "var(--color-neutral-700)",
-                  background: "var(--color-bg)",
-                  paddingRight: "var(--space-1)",
-                }}
-              >
-                {t.label}
-              </span>
-            </div>
-          ))}
-
-          {/* Vertical column dividers between seasons */}
-          {bars.map((_, i) =>
-            i > 0 ? (
-              <div
-                key={`vg-${i}`}
-                aria-hidden="true"
-                style={{ position: "absolute", top: 0, bottom: 0, left: `${(i / n) * 100}%`, borderLeft: "1px solid var(--color-divider)" }}
-              />
-            ) : null,
-          )}
-
-          {/* One column per season: the value dot and the baseline dot, joined by a
-              vertical connector (the gap = that season's deviation). The whole column is
-              the click/keyboard target. Dots are decorative; the table carries the data. */}
-          {bars.map((b, i) => {
-            if (b.hPct == null) return null;
-            const yVal = 100 - b.hPct;
-            const yBase = b.basePct != null ? 100 - b.basePct : null;
-            const sub = b.isSubject;
-            const dot = 10;
-            // Value dot is above the baseline dot (higher stat) → label on top; otherwise
-            // the value is the lower dot → label below, so it never lands on the dots/line.
-            const valueAbove = yBase == null || yVal <= yBase;
-            // Small-sample seasons can't be made the subject (unless the fallback keeps them
-            // selectable); render the column but disable selecting it.
-            const selectable = b.selectable !== false;
-            return (
-              <button
-                key={b.year}
-                onClick={selectable ? () => onSelectYear(b.year) : undefined}
-                disabled={!selectable}
-                aria-label={`${b.year}: ${b.valFmt}, average ${b.baseFmt ?? "—"} — compare this season`}
-                title={`${b.year}: ${b.valFmt} · avg ${b.baseFmt ?? "—"}`}
-                style={{
-                  position: "absolute",
-                  left: `${colX(i)}%`,
-                  top: 0,
-                  height: "100%",
-                  width: `${100 / n}%`,
-                  transform: "translateX(-50%)",
-                  appearance: "none",
-                  // Selection = highlight the whole column, not resized dots.
-                  background: sub ? "color-mix(in srgb, var(--color-neutral-900) 8%, transparent)" : "transparent",
-                  borderRadius: 4,
-                  border: 0,
-                  padding: 0,
-                  cursor: selectable ? "pointer" : "default",
-                  zIndex: 3,
-                }}
-              >
-                {/* connector */}
-                {yBase != null && (
-                  <span
-                    aria-hidden="true"
-                    style={{
-                      position: "absolute",
-                      left: "50%",
-                      top: `${Math.min(yVal, yBase)}%`,
-                      height: `${Math.abs(yVal - yBase)}%`,
-                      width: 0,
-                      borderLeft: "1.5px solid var(--color-neutral-500)",
-                      transform: "translateX(-50%)",
-                    }}
-                  />
-                )}
-                {/* baseline dot (grey — the secondary series) */}
-                {yBase != null && (
-                  <span
-                    aria-hidden="true"
-                    style={{
-                      position: "absolute",
-                      left: "50%",
-                      top: `${yBase}%`,
-                      width: dot,
-                      height: dot,
-                      borderRadius: "50%",
-                      background: "var(--color-neutral-600)",
-                      transform: "translate(-50%, -50%)",
-                    }}
-                  />
-                )}
-                {/* value dot (the actual stat) */}
-                <span
-                  aria-hidden="true"
-                  style={{
-                    position: "absolute",
-                    left: "50%",
-                    top: `${yVal}%`,
-                    width: dot,
-                    height: dot,
-                    borderRadius: "50%",
-                    // Colored by direction like the rest of the app: red above the season's
-                    // baseline, blue below. A season with NO baseline (a first real season, no
-                    // prior history) is neutral grey — it can't be above or below a baseline that
-                    // doesn't exist yet. (Small-sample seasons never reach the chart at all.)
-                    background: yBase == null ? "var(--color-neutral-500)" : valueAbove ? "var(--hm-above)" : "var(--hm-below)",
-                    transform: "translate(-50%, -50%)",
-                  }}
-                />
-                {/* value number for the selected season, offset off the dot for breathing room */}
-                {sub && (
+            <div style={{ position: "relative", height: PLOT_H, paddingLeft: "var(--space-1)" }}>
+              {/* Gridlines + y-axis labels */}
+              {stat.axisTicks.map((t) => (
+                <div
+                  key={t.label + t.yPct}
+                  style={{ position: "absolute", left: 0, right: 0, top: `${100 - t.yPct}%`, borderTop: "1px solid var(--color-divider)" }}
+                >
                   <span
                     style={{
                       position: "absolute",
-                      left: "50%",
-                      top: `${yVal}%`,
-                      // Anchor by the label's NEAR edge (not its center) so the gap to the dot is
-                      // the same for both labels regardless of height (the baseline label is 2 rows).
-                      transform: valueAbove
-                        ? "translate(-50%, -100%) translateY(-12px)"
-                        : "translate(-50%, 0) translateY(12px)",
-                      fontSize: "var(--fs-xs)",
-                      fontWeight: 700, // bold for emphasis; body font (no text-heading) to match the baseline label
-                      color: "var(--color-text)",
-                      whiteSpace: "nowrap",
+                      left: 0,
+                      top: -7,
+                      fontSize: "var(--fs-3xs)",
+                      color: "var(--color-neutral-700)",
+                      background: "var(--color-bg)",
+                      paddingRight: "var(--space-1)",
                     }}
                   >
-                    {b.valFmt}
+                    {t.label}
                   </span>
-                )}
-                {/* baseline number for the selected season — offset opposite the value label
-                    (the baseline dot is on the other side of the value) so they never overlap. */}
-                {sub && yBase != null && b.baseFmt && (
-                  <span
-                    className="text-muted"
-                    style={{
-                      position: "absolute",
-                      left: "50%",
-                      top: `${yBase}%`,
-                      // Near-edge anchored (see the value label) so both labels sit the same
-                      // distance from their dot, whichever is on top.
-                      transform: valueAbove
-                        ? "translate(-50%, 0) translateY(12px)"
-                        : "translate(-50%, -100%) translateY(-12px)",
-                      fontSize: "var(--fs-2xs)",
-                      // Stacked ("base" over the value) so the label stays within the narrow
-                      // column instead of spilling past its edges.
-                      display: "flex",
-                      flexDirection: "column",
-                      alignItems: "center",
-                      lineHeight: 1.15,
-                    }}
-                  >
-                    <span>base</span>
-                    <span>{b.baseFmt}</span>
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </div>
+                </div>
+              ))}
 
-        {/* X-axis year labels */}
-        <div style={{ display: "flex", marginTop: "var(--space-2)" }}>
-          {bars.map((b) => (
-            <div key={b.year} style={{ flex: 1, textAlign: "center", minWidth: 0 }}>
-              <span
-                className="text-muted"
-                title={b.missed ? b.reason : undefined}
-                style={{ fontSize: "var(--fs-3xs)", fontWeight: b.isSubject ? 700 : 400, opacity: b.missed ? 0.6 : 1 }}
-              >
-                '{b.yy}
-              </span>
+              {/* The comparison group's middle 80% each year, behind everything else. */}
+              {bandPoints && (
+                <svg
+                  viewBox="0 0 100 100"
+                  preserveAspectRatio="none"
+                  style={{ position: "absolute", inset: 0, width: "100%", height: "100%", zIndex: 1, overflow: "visible" }}
+                >
+                  <polygon points={bandPoints} className="dd-band" />
+                  <polyline points={medianPoints} className="dd-median" />
+                </svg>
+              )}
+
+              {/* Vertical column dividers between seasons */}
+              {bars.map((_, i) =>
+                i > 0 ? (
+                  <div
+                    key={`vg-${i}`}
+                    style={{ position: "absolute", top: 0, bottom: 0, left: `${(i / n) * 100}%`, borderLeft: "1px solid var(--color-divider)", zIndex: 2 }}
+                  />
+                ) : null,
+              )}
+
+              {/* One column per season: the value dot and the reference dot, joined by a vertical
+                  connector (the gap = that season's deviation). */}
+              {bars.map((b, i) => {
+                const yVal = 100 - b.hPct;
+                const yBase = b.basePct != null ? 100 - b.basePct : null;
+                const dot = 10;
+                return (
+                  <div
+                    key={b.year}
+                    title={`${b.year}: ${b.valFmt} · ${refNoun} ${b.baseFmt ?? "—"}`}
+                    style={{ position: "absolute", left: `${colX(i)}%`, top: 0, height: "100%", width: `${100 / n}%`, transform: "translateX(-50%)", zIndex: 3 }}
+                  >
+                    {yBase != null && (
+                      <span
+                        style={{
+                          position: "absolute",
+                          left: "50%",
+                          top: `${Math.min(yVal, yBase)}%`,
+                          height: `${Math.abs(yVal - yBase)}%`,
+                          width: 0,
+                          borderLeft: "1.5px solid var(--color-neutral-500)",
+                          transform: "translateX(-50%)",
+                        }}
+                      />
+                    )}
+                    {yBase != null && (
+                      <span
+                        style={{
+                          position: "absolute",
+                          left: "50%",
+                          top: `${yBase}%`,
+                          width: dot,
+                          height: dot,
+                          borderRadius: "50%",
+                          background: "var(--color-neutral-600)",
+                          transform: "translate(-50%, -50%)",
+                        }}
+                      />
+                    )}
+                    <span
+                      style={{
+                        position: "absolute",
+                        left: "50%",
+                        top: `${yVal}%`,
+                        width: dot,
+                        height: dot,
+                        borderRadius: "50%",
+                        // Red above the reference, blue below; a season with no reference (a
+                        // position-year with no bucket) is neutral grey.
+                        background: b.up == null ? "var(--color-neutral-500)" : b.up ? "var(--hm-above)" : "var(--hm-below)",
+                        transform: "translate(-50%, -50%)",
+                      }}
+                    />
+                  </div>
+                );
+              })}
             </div>
-          ))}
-        </div>
+
+            {/* X-axis year labels */}
+            <div style={{ display: "flex", marginTop: "var(--space-2)" }}>
+              {bars.map((b) => (
+                <div key={b.year} style={{ flex: 1, textAlign: "center", minWidth: 0 }}>
+                  <span className="text-muted" style={{ fontSize: "var(--fs-3xs)" }}>
+                    '{b.yy}
+                  </span>
+                </div>
+              ))}
+            </div>
           </>
         )}
       </div>
       {!stat.chartFallback && (
         <p className="text-muted" style={{ fontSize: "var(--fs-xs)", marginTop: "var(--space-4)" }}>
-          Each season shows two dots — {firstName(player.name)}'s {stat.label.toLowerCase()} (red above average, blue
-          below) and grey = the average; the gap between them is that season's deviation. The selected season is labeled
-          with both values (hover any season to read its numbers). Tap a season to compare it. Low-sample seasons are left
-          off the chart — the table below has the full history.
+          Each season shows two dots — {firstName(player.name)}'s {stat.label.toLowerCase()} (red above the {refNoun}, blue below) and grey = the {refNoun}; the gap between them is that season's deviation.
+          {stat.hasBand && ` The shaded band is the middle 80% of ${groupNoun} that year, its median dotted.`} Hover a season to read its numbers. Low-sample seasons are left off the chart — the table below has the full history.
         </p>
       )}
 
-      {/* Yearly table (F2) — one full-width table, zebra-striped. table-layout: fixed
-          gives evenly-distributed columns and makes the table fit its container at any
-          width (no horizontal scroll needed → nothing clips the header tooltips). Missed
-          seasons show as "—" rows; the page-level note above the section carries the reason. */}
+      {/* Yearly table — one full-width table, zebra-striped. table-layout: fixed gives evenly
+          distributed columns and makes the table fit its container at any width. Missed seasons
+          show as "—" rows; the page-level note above the section carries the reason. */}
       <div style={{ marginTop: "var(--space-6)" }}>
-        {/* table-layout: fixed + no per-column widths ⇒ every column is an equal share of the
-            100%-wide table (5, 6, or 7 columns depending on the stat). */}
         <table className="table" aria-label="Season stats">
           <thead>
             <tr>
               <th scope="col">Season</th>
-              {/* Makes/attempts for a rate stat, right before the % they produce — so a thin
-                  season (e.g. 3PM 1 / 3PA 1 = 100%) explains its own "small sample" tag. */}
               {stat.component && (
                 <>
                   <th scope="col">
@@ -428,8 +333,13 @@ export function StatDrilldownView({ player, stat, statKey, desc, target, onStatC
                   <InfoTip label="Pct" tip={`This season's percentile ${pctWhere}`} />
                 </th>
               )}
+              {showRank && (
+                <th scope="col">
+                  <InfoTip label="Rank" tip="League rank that season among the players who qualified for the league averages (1st = best); the pool is everyone in this dataset that year" />
+                </th>
+              )}
               <th scope="col">
-                <InfoTip label="vs avg" tip="How far above or below that season's league or same-position average" />
+                <InfoTip label="vs avg" tip={`How far above or below the ${refNoun} that season`} />
               </th>
             </tr>
           </thead>

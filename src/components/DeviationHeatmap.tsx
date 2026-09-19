@@ -1,19 +1,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { PlayerDetail } from "../data/api";
 import { STATS } from "../data/stats";
-import {
-  buildHeatmapGrid,
-  cellPercentile,
-  firstName,
-  ordinal,
-  playedSeasons,
-  positionNoun,
-  type HeatmapCell,
-  type HeatmapMode,
-  type League,
-  type PositionLookup,
-  type StatKey,
-} from "../lib/deviation";
+import { buildHeatmapGrid, cellPercentile, compareOptions, firstName, type HeatmapCell, type HeatmapMode, type League, ordinal, type PositionLookup, positionNoun, scaleNoun, selfModeAvailable, type StatKey } from "../lib/deviation";
 import { InfoTip } from "./InfoTip";
 import { ScaleKey } from "./ScaleKey";
 import { LabeledSelect } from "./Select";
@@ -38,13 +26,6 @@ interface DeviationHeatmapProps {
 const MAX_INTENSITY = 75;
 
 const POS_SINGULAR: Record<string, string> = { G: "guard", F: "forward", C: "center" };
-
-/** Short noun for the scale key + the popover ("career avg" / "league avg" / "center avg"). */
-function scaleNoun(mode: HeatmapMode, pos: string | null): string {
-  if (mode === "self") return "career avg";
-  if (mode === "league") return "league avg";
-  return `${POS_SINGULAR[pos ?? ""] ?? "position"} avg`;
-}
 
 /** Spoken phrase for a cell's accessible name ("their career average", "the league average", …). */
 function referencePhrase(mode: HeatmapMode, pos: string | null): string {
@@ -86,7 +67,7 @@ export function DeviationHeatmap({
 }: DeviationHeatmapProps) {
   // Self mode needs ≥2 seasons to be meaningful (one season vs. itself is all-neutral); a
   // one-season player is offered only the peer modes, and a stray self mode degrades to league.
-  const canSelf = playedSeasons(player).length >= 2;
+  const canSelf = selfModeAvailable(player);
   const effMode: HeatmapMode = mode === "self" && !canSelf ? "league" : mode;
 
   const grid = useMemo(
@@ -189,20 +170,20 @@ export function DeviationHeatmap({
   const pctWhere = effMode === "position" ? `among ${positionNoun(playerPosition)}` : "in the league";
   const anySmall = grid.rows.some((row) => row.some((cell) => cell.smallSample));
 
-  const modeOptions = [
-    ...(canSelf ? [{ value: "self", label: "their career" }] : []),
-    { value: "league", label: "the league" },
-    ...(positionAvailable ? [{ value: "position", label: `other ${positionNoun(playerPosition)}` }] : []),
-  ];
+  const modeOptions = compareOptions(canSelf, positionAvailable, playerPosition);
 
   return (
     <section aria-labelledby="heatmap-title" style={{ margin: "var(--space-1) 0" }}>
       <div style={{ display: "flex", flexWrap: "wrap", alignItems: "flex-end", justifyContent: "space-between", gap: "var(--space-3)", marginBottom: "var(--space-3)" }}>
-        <div>
-          <h2 id="heatmap-title" style={{ fontSize: "var(--fs-xl)", margin: 0 }}>Season by season</h2>
-          <div className="text-muted" style={{ fontSize: "var(--fs-xs)", marginTop: "var(--space-2)" }}>
+        <div style={{ flex: "1 1 320px", minWidth: 0 }}>
+          {/* Visually hidden: the section keeps its accessible name and its place in the heading
+              outline, but a sighted reader gets no label — "Season by season" said nothing the grid
+              doesn't show, and duplicated the drill-down's "Year by year" (also dropped). The
+              sentence below is the section's lead instead. */}
+          <h2 id="heatmap-title" className="sr-only">Season-by-season heatmap</h2>
+          <p className="text-muted" style={{ fontSize: "var(--fs-sm)", margin: 0 }}>
             Each cell is {firstName(player.name)}'s stat that season vs. {refPhrase} — color shows how far above or below. Tap or hover a cell for its exact gap and a link to that stat's history.
-          </div>
+          </p>
         </div>
         <LabeledSelect
           label="Compare to"

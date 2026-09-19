@@ -1,11 +1,10 @@
 import { STATS, type StatDef } from "../data/stats";
-import type { LeagueSeason, PlayerDetail, PositionSeason, SeasonMissed, SeasonPlayed } from "../data/api";
+import type { LeagueSeason, PlayerDetail, PositionSeason, SeasonPlayed } from "../data/api";
 
-// The subject season is compared to that SAME year's peer group — the whole league, or the
-// player's position. (An earlier "own history" target + a Window control were removed: the
-// Career Trend heatmap already tells the own-trajectory story, and comparing one season to a
-// multi-year peer blob was confusing. See DECISIONS.)
-export type ComparisonTarget = "league" | "position";
+// Every comparison on the page — heatmap cells and the drill-down beneath — measures a season
+// against ONE switchable reference (HeatmapMode: their career, the league, or their position that
+// year). The drill-down used to have its own target type and a picked "subject" season; both went
+// when it moved under the heatmap (the cell popover carries per-season detail). See DECISIONS.
 
 /** A season below this fraction of its year's scheduled games is "small sample" (D6).
     25% ≈ 11 of a 44-game season — a ~10–13 game year counts, a handful of games doesn't.
@@ -97,6 +96,9 @@ export interface League {
   /** Where `value` lands (0–100) among that year's qualified players for a counting stat;
       null for shooting %s or missing data. */
   pctile(year: number, key: StatKey, value: number): number | null;
+  /** The value-at-decile ladder itself (11 rungs, 0th…100th) for a counting stat that year —
+      the drill-down draws the 10th–90th band from it. Null for shooting %s or missing data. */
+  ladder(year: number, key: StatKey): number[] | null;
 }
 
 export function makeLeague(seasons: LeagueSeason[]): League {
@@ -110,6 +112,7 @@ export function makeLeague(seasons: LeagueSeason[]): League {
       const ladder = byYear.get(year)?.pctiles?.[key];
       return ladder ? interpPercentile(ladder, value) : null;
     },
+    ladder: (year, key) => (isCountingStat(key) ? (byYear.get(year)?.pctiles?.[key] ?? null) : null),
   };
 }
 
@@ -123,6 +126,8 @@ export interface PositionLookup {
   stdev(year: number, position: string, key: StatKey): number | null;
   /** Where `value` lands (0–100) among that (year, position) bucket for a counting stat. */
   pctile(year: number, position: string, key: StatKey, value: number): number | null;
+  /** The bucket's decile ladder for a counting stat (see League.ladder). */
+  ladder(year: number, position: string, key: StatKey): number[] | null;
 }
 
 export function makePositionLookup(seasons: PositionSeason[]): PositionLookup {
@@ -136,6 +141,7 @@ export function makePositionLookup(seasons: PositionSeason[]): PositionLookup {
       const ladder = byKey.get(`${year}|${position}`)?.pctiles?.[key];
       return ladder ? interpPercentile(ladder, value) : null;
     },
+    ladder: (year, position, key) => (isCountingStat(key) ? (byKey.get(`${year}|${position}`)?.pctiles?.[key] ?? null) : null),
   };
 }
 
@@ -211,75 +217,6 @@ export function isStatSmallSample(season: SeasonPlayed, league: League, statKey:
   return att != null && att < MIN_RATE_ATTEMPTS;
 }
 
-export interface BaselineContext {
-  /** The league lookup this context was built with — downstream fns read it for averages. */
-  league: League;
-  /** The per-(year, position) lookup — the source for the position baseline. Null until
-      /positions loads (or if it failed), in which case position mode isn't offered. */
-  positions: PositionLookup | null;
-  /** The player's position code (G/F/C), or null if unknown — whose peers the position
-      baseline compares against. */
-  playerPosition: string | null;
-  /** Whether the position baseline can be offered at all (the player has a known position
-      and /positions loaded). */
-  positionAvailable: boolean;
-  /** True in position mode when the subject season has no same-position sample (that year's
-      bucket is absent) — the UI shows a "no sample" note and the baseline is null. */
-  positionSampleMissing: boolean;
-  /** The season under examination (the "subject"), defaulting to the latest *selectable*
-      (full, non-small-sample) season. */
-  subject: SeasonPlayed;
-  /** Years offered in the season picker, newest first — full seasons only (small-sample
-      seasons are excluded). Falls back to every played year if the player has no full season. */
-  selectableYears: number[];
-  /** Small-sample seasons excluded from selection, shown as a "not selectable" note.
-      Empty in the fallback case (player has only small-sample seasons, so they stay selectable). */
-  nonSelectableSmallSample: SeasonPlayed[];
-  /** What the subject season is compared against — the whole league or the player's position. */
-  target: ComparisonTarget;
-  /** Gaps in the player's timeline (no data for that year). */
-  missedSeasons: SeasonMissed[];
-}
-
-export function getBaselineContext(
-  player: PlayerDetail,
-  league: League,
-  positions: PositionLookup | null,
-  subjectYear: number | null,
-  target: ComparisonTarget,
-): BaselineContext {
-  const played = playedSeasons(player);
-  // Only full (non-small-sample) seasons are selectable as the subject — a handful of
-  // games makes a misleading analysis. Fall back to every played season if the player has
-  // no full season at all, so their page still renders.
-  const fullSeasons = played.filter((s) => !isSmallSample(s, league));
-  const selectable = fullSeasons.length > 0 ? fullSeasons : played;
-  const subject = selectable.find((s) => s.year === subjectYear) ?? selectable[selectable.length - 1];
-
-  const playerPosition = player.pos;
-  const positionAvailable = playerPosition != null && positions != null;
-
-  // In position mode, does the subject's own year have a same-position sample? (Uses "pts" as a
-  // witness — if the (year, position) row exists, all its stats do.) If not, the baseline is
-  // null and the UI shows a note; position never silently falls back to league.
-  const positionSampleMissing =
-    target === "position" &&
-    (playerPosition == null || positions == null || positions.avg(subject.year, playerPosition, "pts") == null);
-
-  return {
-    league,
-    positions,
-    playerPosition,
-    positionAvailable,
-    positionSampleMissing,
-    subject,
-    selectableYears: [...selectable].map((s) => s.year).reverse(),
-    nonSelectableSmallSample: fullSeasons.length > 0 ? played.filter((s) => isSmallSample(s, league)) : [],
-    target,
-    missedSeasons: player.seasons.filter((s): s is SeasonMissed => !s.played),
-  };
-}
-
 /** Mean of the non-null values; null when there are none to average. */
 function average(vals: (number | null)[]): number | null {
   const nums = vals.filter((v): v is number => v != null);
@@ -311,17 +248,6 @@ export function ownStatAverage(statKey: StatKey, seasons: SeasonPlayed[]): numbe
   return average(seasons.map((s) => s[statKey]));
 }
 
-export function getBaselineValue(statKey: StatDef["key"], ctx: BaselineContext): number | null {
-  const y = ctx.subject.year;
-  if (ctx.target === "position") {
-    const pos = ctx.playerPosition;
-    const lookup = ctx.positions;
-    if (pos == null || lookup == null) return null;
-    return lookup.avg(y, pos, statKey);
-  }
-  return ctx.league.avg(y, statKey);
-}
-
 /** Bar geometry: relative deviation clamped at ±BAR_FULL_SCALE, centered on the baseline.
     The fallback ruler for shooting %s and for pre-004 data with no spread. Retained (with
     stepGeometry) because buildHeatmapGrid reads their signed magnitude for peer-mode cell color. */
@@ -348,13 +274,6 @@ function stepGeometry(
   const barPct = +(Math.min(Math.abs(steps) / FULL_STEPS, 1) * 50).toFixed(2);
   const up = cur - base >= 0;
   return { up, barPct, leftPct: up ? 50 : 50 - barPct };
-}
-
-export function buildCaption(ctx: BaselineContext, playerName: string): string {
-  const { subject, target, playerPosition } = ctx;
-  if (target === "position")
-    return `Comparing ${firstName(playerName)}'s ${subject.year} against other ${positionNoun(playerPosition)} that season.`;
-  return `Comparing ${firstName(playerName)}'s ${subject.year} against the WNBA league average that season.`;
 }
 
 // ── Deviation heatmap ─────────────────────────────────────────────────────────
@@ -531,29 +450,28 @@ export function cellPercentile(
   return league.pctile(cell.year, cell.statKey, cell.value);
 }
 
+// ── Stat drill-down ───────────────────────────────────────────────────────────
+// One stat's year-by-year history beneath the heatmap: a per-season dumbbell (the season's
+// value vs. its reference), the comparison group's spread behind it, a career summary, and
+// the yearly table. The reference follows the SAME switch as the heatmap — their career, the
+// league, or their position — so the two views on one page never quietly disagree. (An
+// earlier version compared everything to one "subject" season the reader picked; the heatmap's
+// cell popover now carries per-season detail, so the subject and its picker went. DECISIONS.)
+
+/** One charted season. Percent values are heights on the chart's 0–100 scale (0 = bottom). */
 export interface StatBar {
   year: number;
   yy: string;
-  missed: boolean;
-  played: boolean;
-  isSubject: boolean;
-  reason?: string;
-  valFmt?: string;
-  /** That season's baseline, formatted — labeled on the chart for the selected season and in
-      every column's hover title, so the actual baseline number is readable. */
-  baseFmt?: string;
-  /** Value's height as a percent of the chart height (the line point). */
-  hPct?: number;
-  /** This season's baseline height (percent) — the per-year tick (that year's league or
-      position average). Undefined = no baseline (a year with no same-position sample). */
-  basePct?: number;
-  smallSample?: boolean;
-  /** Whether this season can be selected as the subject — false for small-sample seasons
-      (unless the player has no full season, the fallback, where they stay selectable). */
-  selectable?: boolean;
-  color?: string;
-  /** Played season with no value for THIS stat (e.g. 0 three-point attempts) — render an empty slot. */
-  noValue?: boolean;
+  valFmt: string;
+  /** That season's reference, formatted; null when there is none (a position-year with no bucket). */
+  baseFmt: string | null;
+  hPct: number;
+  basePct: number | null;
+  /** Above (true) or below (false) the reference; null with no reference → a neutral dot. */
+  up: boolean | null;
+  /** The comparison group's spread that year — 10th, median, and 90th percentile heights. Peer
+      modes and counting stats only (the ladders exist for nothing else); null otherwise. */
+  band: { loPct: number; midPct: number; hiPct: number } | null;
 }
 
 export interface StatTableRow {
@@ -567,39 +485,47 @@ export interface StatTableRow {
   att: number | null;
   deltaFmt: string;
   deltaColor: string;
-  /** This season's percentile (0–100) within its comparison group (league/position) — the
-      table's "Pct" column. Null for shooting %s (no ladder), small-sample/missed seasons, a
-      missing position bucket, or pre-004 data. */
+  /** Percentile within the comparison group (peer modes, counting stats); null otherwise. */
   pctile: number | null;
+  /** League rank that season (1 = best) and the qualified pool it's among — from the API. Counting
+      stats only, and only for a season that qualified. Always a LEAGUE rank, whatever the mode. */
+  rank: number | null;
+  pool: number | null;
   missed: boolean;
   smallSample: boolean;
-  /** Whether this season can be selected as the subject (see StatBar.selectable). */
-  selectable: boolean;
-  isSubject: boolean;
   reason?: string;
 }
 
+/** The career at a glance for one stat, over the full seasons the chart draws. */
+export interface CareerSummary {
+  seasons: number;
+  high: { fmt: string; year: number };
+  low: { fmt: string; year: number };
+  /** Career average of this stat (pooled makes/attempts for a shooting %), formatted; "—" if none. */
+  careerAvg: string;
+  /** Full seasons above the reference, out of those that had one; null when none had one. */
+  above: { n: number; of: number } | null;
+  /** Best league rank across full seasons ("1st of 158"); ties go to the larger pool, then the
+      later year. Null for shooting %s (no rank) or when no season qualified. */
+  bestRank: { rank: number; pool: number; year: number } | null;
+}
+
 export interface StatDetail {
-  year: number;
   label: string;
   short: string;
   /** True for shooting-percentage stats (no "per game" unit); false for counting stats. */
   pct: boolean;
-  curFmt: string;
-  baseFmt: string;
-  rawFmt: string;
-  up: boolean;
-  deltaColor: string;
-  caption: string;
-  /** Set in position mode when the subject season has no same-position sample — the view
-      shows it as a note (values still render "—" / no baseline tick). */
-  positionNote?: string;
+  /** The word after a summary number: the stat's name for a counting stat ("14.3 points", "1.9 steals");
+      "%" for a shooting %, whose plate numbers are whole percents ("35" + "%"). */
+  unit: string;
   /** For a rate stat, the makes/attempts column labels the table should add (e.g. 3PM/3PA);
       null for a counting stat, where those columns don't apply. */
   component: { madeShort: string; attShort: string; noun: string } | null;
-  /** True when the subject season is itself too thin a sample for this stat — the header shows
-      the value but no (meaningless) delta, mirroring the summary bar. */
-  subjectSmallSample: boolean;
+  /** "Each season below is measured against …" — names the reference, scoped to the chart + table. */
+  caption: string;
+  /** Position mode: charted seasons with no same-position bucket (no reference → neutral dot). */
+  positionNote?: string;
+  summary: CareerSummary | null;
   /** When the chart can't show a meaningful trend (fewer than 2 trustworthy seasons), this is
       the line the view renders in place of the plot. Null when the chart renders normally. */
   chartFallback: string | null;
@@ -607,85 +533,104 @@ export interface StatDetail {
   tableRows: StatTableRow[];
   /** Y-axis gridline levels: yPct (0 = bottom, 100 = top of scale) + formatted label. */
   axisTicks: { yPct: number; label: string }[];
+  /** Whether any bar carries a band — drives the legend entry. */
+  hasBand: boolean;
 }
 
-export function buildStatDetail(player: PlayerDetail, stat: StatDef, ctx: BaselineContext): StatDetail {
-  const { subject } = ctx;
-  const cur = subject[stat.key];
+/** "guard" / "forward" / "center" — the singular for labels like "forward avg". */
+export function positionSingular(position: string | null): string {
+  return ({ G: "guard", F: "forward", C: "center" } as Record<string, string>)[position ?? ""] ?? "position";
+}
 
+/** Short noun for a reference, by mode ("career avg" / "league avg" / "center avg") — the scale
+    key, the chart legend, and the popover all say the same thing. */
+export function scaleNoun(mode: HeatmapMode, position: string | null): string {
+  if (mode === "self") return "career avg";
+  if (mode === "league") return "league avg";
+  return `${positionSingular(position)} avg`;
+}
+
+/** Self mode needs ≥2 seasons to be meaningful (one season vs. itself is all-neutral); a
+    one-season player is offered only the peer modes, and a stray self mode degrades to league. */
+export function selfModeAvailable(player: PlayerDetail): boolean {
+  return playedSeasons(player).length >= 2;
+}
+
+/** The "Compare to" options — the heatmap's control and the drill-down's synced copy render the
+    same list, so the page never offers a mode in one place it can't honor in the other. */
+export function compareOptions(canSelf: boolean, positionAvailable: boolean, position: string | null): { value: HeatmapMode; label: string }[] {
+  return [
+    ...(canSelf ? [{ value: "self" as const, label: "their career" }] : []),
+    { value: "league" as const, label: "the league" },
+    ...(positionAvailable ? [{ value: "position" as const, label: `other ${positionNoun(position)}` }] : []),
+  ];
+}
+
+/** The summary plate that counts seasons above the reference, labeled by mode. Twelve characters
+    at most on purpose: the plate is narrow and the label must not wrap. "Peers" stands in for
+    "other guards/forwards/centers", which doesn't fit. */
+export function aboveLabel(mode: HeatmapMode): string {
+  return mode === "league" ? "Above league" : mode === "position" ? "Above peers" : "Above career";
+}
+
+export function buildStatDetail(
+  player: PlayerDetail,
+  stat: StatDef,
+  mode: HeatmapMode,
+  league: League,
+  positions: PositionLookup | null,
+  playerPosition: string | null,
+): StatDetail {
+  const key = stat.key;
   const allPlayed = playedSeasons(player);
-  // A season is selectable as the subject unless it's a small sample FOR THIS STAT (few games,
-  // or for a shooting % too few attempts) — so selecting it never puts a noisy 100%-on-1-shot
-  // season under the lens. If no season qualifies for this stat, they all stay selectable.
-  const anyFull = allPlayed.some((s) => !isStatSmallSample(s, ctx.league, stat.key));
-  const target = ctx.target;
+  const small = (s: SeasonPlayed) => isStatSmallSample(s, league, key);
+  const componentPair = RATE_STAT_ATTEMPTS[key];
+  const ck: CountingKey | null = isCountingStat(key) ? key : null;
 
-  // Each season's baseline = that year's league (or position) average, drawn as a per-year tick,
-  // so the chart is static — selecting a season never moves a shared baseline. A position year
-  // with no same-position sample has no baseline (null → no tick, and a neutral value dot).
-  const baselineByYear = new Map<number, number | null>();
-  for (const s of allPlayed) {
-    let b: number | null;
-    if (target === "position") {
-      const pos = ctx.playerPosition;
-      const lookup = ctx.positions;
-      b = pos == null || lookup == null ? null : lookup.avg(s.year, pos, stat.key);
-    } else {
-      b = ctx.league.avg(s.year, stat.key);
-    }
-    baselineByYear.set(s.year, b);
-  }
+  // The chart shows only trustworthy seasons: played, with a value for this stat, and NOT a small
+  // sample (too few games, or too few attempts for a shooting %). Noise never reaches the plot;
+  // the table below keeps the full record.
+  const chartable = allPlayed.filter((s) => s[key] != null && !small(s));
 
-  // Header + table compare against the SAME per-year baseline the chart draws for the
-  // subject (keeps all three consistent), instead of a separately-computed value.
-  const base = baselineByYear.get(subject.year) ?? null;
-  // If the subject is itself too thin a sample for this stat, its value is noise → show it in
-  // the header but suppress the (meaningless) delta, mirroring the summary bar.
-  const subjectSmall = isStatSmallSample(subject, ctx.league, stat.key);
-  const hasDelta = !subjectSmall && cur != null && base != null;
-  const up = hasDelta ? cur - base >= 0 : false;
+  // Career average on the SAME basis the heatmap's self mode uses (full seasons; every played
+  // season if fewer than two are full), so the plate and the self-mode cells agree.
+  const comparable = allPlayed.filter((s) => !small(s));
+  const careerAvg = ownStatAverage(key, comparable.length >= 2 ? comparable : allPlayed);
 
-  // A season's percentile within its comparison group — the position bucket in position mode,
-  // else the league. Null for shooting %s (no ladder), a small-sample season, a missing position
-  // bucket, or pre-004 data. Fed to the table's "Pct" column.
-  const pctileFor = (year: number, value: number): number | null =>
-    ctx.target === "position" && ctx.playerPosition != null && ctx.positions != null
-      ? ctx.positions.pctile(year, ctx.playerPosition, stat.key, value)
-      : ctx.league.pctile(year, stat.key, value);
+  const posOk = playerPosition != null && positions != null;
+  const refFor = (year: number): number | null =>
+    mode === "self" ? careerAvg : mode === "position" ? (posOk ? positions.avg(year, playerPosition, key) : null) : league.avg(year, key);
+  const ladderFor = (year: number): number[] | null =>
+    mode === "self" ? null : mode === "position" ? (posOk ? positions.ladder(year, playerPosition, key) : null) : league.ladder(year, key);
+  const pctileFor = (year: number, v: number): number | null =>
+    mode === "self" ? null : mode === "position" ? (posOk ? positions.pctile(year, playerPosition, key, v) : null) : league.pctile(year, key, v);
+  const bandFor = (year: number) => {
+    const l = ladderFor(year);
+    return l && l.length >= 11 ? { lo: l[1], mid: l[5], hi: l[9] } : null;
+  };
+  const rankOf = (s: SeasonPlayed): number | null => (ck != null && s.rank ? s.rank[ck] : null);
 
-  // The chart shows only trustworthy seasons: played, with a value for this stat, and NOT a
-  // small sample (too few games, or too few attempts for a shooting %). DNP / 0-attempt /
-  // attempt-thin seasons are dropped entirely — not shown as gaps or a misleading dot — so a
-  // noisy 1-of-1 = 100% can't sit at the top looking valid or stretch the scale. Columns
-  // re-space to whatever remains; the table below keeps the full record.
-  const componentPair = RATE_STAT_ATTEMPTS[stat.key];
-  const chartable = allPlayed.filter((x) => x[stat.key] != null && !isStatSmallSample(x, ctx.league, stat.key));
+  // Scale spans the charted values, their references, and the band tops, so nothing clips and the
+  // axis never rescales between modes for the same reason twice. 1.2 leaves headroom.
+  const tops = chartable
+    .flatMap((s) => [s[key] as number, refFor(s.year), bandFor(s.year)?.hi ?? null])
+    .filter((v): v is number => v != null);
+  const maxVal = Math.max(...tops, 0) * 1.2 || 1;
+  const pctOf = (v: number) => +((v / maxVal) * 100).toFixed(2);
 
-  // Scale spans the charted values AND their per-year baselines, so nothing clips and the
-  // y-axis never rescales when you re-select a season. A dropped outlier can't stretch it.
-  const chartVals = chartable.map((x) => x[stat.key]).filter((v): v is number => v != null);
-  const chartBaseVals = chartable.map((x) => baselineByYear.get(x.year) ?? null).filter((v): v is number => v != null);
-  // 1.2 leaves headroom above the tallest dot; the trailing 0 guards Math.max on an empty set.
-  const maxVal = Math.max(...chartVals, ...chartBaseVals, 0) * 1.2 || 1;
-
-  const bars: StatBar[] = chartable.map((x) => {
-    const v = x[stat.key] as number; // non-null by the chartable filter
-    const b = baselineByYear.get(x.year) ?? null;
-    const isSubject = x.year === subject.year;
+  const bars: StatBar[] = chartable.map((s) => {
+    const v = s[key] as number; // non-null by the chartable filter
+    const b = refFor(s.year);
+    const band = bandFor(s.year);
     return {
-      year: x.year,
-      yy: String(x.year).slice(2),
-      missed: false,
-      played: true,
-      isSubject,
-      smallSample: false,
-      selectable: true,
+      year: s.year,
+      yy: String(s.year).slice(2),
       valFmt: fmtV(v, stat.pct),
-      baseFmt: b != null ? fmtV(b, stat.pct) : undefined,
-      hPct: +((v / maxVal) * 100).toFixed(2),
-      basePct: b != null ? +((b / maxVal) * 100).toFixed(2) : undefined,
-      // Subject season in ink, the rest mid-grey: emphasis by value, not hue (color is data).
-      color: isSubject ? "var(--color-text)" : "var(--color-neutral-500)",
+      baseFmt: b != null ? fmtV(b, stat.pct) : null,
+      hPct: pctOf(v),
+      basePct: b != null ? pctOf(b) : null,
+      up: b != null ? v >= b : null,
+      band: band ? { loPct: pctOf(band.lo), midPct: pctOf(band.mid), hiPct: pctOf(band.hi) } : null,
     };
   });
 
@@ -701,31 +646,15 @@ export function buildStatDetail(player: PlayerDetail, stat: StatDef, ctx: Baseli
 
   const tableRows: StatTableRow[] = player.seasons.map((x) => {
     if (!x.played) {
-      return {
-        year: x.year,
-        min: null,
-        valFmt: "—",
-        gp: null,
-        made: null,
-        att: null,
-        deltaFmt: "—",
-        deltaColor: "var(--color-neutral-700)",
-        pctile: null,
-        missed: true,
-        smallSample: false,
-        selectable: false,
-        isSubject: false,
-        reason: x.reason,
-      };
+      return { year: x.year, min: null, valFmt: "—", gp: null, made: null, att: null, deltaFmt: "—", deltaColor: "var(--color-neutral-700)", pctile: null, rank: null, pool: null, missed: true, smallSample: false, reason: x.reason };
     }
-    const v = x[stat.key];
-    const rowBase = baselineByYear.get(x.year) ?? null;
-    const small = isStatSmallSample(x, ctx.league, stat.key);
+    const v = x[key];
+    const b = refFor(x.year);
+    const sm = small(x);
     // Suppress the delta on a small-sample row — a "+64%" off a 1-of-1 season is exactly the
     // noise hidden everywhere else. The value + makes/attempts still show, so the reader sees
     // both the number and why it's untrustworthy.
-    const rowHasDelta = !small && v != null && rowBase != null;
-    const rowUp = rowHasDelta ? v - rowBase >= 0 : false;
+    const hasDelta = !sm && v != null && b != null;
     return {
       year: x.year,
       min: x.min,
@@ -733,38 +662,69 @@ export function buildStatDetail(player: PlayerDetail, stat: StatDef, ctx: Baseli
       gp: x.gp,
       made: componentPair ? (x[componentPair.made] as number) : null,
       att: componentPair ? (x[componentPair.att] as number) : null,
-      deltaFmt: rowHasDelta ? fmtRaw(v - rowBase, stat.pct) : "—",
-      deltaColor: rowUp ? "var(--hm-above-text)" : "var(--hm-below-text)",
-      pctile: !small && v != null ? pctileFor(x.year, v) : null,
+      deltaFmt: hasDelta ? fmtRaw(v - b, stat.pct) : "—",
+      deltaColor: hasDelta && v - b >= 0 ? "var(--hm-above-text)" : "var(--hm-below-text)",
+      pctile: !sm && v != null ? pctileFor(x.year, v) : null,
+      rank: sm ? null : rankOf(x),
+      pool: x.pool ?? null,
       missed: false,
-      smallSample: small,
-      selectable: !small || !anyFull,
-      isSubject: x.year === subject.year,
+      smallSample: sm,
     };
   });
 
+  // The career at a glance, over the same full seasons the chart draws. Plate numbers: one decimal
+  // for a counting stat; a WHOLE percent for a shooting % (the sign is rendered as the word after
+  // the number) — the chart and table keep the exact one-decimal form.
+  const plateFmt = (v: number | null): string => (v == null ? "—" : stat.pct ? String(Math.round(v * 100)) : v.toFixed(1));
+  let summary: CareerSummary | null = null;
+  if (chartable.length > 0) {
+    const val = (s: SeasonPlayed) => s[key] as number;
+    const high = chartable.reduce((a, s) => (val(s) > val(a) ? s : a));
+    const low = chartable.reduce((a, s) => (val(s) < val(a) ? s : a));
+    const withRef = chartable.filter((s) => refFor(s.year) != null);
+    const ranked = chartable.filter((s) => rankOf(s) != null && s.pool != null);
+    // Best = the lowest rank; a tie goes to the larger pool (the stronger, more complete fact),
+    // then the later year.
+    const best = ranked.reduce<SeasonPlayed | null>((a, s) => {
+      if (a == null) return s;
+      const r = rankOf(s) as number, ra = rankOf(a) as number;
+      return r < ra || (r === ra && ((s.pool as number) > (a.pool as number) || (s.pool === a.pool && s.year > a.year))) ? s : a;
+    }, null);
+    summary = {
+      seasons: chartable.length,
+      high: { fmt: plateFmt(val(high)), year: high.year },
+      low: { fmt: plateFmt(val(low)), year: low.year },
+      careerAvg: plateFmt(careerAvg),
+      above: withRef.length ? { n: withRef.filter((s) => val(s) > (refFor(s.year) as number)).length, of: withRef.length } : null,
+      bestRank: best ? { rank: rankOf(best) as number, pool: best.pool as number, year: best.year } : null,
+    };
+  }
+
+  const first = firstName(player.name);
+  const caption =
+    mode === "self"
+      ? `Each season below is measured against ${first}'s career average.`
+      : mode === "league"
+        ? "Each season below is measured against the league average for that year."
+        : `Each season below is measured against the average for ${positionNoun(playerPosition)} that year.`;
+  const noBucket = mode === "position" ? chartable.filter((s) => refFor(s.year) == null).map((s) => s.year) : [];
+
   return {
-    year: subject.year,
     label: stat.label,
     short: stat.short,
     pct: stat.pct,
-    curFmt: fmtV(cur, stat.pct),
-    baseFmt: fmtV(base, stat.pct),
-    rawFmt: hasDelta ? fmtRaw(cur - base, stat.pct) : "—",
-    up,
-    deltaColor: up ? "var(--hm-above-text)" : "var(--hm-below-text)",
-    caption: buildCaption(ctx, player.name),
-    component: componentPair
-      ? { madeShort: componentPair.madeShort, attShort: componentPair.attShort, noun: componentPair.noun }
-      : null,
-    subjectSmallSample: subjectSmall,
-    chartFallback,
-    positionNote: ctx.positionSampleMissing
-      ? `No same-position baseline for ${subject.year} — too few ${positionNoun(ctx.playerPosition)} on record that season.`
+    unit: stat.pct ? "%" : stat.label.toLowerCase(),
+    component: componentPair ? { madeShort: componentPair.madeShort, attShort: componentPair.attShort, noun: componentPair.noun } : null,
+    caption,
+    positionNote: noBucket.length
+      ? `No same-position average for ${noBucket.join(", ")} — too few ${positionNoun(playerPosition)} on record those seasons.`
       : undefined,
+    summary,
+    chartFallback,
     bars,
-    // Table lists newest season first; the chart above stays left-to-right chronological.
+    // Table lists newest season first; the chart stays left-to-right chronological.
     tableRows: [...tableRows].reverse(),
     axisTicks: [0, 50, 100].map((yPct) => ({ yPct, label: fmtV((maxVal * yPct) / 100, stat.pct) })),
+    hasBand: bars.some((b) => b.band != null),
   };
 }

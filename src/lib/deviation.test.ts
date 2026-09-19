@@ -1,11 +1,10 @@
 import { describe, it, expect } from "vitest";
 import {
+  aboveLabel,
   buildHeatmapGrid,
   buildStatDetail,
   cellPercentile,
   fmtCell,
-  getBaselineContext,
-  getBaselineValue,
   isSmallSample,
   isStatSmallSample,
   makeLeague,
@@ -22,11 +21,9 @@ import { STATS } from "../data/stats";
 import type { LeagueSeason, PlayerDetail, PositionSeason, Season, SeasonPlayed } from "../data/api";
 
 /**
- * Tests for the baseline/subject logic in deviation.ts — the pure "brain" that decides which
- * season is examined, which seasons are selectable, and how a season compares to that year's
- * league or position peers. The "own history" baseline and the Window control were removed
- * (the Career Trend heatmap tells the own-trajectory story); every comparison here is a season
- * vs. that same year's crowd.
+ * Tests for the comparison logic in deviation.ts — the pure "brain" behind the heatmap and the
+ * drill-down: which seasons count, what each season is measured against (their career, the
+ * league, or their position that year), and the drill-down's chart, table, and career summary.
  */
 
 // A 40-game slate ⇒ small-sample threshold = 0.25 × 40 = 10 GP. Fixtures below use GP
@@ -119,63 +116,6 @@ function positions(years: number[]): PositionLookup {
 /** Empty position lookup for the league-only tests that don't exercise position mode. */
 const POS = makePositionLookup([]);
 
-describe("getBaselineContext — subject selection & selectable seasons", () => {
-  it("defaults the subject to the latest full season and lists all years newest-first", () => {
-    const L = league([2020, 2021, 2022]);
-    const p = player([playedSeason(2020, 40), playedSeason(2021, 40), playedSeason(2022, 40)]);
-
-    const ctx = getBaselineContext(p, L, POS, null, "league");
-
-    expect(ctx.subject.year).toBe(2022);
-    expect(ctx.selectableYears).toEqual([2022, 2021, 2020]);
-    expect(ctx.nonSelectableSmallSample).toEqual([]);
-  });
-
-  it("excludes a small-sample season from selection and surfaces it as a note", () => {
-    // 2021 = 4 of 40 games ⇒ small sample; it must not be selectable as the subject.
-    const L = league([2020, 2021, 2022]);
-    const p = player([playedSeason(2020, 40), playedSeason(2021, 4), playedSeason(2022, 40)]);
-
-    const ctx = getBaselineContext(p, L, POS, null, "league");
-
-    expect(ctx.selectableYears).toEqual([2022, 2020]);
-    expect(ctx.nonSelectableSmallSample.map((s) => s.year)).toEqual([2021]);
-  });
-
-  it("ignores a small-sample year passed as subjectYear and falls back to the latest full season", () => {
-    // The Alyssa Thomas 2021 / Napheesa Collier 2022 bug: selecting a small-sample year
-    // used to stick. It must resolve to the latest selectable (full) season instead.
-    const L = league([2020, 2021, 2022]);
-    const p = player([playedSeason(2020, 40), playedSeason(2021, 4), playedSeason(2022, 40)]);
-
-    const ctx = getBaselineContext(p, L, POS, 2021, "league");
-
-    expect(ctx.subject.year).toBe(2022);
-  });
-
-  it("honors subjectYear when it names a selectable (full) season", () => {
-    const L = league([2020, 2021, 2022]);
-    const p = player([playedSeason(2020, 40), playedSeason(2021, 40), playedSeason(2022, 40)]);
-
-    const ctx = getBaselineContext(p, L, POS, 2020, "league");
-
-    expect(ctx.subject.year).toBe(2020);
-  });
-
-  it("keeps all seasons selectable when the player has no full season (fallback)", () => {
-    // Both seasons are small sample ⇒ the greying-out would leave nothing to pick, so the
-    // fallback keeps them all selectable and the note stays empty.
-    const L = league([2021, 2022]);
-    const p = player([playedSeason(2021, 3), playedSeason(2022, 5)]);
-
-    const ctx = getBaselineContext(p, L, POS, null, "league");
-
-    expect(ctx.selectableYears).toEqual([2022, 2021]);
-    expect(ctx.nonSelectableSmallSample).toEqual([]);
-    expect(ctx.subject.year).toBe(2022);
-  });
-});
-
 describe("isSmallSample — 25% boundary (shared with wnba-data)", () => {
   const L = league([2022]); // slate 40 ⇒ threshold 10 GP
 
@@ -197,71 +137,6 @@ describe("makeLeague — slate fallback", () => {
     // A missing year must not throw; it falls back to DEFAULT_SCHEDULED_GAMES (40).
     const L = makeLeague([]);
     expect(L.scheduled(2022)).toBe(40);
-  });
-});
-
-describe("getBaselineContext — position baseline", () => {
-  it("offers position mode when the position is known and /positions is loaded", () => {
-    const L = league([2022, 2023, 2024]);
-    const P = positions([2022, 2023, 2024]);
-    const p = player([playedSeason(2022, 40), playedSeason(2023, 40), playedSeason(2024, 40)], "C");
-
-    const ctx = getBaselineContext(p, L, P, 2024, "position");
-
-    expect(ctx.positionAvailable).toBe(true);
-    expect(ctx.target).toBe("position");
-    expect(ctx.playerPosition).toBe("C");
-    expect(ctx.positionSampleMissing).toBe(false);
-  });
-
-  it("does NOT offer position mode when /positions hasn't loaded (null lookup)", () => {
-    const L = league([2024]);
-    const p = player([playedSeason(2024, 40)], "C");
-
-    const ctx = getBaselineContext(p, L, null, 2024, "league");
-
-    expect(ctx.positionAvailable).toBe(false);
-  });
-
-  it("does NOT offer position mode when the player's position is unknown", () => {
-    const L = league([2024]);
-    const p = player([playedSeason(2024, 40)], null);
-
-    const ctx = getBaselineContext(p, L, positions([2024]), 2024, "league");
-
-    expect(ctx.positionAvailable).toBe(false);
-    expect(ctx.playerPosition).toBeNull();
-  });
-
-  it("reads the player's OWN position bucket for the baseline value", () => {
-    // Fixture pts: centers = 10, guards = 15. A center must baseline against 10.
-    const L = league([2024]);
-    const p = player([playedSeason(2024, 40, { pts: 20 })], "C");
-
-    const ctx = getBaselineContext(p, L, positions([2024]), 2024, "position");
-
-    expect(getBaselineValue("pts", ctx)).toBe(10);
-  });
-
-  it("flags positionSampleMissing (and returns null) when the subject year has no same-position row", () => {
-    // /positions only has 2024; the subject 2022 has no bucket → no same-position sample.
-    const L = league([2022, 2024]);
-    const p = player([playedSeason(2022, 40), playedSeason(2024, 40)], "C");
-
-    const ctx = getBaselineContext(p, L, positions([2024]), 2022, "position");
-
-    expect(ctx.positionSampleMissing).toBe(true);
-    expect(getBaselineValue("pts", ctx)).toBeNull();
-  });
-
-  it("does NOT fall back to league in position mode (a first-season player still compares to peers)", () => {
-    const L = league([2024]);
-    const p = player([playedSeason(2024, 40)], "G");
-
-    const ctx = getBaselineContext(p, L, positions([2024]), 2024, "position");
-
-    expect(ctx.target).toBe("position");
-    expect(ctx.positionSampleMissing).toBe(false);
   });
 });
 
@@ -520,40 +395,135 @@ describe("ordinal", () => {
   });
 });
 
-describe("buildStatDetail — per-season percentile (table 'Pct' column)", () => {
-  const ptsStat = STATS.find((s) => s.key === "pts")!;
-  const tppStat = STATS.find((s) => s.key === "tpp")!;
-  const rowPctile = (detail: ReturnType<typeof buildStatDetail>, year: number) =>
-    detail.tableRows.find((r) => r.year === year)!.pctile;
+describe("buildStatDetail — the reference follows the page's mode", () => {
+  const pts = STATS.find((s) => s.key === "pts")!;
+  const bar = (d: ReturnType<typeof buildStatDetail>, year: number) => d.bars.find((b) => b.year === year)!;
+  const row = (d: ReturnType<typeof buildStatDetail>, year: number) => d.tableRows.find((r) => r.year === year)!;
 
-  it("computes the league percentile of each season for a counting stat", () => {
-    const L = league([2022]);
-    const p = player([playedSeason(2022, 40, { pts: 18 })]);
-    const detail = buildStatDetail(p, ptsStat, getBaselineContext(p, L, POS, 2022, "league"));
-    expect(rowPctile(detail, 2022)).toBeCloseTo(45, 5); // pts 18 on the 0→40 ladder → 45th
-  });
-
-  it("uses the position's own ladder in position mode", () => {
-    const L = league([2024]);
-    const P = positions([2024]);
-    const p = player([playedSeason(2024, 40, { pts: 16 })], "C");
-    const detail = buildStatDetail(p, ptsStat, getBaselineContext(p, L, P, 2024, "position"));
-    expect(rowPctile(detail, 2024)).toBeCloseTo(80, 5); // pts 16 on the center 0→20 ladder → 80th
-  });
-
-  it("leaves shooting-% rows without a percentile (no ladder → column hidden)", () => {
-    const L = league([2022]);
-    const p = player([playedSeason(2022, 40, { tpp: 0.44 })]);
-    const detail = buildStatDetail(p, tppStat, getBaselineContext(p, L, POS, 2022, "league"));
-    expect(detail.tableRows.every((r) => r.pctile === null)).toBe(true);
-  });
-
-  it("has no percentile on a small-sample or missed season", () => {
+  it("league mode: each season vs THAT year's league average, with its percentile", () => {
     const L = league([2021, 2022]);
-    const p = player([playedSeason(2021, 3, { pts: 18 }), playedSeason(2022, 40, { pts: 18 })]);
-    const detail = buildStatDetail(p, ptsStat, getBaselineContext(p, L, POS, 2022, "league"));
-    expect(rowPctile(detail, 2021)).toBeNull(); // 3 of 40 games → small sample
-    expect(rowPctile(detail, 2022)).toBeCloseTo(45, 5);
+    const p = player([playedSeason(2021, 40, { pts: 10 }), playedSeason(2022, 40, { pts: 18 })]);
+    const d = buildStatDetail(p, pts, "league", L, POS, "F");
+    expect(bar(d, 2022).baseFmt).toBe("12.0");
+    expect(bar(d, 2022).up).toBe(true);
+    expect(bar(d, 2021).up).toBe(false);
+    expect(row(d, 2022).deltaFmt).toBe("+6.0");
+    expect(row(d, 2022).pctile).toBeCloseTo(45, 5); // pts 18 on the 0→40 ladder
+    expect(d.caption).toBe("Each season below is measured against the league average for that year.");
+  });
+
+  it("self mode: a FLAT career-average reference (the heatmap's own basis), no percentile, no band", () => {
+    // pts 10 and 20 → career avg 15 → 2020 below, 2022 above; the same 15 the heatmap colors by.
+    const L = league([2020, 2022]);
+    const p = player([playedSeason(2020, 40, { pts: 10 }), playedSeason(2022, 40, { pts: 20 })]);
+    const d = buildStatDetail(p, pts, "self", L, POS, "F");
+    expect(bar(d, 2020).baseFmt).toBe("15.0");
+    expect(bar(d, 2022).baseFmt).toBe("15.0");
+    expect(bar(d, 2020).up).toBe(false);
+    expect(bar(d, 2022).up).toBe(true);
+    expect(d.tableRows.every((r) => r.pctile === null)).toBe(true);
+    expect(d.hasBand).toBe(false);
+    expect(d.caption).toBe("Each season below is measured against Test's career average.");
+    expect(d.summary?.careerAvg).toBe("15.0");
+  });
+
+  it("position mode: the player's OWN bucket, its ladder, and a note for years with no bucket", () => {
+    // /positions has only 2024; the 2022 center row has no bucket → no reference, neutral dot, note.
+    const L = league([2022, 2024]);
+    const p = player([playedSeason(2022, 40, { pts: 16 }), playedSeason(2024, 40, { pts: 16 })], "C");
+    const d = buildStatDetail(p, pts, "position", L, positions([2024]), "C");
+    expect(bar(d, 2024).baseFmt).toBe("10.0"); // centers = 10 (guards 15, league 12)
+    expect(row(d, 2024).pctile).toBeCloseTo(80, 5); // pts 16 on the center 0→20 ladder
+    expect(bar(d, 2022).baseFmt).toBeNull();
+    expect(bar(d, 2022).up).toBeNull();
+    expect(d.positionNote).toMatch(/No same-position average for 2022/);
+    expect(d.caption).toBe("Each season below is measured against the average for centers that year.");
+  });
+
+  it("never falls back to league in position mode when the lookup is missing (reference stays null)", () => {
+    const L = league([2024]);
+    const p = player([playedSeason(2024, 40)], "G");
+    const d = buildStatDetail(p, pts, "position", L, null, "G");
+    expect(d.bars[0].baseFmt).toBeNull();
+    expect(d.summary?.above).toBeNull();
+  });
+});
+
+describe("buildStatDetail — the band behind the chart", () => {
+  const pts = STATS.find((s) => s.key === "pts")!;
+  const tpp = STATS.find((s) => s.key === "tpp")!;
+
+  it("peer modes draw the 10th / median / 90th of that year's ladder, scaled with the values", () => {
+    // Ladder 0→40: 10th = 4, median = 20, 90th = 36. Max of (values, refs, band tops) = 36 × 1.2.
+    const L = league([2022]);
+    const p = player([playedSeason(2022, 40, { pts: 18 }), playedSeason(2021, 40, { pts: 18 })]);
+    const d = buildStatDetail(p, pts, "league", league([2021, 2022]), POS, "F");
+    const b = d.bars.find((x) => x.year === 2022)!.band!;
+    const maxVal = 36 * 1.2;
+    expect(b.loPct).toBeCloseTo((4 / maxVal) * 100, 1);
+    expect(b.midPct).toBeCloseTo((20 / maxVal) * 100, 1);
+    expect(b.hiPct).toBeCloseTo((36 / maxVal) * 100, 1);
+    expect(d.hasBand).toBe(true);
+    void L;
+  });
+
+  it("shooting %s have no band (no ladder)", () => {
+    const p = player([playedSeason(2021, 40), playedSeason(2022, 40)]);
+    const d = buildStatDetail(p, tpp, "league", league([2021, 2022]), POS, "F");
+    expect(d.bars.every((b) => b.band === null)).toBe(true);
+    expect(d.hasBand).toBe(false);
+  });
+});
+
+describe("buildStatDetail — career summary plates", () => {
+  const pts = STATS.find((s) => s.key === "pts")!;
+  const tpp = STATS.find((s) => s.key === "tpp")!;
+  const rk = (pts: number, pool: number) => ({ rank: { pts, reb: 50, ast: 50, stl: 50, blk: 50 }, pool });
+
+  it("high / low / career avg / above-reference count / best rank, over full seasons only", () => {
+    const L = league([2019, 2020, 2021, 2022]);
+    const p = player([
+      playedSeason(2019, 40, { pts: 8, ...rk(60, 70) }),
+      playedSeason(2020, 4, { pts: 30, ...rk(1, 80) }), // small sample: ignored everywhere
+      playedSeason(2021, 40, { pts: 14, ...rk(20, 90) }),
+      playedSeason(2022, 40, { pts: 20, ...rk(3, 100) }),
+    ]);
+    const s = buildStatDetail(p, pts, "league", L, POS, "F").summary!;
+    expect(s.seasons).toBe(3);
+    expect(s.high).toEqual({ fmt: "20.0", year: 2022 });
+    expect(s.low).toEqual({ fmt: "8.0", year: 2019 });
+    expect(s.careerAvg).toBe("14.0"); // mean of 8, 14, 20 — the 4-game season excluded
+    expect(s.above).toEqual({ n: 2, of: 3 }); // league avg 12: 14 and 20 above, 8 below
+    expect(s.bestRank).toEqual({ rank: 3, pool: 100, year: 2022 }); // the 1st-of-80 was a small sample
+  });
+
+  it("a tied best rank goes to the larger pool, then the later year", () => {
+    const L = league([2018, 2025, 2026]);
+    const p = player([
+      playedSeason(2018, 40, { ...rk(1, 65) }),
+      playedSeason(2025, 40, { ...rk(1, 158) }),
+      playedSeason(2026, 40, { ...rk(1, 158) }),
+    ]);
+    expect(buildStatDetail(p, pts, "league", L, POS, "F").summary!.bestRank).toEqual({ rank: 1, pool: 158, year: 2026 });
+  });
+
+  it("shooting %s have no rank plate and whole-percent plate numbers; no full season → no summary", () => {
+    const L = league([2021, 2022]);
+    // tpp is read from the season (the fixture default is .35), so set it to match the makes/attempts.
+    const p = player([playedSeason(2021, 40, { tpp: 0.35, fg3Made: 35, fg3Att: 100 }), playedSeason(2022, 40, { tpp: 0.44, fg3Made: 44, fg3Att: 100 })]);
+    const s = buildStatDetail(p, tpp, "league", L, POS, "F").summary!;
+    expect(s.bestRank).toBeNull();
+    expect(s.high).toEqual({ fmt: "44", year: 2022 }); // 44.0% → "44" (the plate adds the sign)
+    expect(s.careerAvg).toBe("40"); // pooled 79/200 = 39.5% → rounds to 40
+    const thin = player([playedSeason(2022, 3)]);
+    expect(buildStatDetail(thin, pts, "league", L, POS, "F").summary).toBeNull();
+  });
+
+  it("labels the above-reference plate by mode, in at most 12 characters", () => {
+    expect(aboveLabel("league")).toBe("Above league");
+    expect(aboveLabel("position")).toBe("Above peers");
+    expect(aboveLabel("self")).toBe("Above career");
+    for (const m of ["league", "position", "self"] as const) expect(aboveLabel(m).length).toBeLessThanOrEqual(12);
   });
 });
 
@@ -567,20 +537,12 @@ describe("buildStatDetail — chart drops thin seasons; table keeps the full rec
       { year: 2019, played: false, reason: "did not play" },
       playedSeason(2020, 40, { fg3Made: 30, fg3Att: 80 }), // 37.5% — charted
       playedSeason(2021, 40, { fg3Made: 1, fg3Att: 1 }), // 100% on 1 attempt — dropped from chart
-      playedSeason(2022, 40, { fg3Made: 9, fg3Att: 20 }), // 45% — charted (subject)
+      playedSeason(2022, 40, { fg3Made: 9, fg3Att: 20 }), // 45% — charted
     ];
-    const p = player(seasons);
-    const ctx = getBaselineContext(p, L, POS, 2022, "league");
-    const detail = buildStatDetail(p, tppStat, ctx);
-
-    // Chart: only the two ≥10-attempt seasons. DNP + attempt-thin are gone entirely.
+    const detail = buildStatDetail(player(seasons), tppStat, "league", L, POS, "F");
     expect(detail.bars.map((b) => b.year)).toEqual([2020, 2022]);
     expect(detail.chartFallback).toBeNull();
-    // Every charted season now has a league baseline that year (no more first-season gap).
-    expect(detail.bars.find((b) => b.year === 2020)!.baseFmt).toBeDefined();
-    expect(detail.bars.find((b) => b.year === 2022)!.baseFmt).toBeDefined();
-
-    // Table: every season, newest-first, with 3PM/3PA and the thin row flagged + delta hidden.
+    expect(detail.bars.every((b) => b.baseFmt != null)).toBe(true);
     expect(detail.tableRows.map((r) => r.year)).toEqual([2022, 2021, 2020, 2019]);
     const thin = detail.tableRows.find((r) => r.year === 2021)!;
     expect(thin.smallSample).toBe(true);
@@ -588,27 +550,32 @@ describe("buildStatDetail — chart drops thin seasons; table keeps the full rec
     expect(thin.att).toBe(1);
     expect(thin.deltaFmt).toBe("—"); // delta suppressed for a noise season
     expect(detail.component).toEqual({ madeShort: "3PM", attShort: "3PA", noun: "three-pointers" });
+    expect(detail.unit).toBe("%"); // the sign is the word after a whole-percent plate number
   });
 
-  it("counting stats have no makes/attempts columns", () => {
+  it("counting stats have no makes/attempts columns; the rank column reads the API's rank + pool", () => {
     const L = league([2021, 2022]);
-    const p = player([playedSeason(2021, 40), playedSeason(2022, 40)]);
-    const detail = buildStatDetail(p, ptsStat, getBaselineContext(p, L, POS, 2022, "league"));
+    const p = player([playedSeason(2021, 40), playedSeason(2022, 40, { rank: { pts: 9, reb: 1, ast: 1, stl: 1, blk: 1 }, pool: 186 })]);
+    const detail = buildStatDetail(p, ptsStat, "league", L, POS, "F");
     expect(detail.component).toBeNull();
+    expect(detail.unit).toBe("points"); // "14.3 points" on the plates
     expect(detail.tableRows.every((r) => r.made === null && r.att === null)).toBe(true);
+    const r22 = detail.tableRows.find((r) => r.year === 2022)!;
+    expect(r22.rank).toBe(9);
+    expect(r22.pool).toBe(186);
+    expect(detail.tableRows.find((r) => r.year === 2021)!.rank).toBeNull();
   });
 
-  it("shows the fallback line and flags the subject when the stat is too thin to chart", () => {
-    // A near-non-shooter (Alyssa Thomas-style): every season under 10 threes → nothing chartable.
+  it("shows the fallback line when the stat is too thin to chart", () => {
     const L = league([2020, 2021, 2022]);
     const p = player([
       playedSeason(2020, 40, { fg3Made: 0, fg3Att: 2 }),
       playedSeason(2021, 40, { fg3Made: 1, fg3Att: 3 }),
       playedSeason(2022, 40, { fg3Made: 2, fg3Att: 5 }),
     ]);
-    const detail = buildStatDetail(p, tppStat, getBaselineContext(p, L, POS, 2022, "league"));
+    const detail = buildStatDetail(p, tppStat, "league", L, POS, "F");
     expect(detail.bars).toHaveLength(0);
     expect(detail.chartFallback).toMatch(/enough three-point attempts/i);
-    expect(detail.subjectSmallSample).toBe(true);
+    expect(detail.summary).toBeNull();
   });
 });
