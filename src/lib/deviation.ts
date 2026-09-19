@@ -684,7 +684,8 @@ export function buildStatDetail(player: PlayerDetail, stat: StatDef, ctx: Baseli
       baseFmt: b != null ? fmtV(b, stat.pct) : undefined,
       hPct: +((v / maxVal) * 100).toFixed(2),
       basePct: b != null ? +((b / maxVal) * 100).toFixed(2) : undefined,
-      color: isSubject ? "var(--color-accent)" : "var(--color-neutral-500)",
+      // Subject season in ink, the rest mid-grey: emphasis by value, not hue (color is data).
+      color: isSubject ? "var(--color-text)" : "var(--color-neutral-500)",
     };
   });
 

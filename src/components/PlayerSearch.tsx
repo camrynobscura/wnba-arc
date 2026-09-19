@@ -166,7 +166,7 @@ export function PlayerSearch({ players, listError, onPick, variant = "hero" }: P
                 gap: "var(--space-3)",
                 marginTop: 0,
                 cursor: "pointer",
-                background: i === highlight ? "color-mix(in srgb, var(--color-accent) 14%, transparent)" : undefined,
+                background: i === highlight ? "color-mix(in srgb, var(--color-neutral-900) 10%, transparent)" : undefined,
               }}
               // Keep focus on the input (so typing continues) while still registering the click.
               onMouseDown={(e) => e.preventDefault()}

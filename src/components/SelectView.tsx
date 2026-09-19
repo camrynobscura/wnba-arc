@@ -2,6 +2,7 @@ import { photoUrl } from "../data/stats";
 import type { PlayerSummary } from "../data/api";
 import type { FeaturedPlayer } from "../data/featured";
 import { PlayerPhoto } from "./PlayerPhoto";
+import { teamTintByName } from "../data/teams";
 import { PlayerSearch } from "./PlayerSearch";
 
 interface SelectViewProps {
@@ -57,7 +58,7 @@ export function SelectView({ featured, players, listError, onPick }: SelectViewP
                 }}
                 onClick={() => onPick(f.espn)}
               >
-                <PlayerPhoto src={photoUrl(f.espn)} name={f.name} size={40} />
+                <PlayerPhoto src={photoUrl(f.espn)} name={f.name} size={40} tint={teamTintByName(f.team)} />
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div className="text-heading" style={{ fontSize: "var(--fs-base)" }}>{f.name}</div>
                   <div className="text-muted" style={{ fontSize: "var(--fs-xs)" }}>

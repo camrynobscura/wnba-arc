@@ -3,6 +3,7 @@ import type { PlayerDetail, PlayerSummary, SeasonMissed } from "../data/api";
 import { PlayerSearch } from "./PlayerSearch";
 import type { ComparisonTarget, HeatmapMode, League, PositionLookup, StatDetail, StatKey } from "../lib/deviation";
 import { PlayerPhoto } from "./PlayerPhoto";
+import { teamTint } from "../data/teams";
 import { DeviationHeatmap } from "./DeviationHeatmap";
 import { StatDrilldownView } from "./StatDrilldownView";
 
@@ -107,7 +108,7 @@ export function PlayerView({
           borderBottom: "2px solid var(--color-divider)",
         }}
       >
-        <PlayerPhoto src={photoUrl(player.espn)} name={player.name} size={54} />
+        <PlayerPhoto src={photoUrl(player.espn)} name={player.name} size={54} tint={teamTint(player.teamAbbr)} />
         <div style={{ flex: 1, minWidth: 0 }}>
           <div className="card-kicker" style={{ marginBottom: "var(--space-1)" }}>
             {player.team} · {player.pos} · #{player.jersey}

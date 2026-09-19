@@ -12,12 +12,11 @@
   --color-bg: #f2f2f3;
   --color-surface: #e9e9ea;
   --color-text: #1d1f20;
-  --color-accent: #5980a6;
-  --color-accent-2: #728fab;
   --color-divider: color-mix(in srgb, #1d1f20 16%, transparent);
 
-  /* Tonal ramps — generated in OKLCH on one shared lightness scale, so the
-     same step of any role matches the others in visual value. */
+  /* Tonal ramp — generated in OKLCH on one shared lightness scale. (The Industry theme's
+     accent ramps were removed 2026-09-18: this UI is monochrome on purpose — color is
+     reserved for data and team identity — so an unused "accent" token would only mislead.) */
   --color-neutral-100: #f5f5f8;
   --color-neutral-200: #e7e7ea;
   --color-neutral-300: #d4d4d7;
@@ -27,26 +26,6 @@
   --color-neutral-700: #5d5d60;
   --color-neutral-800: #424244;
   --color-neutral-900: #2b2b2d;
-
-  --color-accent-100: #eef6ff;
-  --color-accent-200: #d6ebff;
-  --color-accent-300: #b5d9fd;
-  --color-accent-400: #94bce3;
-  --color-accent-500: #749dc4;
-  --color-accent-600: #597ea3;
-  --color-accent-700: #416180;
-  --color-accent-800: #2c455d;
-  --color-accent-900: #1d2d3d;
-
-  --color-accent-2-100: #eef6ff;
-  --color-accent-2-200: #d6ebff;
-  --color-accent-2-300: #bdd8f2;
-  --color-accent-2-400: #9ebbd8;
-  --color-accent-2-500: #7e9cb8;
-  --color-accent-2-600: #627d98;
-  --color-accent-2-700: #486077;
-  --color-accent-2-800: #314457;
-  --color-accent-2-900: #1f2d3a;
 
   /* Career-heatmap + deviation-bar diverging scale — red = above the reference, blue =
      below; each cell/bar mixes toward --hm-base by the deviation magnitude. The *-text
@@ -58,6 +37,19 @@
   --hm-below: #3d86ca;
   --hm-below-text: #3a6188;
   --hm-base: var(--color-neutral-100);
+
+  /* Headshot overlay strength. The photo tint is a `color` blend (.duotone::after) drawn at this
+     opacity: 1 recolors the photo fully; lower lets the photo's own colors show through under the
+     team hue. 0.5 was chosen on a preview of every team at 25/50/75/100, then halved to 0.25 once
+     the tints went on the landing list too — a quarter-strength wash keeps twenty cards from
+     fighting each other (DECISIONS, 2026-09-18). Same everywhere the photo appears, and the same in
+     both themes — the blend takes its lightness from the photo, not the overlay. */
+  --duotone-alpha: 0.25;
+  /* The overlay color when no team is known — an off-roster player, or a team the table hasn't
+     caught up with. Any zero-saturation value gives the same result under the `color` blend, and
+     lightness comes from the photo, so one grey serves both themes. Not blue: blue means "below
+     the reference" in the heatmap, and color is reserved for data and team identity. */
+  --duotone-neutral: #98989b;
 
   /* Max content width for every view (App shell, select, summary, drill-down). */
   --app-width: 600px;
@@ -110,7 +102,7 @@
    flash and no un-stamped state to design around — hence a single dark block,
    not the media-query pair an artifact needs.
 
-   Both tonal ramps are redefined in *reversed* lightness: the ramp's semantics
+   The neutral ramp is redefined in *reversed* lightness: the ramp's semantics
    are "-100 = closest to the background, -900 = closest to the foreground", which
    the light ramp already follows. Keeping that direction consistent means every
    component that pairs e.g. a `-100` surface with `-800` text (tags, muted cells)
@@ -120,8 +112,6 @@
   --color-bg: #17191e;
   --color-surface: #1c1f24;
   --color-text: #dfe1e7;
-  --color-accent: #7ea6cf; /* brightened so dark text reads on it (buttons) */
-  --color-accent-2: #93aecb;
   --color-divider: color-mix(in srgb, #e6e8ec 15%, transparent);
 
   --color-neutral-100: #16181c; /* near background */
@@ -133,26 +123,6 @@
   --color-neutral-700: #9ca3ad;
   --color-neutral-800: #c1c6cd;
   --color-neutral-900: #e4e6ea; /* near foreground */
-
-  --color-accent-100: #1b2836; /* dark blue — tag backgrounds */
-  --color-accent-200: #23394d;
-  --color-accent-300: #2d4a63;
-  --color-accent-400: #3d6486;
-  --color-accent-500: #5a83a8;
-  --color-accent-600: #7ba0c4;
-  --color-accent-700: #9cbde0; /* accent text / links / focus (light blue) */
-  --color-accent-800: #c2d6ef;
-  --color-accent-900: #e2ecf8;
-
-  --color-accent-2-100: #1e2a37;
-  --color-accent-2-200: #273848;
-  --color-accent-2-300: #34495c;
-  --color-accent-2-400: #486076;
-  --color-accent-2-500: #647e97;
-  --color-accent-2-600: #839ab2;
-  --color-accent-2-700: #a0b6cd;
-  --color-accent-2-800: #c4d3e2;
-  --color-accent-2-900: #e3eaf2;
 
   /* Heatmap + bar scale on the dark ground: brighter red/blue graphic fills, light readable
      shades for delta text, and a lifted (non-black) base so low-deviation tiles stay
@@ -230,8 +200,14 @@ p {
   margin: 0 0 var(--space-3);
 }
 a {
-  color: var(--color-accent-700);
+  /* Ink, not an accent: color is reserved for data (the red/blue heat) and identity (team tints).
+     The underline is what marks a link, so it never depends on color alone (WCAG 1.4.1). */
+  color: var(--color-text);
+  text-decoration-color: var(--color-neutral-500);
   text-underline-offset: 3px;
+}
+a:hover {
+  text-decoration-color: currentColor;
 }
 img {
   display: block;
@@ -264,11 +240,12 @@ figcaption {
   outline: none;
 }
 :focus-visible {
-  outline: 2px solid var(--color-accent-700);
+  /* The text color is the highest-contrast ring on either ground (non-text contrast, 1.4.11). */
+  outline: 2px solid var(--color-text);
   outline-offset: 2px;
 }
 ::selection {
-  background: color-mix(in srgb, var(--color-accent) 30%, transparent);
+  background: color-mix(in srgb, var(--color-neutral-900) 22%, transparent);
 }
 
 /* — screen-reader-only — */
@@ -340,14 +317,14 @@ figcaption {
   cursor: not-allowed;
 }
 .btn-ghost {
-  color: var(--color-accent-700);
+  color: var(--color-text);
   padding-inline: var(--space-1);
 }
 .btn-ghost:hover {
-  background: color-mix(in srgb, var(--color-accent) 10%, transparent);
+  background: color-mix(in srgb, var(--color-neutral-900) 8%, transparent);
 }
 .btn-ghost:active {
-  background: color-mix(in srgb, var(--color-accent) 18%, transparent);
+  background: color-mix(in srgb, var(--color-neutral-900) 14%, transparent);
 }
 .btn-block {
   width: 100%;
@@ -368,7 +345,7 @@ figcaption {
   font: inherit;
   font-size: var(--fs-md);
   color: var(--color-text);
-  caret-color: var(--color-accent);
+  caret-color: var(--color-text);
   background: var(--color-surface);
   border: 1px solid var(--color-divider);
   border-radius: var(--radius-md);
@@ -377,7 +354,7 @@ figcaption {
   border-color: color-mix(in srgb, var(--color-text) 45%, transparent);
 }
 .input:focus-visible {
-  border-color: var(--color-accent);
+  border-color: var(--color-neutral-900);
   outline-offset: 0;
 }
 
@@ -426,7 +403,7 @@ select.select-reset {
   font-size: var(--fs-3xs);
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--color-accent-700);
+  color: var(--color-neutral-700);
 }
 .elev-sm {
   box-shadow: var(--shadow-sm);
@@ -479,7 +456,7 @@ select.select-reset {
 }
 .search-underline:focus {
   outline: none;
-  border-bottom-color: var(--color-accent);
+  border-bottom-color: var(--color-neutral-900);
 }
 .search-underline::placeholder {
   color: var(--color-neutral-600);
@@ -501,14 +478,19 @@ select.select-reset {
   cursor: pointer;
 }
 .theme-toggle:hover {
-  border-color: var(--color-accent);
-  color: var(--color-accent);
+  border-color: var(--color-neutral-900);
+  color: var(--color-text);
 }
 .theme-toggle svg {
   display: block;
 }
 
-/* — player photo / avatar (see components/PlayerPhoto.tsx) — */
+/* — player photo / avatar (see components/PlayerPhoto.tsx) —
+   The overlay tint is `--duotone-color` when the component sets it (the player's team color,
+   data/teams.ts — by abbreviation on player pages, by team name on the landing list), else
+   `--duotone-neutral` (off-roster / unknown team).
+   `color` blend = hue + saturation from the tint, lightness from the photo; `--duotone-alpha`
+   sets how much of the photo's own color survives. */
 .duotone {
   position: relative;
   overflow: hidden;
@@ -518,8 +500,9 @@ select.select-reset {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background: var(--color-accent);
+  background: var(--duotone-color, var(--duotone-neutral));
   mix-blend-mode: color;
+  opacity: var(--duotone-alpha);
 }
 
 /* Avatar backdrop shown through ESPN's transparent cutout headshots. Kept light in
@@ -628,10 +611,6 @@ select.select-reset {
   font-size: var(--fs-sm);
   color: var(--color-neutral-700);
 }
-.hm-rowhead.is-subject {
-  color: var(--color-accent-700);
-  font-weight: 700;
-}
 /* Cells are <button>s (a roving-tabindex grid) — reset the native chrome, keep the tile look.
    One number per cell (the value); the gap/rank live in the reveal strip below. Every cell is
    interactive (tap / hover / focus reveals it), so all get the pointer + hover ring. */
@@ -725,7 +704,7 @@ select.select-reset {
   font-size: var(--fs-sm);
 }
 .hm-cell:focus-visible {
-  outline: 2px solid var(--color-accent-700);
+  outline: 2px solid var(--color-text);
   outline-offset: 1px;
   z-index: 1;
 }
@@ -816,7 +795,7 @@ select.select-reset {
 .spinner span {
   width: 8px;
   height: 15px;
-  border: 1px solid var(--color-accent);
+  border: 1px solid var(--color-neutral-600);
   background: transparent;
   animation: spinner-wave 1.1s ease-in-out infinite;
 }
@@ -839,7 +818,7 @@ select.select-reset {
     background: transparent;
   }
   30% {
-    background: var(--color-accent);
+    background: var(--color-neutral-600);
   }
 }
 /* No traveling wave for reduced-motion users — hold a static half-fill instead of
@@ -847,7 +826,7 @@ select.select-reset {
 @media (prefers-reduced-motion: reduce) {
   .spinner span {
     animation: none;
-    background: color-mix(in srgb, var(--color-accent) 35%, transparent);
+    background: color-mix(in srgb, var(--color-neutral-600) 35%, transparent);
   }
 }
 
@@ -895,9 +874,9 @@ select.select-reset {
   top: -48px;
   z-index: 100;
   background: var(--color-surface);
-  color: var(--color-accent-700);
+  color: var(--color-text);
   padding: var(--space-2) var(--space-4);
-  border: 1px solid var(--color-accent-700);
+  border: 1px solid var(--color-text);
   border-radius: var(--radius-md);
   font-family: var(--font-heading);
   font-weight: 600;

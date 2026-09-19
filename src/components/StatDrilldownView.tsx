@@ -52,9 +52,9 @@ export function StatDrilldownView({ player, stat, statKey, desc, target, onStatC
       onClick={clickable ? () => onSelectYear(r.year) : undefined}
       style={{
         cursor: clickable ? "pointer" : "default",
-        // Selected year: light-blue fill (overrides zebra stripe + hover). Others fall
+        // Selected year: a neutral wash (color is reserved for data), overriding zebra + hover. Others fall
         // through to the CSS zebra striping in theme.css.
-        background: r.isSubject ? "color-mix(in srgb, var(--color-accent) 15%, transparent)" : undefined,
+        background: r.isSubject ? "color-mix(in srgb, var(--color-neutral-900) 10%, transparent)" : undefined,
       }}
     >
       <td style={{ fontWeight: r.isSubject ? 700 : 400 }}>
@@ -257,7 +257,7 @@ export function StatDrilldownView({ player, stat, statKey, desc, target, onStatC
                   transform: "translateX(-50%)",
                   appearance: "none",
                   // Selection = highlight the whole column, not resized dots.
-                  background: sub ? "color-mix(in srgb, var(--color-accent) 12%, transparent)" : "transparent",
+                  background: sub ? "color-mix(in srgb, var(--color-neutral-900) 8%, transparent)" : "transparent",
                   borderRadius: 4,
                   border: 0,
                   padding: 0,
