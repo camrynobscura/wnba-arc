@@ -53,9 +53,9 @@
      tokens are the readable shades for small delta text (≥4.5:1); the plain --hm-above /
      --hm-below are the vivid graphic fills (bars/dots/cells, ≥3:1). Dark mode overrides
      all of these for the dark ground. */
-  --hm-above: #c0492a;
+  --hm-above: #ea3a2a;
   --hm-above-text: #9e3a1f;
-  --hm-below: #3f6d99;
+  --hm-below: #3d86ca;
   --hm-below-text: #3a6188;
   --hm-base: var(--color-neutral-100);
 
