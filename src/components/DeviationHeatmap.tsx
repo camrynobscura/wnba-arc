@@ -409,47 +409,42 @@ function CellPopover({ cell, anchor, noun, pct, pctWhere, pinned, popoverRef, on
       onPointerEnter={onPointerEnter}
       onPointerLeave={onPointerLeave}
     >
-      {/* A column with a clear hierarchy: year (eyebrow) → stat (heading) → value (hero) → the
-          reference avg / difference / rank as label–value rows → the link. */}
-      <div className="card-kicker hm-popover-year">{cell.year}</div>
+      {/* The stat as the title, then ONE tier of label/value rows — the season's own value first
+          (the year is its label), then the reference avg / difference / rank — then the link. No
+          eyebrow, no hero number: tighter, and the season's value reads as a row of the same table
+          as the numbers it's compared to. The exact one-decimal value lives here; the cell shows the
+          rounded glance form. refValue / delta / pct are all null for a missed season, so only the
+          year row renders there. */}
       <div className="text-heading hm-popover-stat">{stat}</div>
-      <div className="text-heading hm-popover-value" style={cell.smallSample ? { color: "var(--color-neutral-500)" } : undefined}>
-        {cell.played ? cell.valueFmt : "—"}
-      </div>
-      {!cell.played ? (
-        <div className="text-muted hm-popover-note">Did not play</div>
-      ) : (
-        <>
-          {(cell.refValue != null || cell.delta != null || pct != null) && (
-            <dl className="hm-popover-rows">
-              {cell.refValue != null && (
-                <>
-                  <dt>{noun.charAt(0).toUpperCase() + noun.slice(1)}</dt>
-                  <dd>{cell.refFmt}</dd>
-                </>
-              )}
-              {cell.delta != null && (
-                <>
-                  <dt>Difference</dt>
-                  <dd className="hm-popover-delta" style={{ color: cell.up ? "var(--hm-above-text)" : "var(--hm-below-text)" }}>
-                    {cell.deltaFmt}
-                  </dd>
-                </>
-              )}
-              {pct != null && (
-                <>
-                  <dt>Percentile</dt>
-                  <dd>
-                    {ordinal(Math.round(pct))} <span className="text-muted">{pctWhere}</span>
-                  </dd>
-                </>
-              )}
-            </dl>
-          )}
-          {cell.smallSample && <div className="text-muted hm-popover-note">Small sample — not compared</div>}
-          {!cell.smallSample && cell.delta == null && <div className="text-muted hm-popover-note">No {noun} that season</div>}
-        </>
-      )}
+      <dl className="hm-popover-rows">
+        <dt>{cell.year}</dt>
+        <dd style={cell.smallSample ? { color: "var(--color-neutral-500)" } : undefined}>{cell.valueFmt}</dd>
+        {cell.refValue != null && (
+          <>
+            <dt>{noun.charAt(0).toUpperCase() + noun.slice(1)}</dt>
+            <dd>{cell.refFmt}</dd>
+          </>
+        )}
+        {cell.delta != null && (
+          <>
+            <dt>Difference</dt>
+            <dd className="hm-popover-delta" style={{ color: cell.up ? "var(--hm-above-text)" : "var(--hm-below-text)" }}>
+              {cell.deltaFmt}
+            </dd>
+          </>
+        )}
+        {pct != null && (
+          <>
+            <dt>Percentile</dt>
+            <dd>
+              {ordinal(Math.round(pct))} <span className="text-muted">{pctWhere}</span>
+            </dd>
+          </>
+        )}
+      </dl>
+      {!cell.played && <div className="text-muted hm-popover-note">Did not play</div>}
+      {cell.played && cell.smallSample && <div className="text-muted hm-popover-note">Small sample — not compared</div>}
+      {cell.played && !cell.smallSample && cell.delta == null && <div className="text-muted hm-popover-note">No {noun} that season</div>}
       <button type="button" className="btn btn-ghost hm-popover-link" onClick={onDrill}>
         See {stat.toLowerCase()} history ↓
       </button>
@@ -514,7 +509,7 @@ function Cell({ cell, pct, pctWhere, noun, refPhrase, tabbable, expanded, setRef
       onPointerDown={onPress}
       onClick={onTap}
     >
-      {cell.played ? cell.valueFmt : "—"}
+      {cell.cellFmt}
     </button>
   );
 }

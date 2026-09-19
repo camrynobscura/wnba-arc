@@ -685,20 +685,13 @@ select.select-reset {
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-md);
 }
-/* A column with a typographic hierarchy: eyebrow (year) → heading (stat) → hero (value) →
-   quiet label/value rows → the link. Each tier differs in size, weight, and color. */
-.hm-popover-year {
-  margin: 0; /* .card-kicker supplies the small uppercase muted letter-spaced style */
-}
+/* The stat as the title, then one tier of quiet label/value rows (the season's value, the
+   reference avg, the difference, the rank) → the link. No eyebrow, no hero number: tighter, and
+   the season's value sits in the same table as the numbers it's compared to. */
 .hm-popover-stat {
   font-size: var(--fs-lg);
   line-height: 1.1;
-}
-.hm-popover-value {
-  font-size: var(--fs-2xl);
-  line-height: 1;
-  margin: 2px 0 6px;
-  font-variant-numeric: tabular-nums;
+  margin-bottom: 2px;
 }
 .hm-popover-rows {
   display: grid;
@@ -716,7 +709,8 @@ select.select-reset {
   font-variant-numeric: tabular-nums;
 }
 .hm-popover-delta {
-  font-weight: 600;
+  /* Same weight as the other rows on purpose (uniform rows); direction is carried by its color. */
+  font-weight: inherit;
 }
 .hm-popover-note {
   margin-top: 2px;
@@ -724,7 +718,11 @@ select.select-reset {
 .hm-popover-link {
   padding-inline: 0;
   margin-top: var(--space-1);
-  font-size: var(--fs-xs);
+  /* The body face, not the condensed heading face .btn uses: Barlow Condensed is a display cut
+     and is hard to read this small. One step above the rows so the action stands out. */
+  font-family: var(--font-body);
+  font-weight: 500;
+  font-size: var(--fs-sm);
 }
 .hm-cell:focus-visible {
   outline: 2px solid var(--color-accent-700);

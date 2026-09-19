@@ -3,6 +3,7 @@ import {
   buildHeatmapGrid,
   buildStatDetail,
   cellPercentile,
+  fmtCell,
   getBaselineContext,
   getBaselineValue,
   isSmallSample,
@@ -325,6 +326,25 @@ describe("isStatSmallSample — per-stat gate (games OR attempts)", () => {
   });
 });
 
+describe("fmtCell — the glance form drawn in a heatmap cell", () => {
+  it("rounds shooting %s to a whole percent, up or down", () => {
+    expect(fmtCell(0.519, true)).toBe("52%");
+    expect(fmtCell(0.514, true)).toBe("51%");
+    expect(fmtCell(0.515, true)).toBe("52%"); // .5 rounds up
+    expect(fmtCell(0.29, true)).toBe("29%"); // 0.29 × 100 is 28.999… in floating point
+    expect(fmtCell(1, true)).toBe("100%");
+    expect(fmtCell(0, true)).toBe("0%");
+  });
+  it("keeps the tenth on counting stats — a 0.4 block must not read as nothing", () => {
+    expect(fmtCell(0.4, false)).toBe("0.4");
+    expect(fmtCell(26.94, false)).toBe("26.9");
+  });
+  it("is a dash for no value", () => {
+    expect(fmtCell(null, true)).toBe("—");
+    expect(fmtCell(undefined, false)).toBe("—");
+  });
+});
+
 describe("buildHeatmapGrid — the switchable-reference heatmap", () => {
   const cell = (g: HeatmapGrid, year: number, key: string): HeatmapCell =>
     g.rows[g.years.indexOf(year)].find((c) => c.statKey === key)!;
@@ -360,6 +380,7 @@ describe("buildHeatmapGrid — the switchable-reference heatmap", () => {
     expect(cell(g, 2022, "pts").delta).toBeCloseTo(6, 5);
     expect(cell(g, 2022, "pts").up).toBe(true);
     expect(cell(g, 2022, "pts").refValue).toBe(12); // that year's league avg — shown in the popover
+    expect(cell(g, 2022, "pts").cellFmt).toBe("18.0"); // counting stats keep their tenth in the cell
   });
 
   it("position mode: colors against the POSITION's own average + spread", () => {
@@ -379,6 +400,9 @@ describe("buildHeatmapGrid — the switchable-reference heatmap", () => {
     const g = buildHeatmapGrid(p, "league", L, POS, "F");
     expect(cell(g, 2022, "tpp").colorT).toBeCloseTo(0.6667, 3);
     expect(cell(g, 2022, "tpp").deltaFmt).toBe("+11.0 pp");
+    // The cell draws the rounded glance form; the popover / accessible name keep the exact value.
+    expect(cell(g, 2022, "tpp").cellFmt).toBe("44%");
+    expect(cell(g, 2022, "tpp").valueFmt).toBe("44.0%");
   });
 
   it("peer mode falls back to relative-% color when the league spread is absent (pre-004 data)", () => {
@@ -398,6 +422,7 @@ describe("buildHeatmapGrid — the switchable-reference heatmap", () => {
     expect(c.played).toBe(false);
     expect(c.colorT).toBeNull();
     expect(c.valueFmt).toBe("—");
+    expect(c.cellFmt).toBe("—");
     expect(c.selectable).toBe(false);
   });
 

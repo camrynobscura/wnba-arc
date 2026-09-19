@@ -158,6 +158,14 @@ export function fmtV(v: number | null | undefined, pct: boolean): string {
   return pct ? (v * 100).toFixed(1) + "%" : v.toFixed(1);
 }
 
+/** The glance form for a heatmap cell. Shooting %s round to a whole percent ("52%"): at cell
+    size the tenth is noise and costs width, and the popover + accessible name carry the exact
+    `fmtV` value. Counting stats keep their tenth — a 0.4 block would otherwise read as nothing. */
+export function fmtCell(v: number | null | undefined, pct: boolean): string {
+  if (v == null) return "—";
+  return pct ? Math.round(v * 100) + "%" : v.toFixed(1);
+}
+
 /** First token of a full name — used to personalize the on-page descriptions ("Paige's
     career average" rather than "the player's"). Falls back to the whole string. */
 export function firstName(fullName: string): string {
@@ -374,7 +382,10 @@ export interface HeatmapCell {
   played: boolean;
   /** The raw stat value that season (null: missed, or no value for this stat). */
   value: number | null;
+  /** Exact, one decimal ("51.9%", "26.9") — the popover and the cell's accessible name. */
   valueFmt: string;
+  /** The glance form drawn in the cell: whole percent for shooting %s ("52%"), else = valueFmt. */
+  cellFmt: string;
   /** The reference average this cell is measured against — the career average, or that year's
       league / position average; null when there's none. Shown in the cell popover. */
   refValue: number | null;
@@ -441,7 +452,7 @@ export function buildHeatmapGrid(
     STATS.map((st): HeatmapCell => {
       const shell = { year: s.year, statKey: st.key, pct: st.pct } as const;
       if (!s.played) {
-        return { ...shell, played: false, value: null, valueFmt: "—", refValue: null, refFmt: "—", delta: null, deltaFmt: "—", colorT: null, up: false, smallSample: false, selectable: false };
+        return { ...shell, played: false, value: null, valueFmt: "—", cellFmt: "—", refValue: null, refFmt: "—", delta: null, deltaFmt: "—", colorT: null, up: false, smallSample: false, selectable: false };
       }
       const value = s[st.key];
       const small = isStatSmallSample(s, league, st.key);
@@ -472,6 +483,7 @@ export function buildHeatmapGrid(
         played: true,
         value,
         valueFmt: fmtV(value, st.pct),
+        cellFmt: fmtCell(value, st.pct),
         refValue: avg,
         refFmt: fmtV(avg, st.pct),
         delta,
