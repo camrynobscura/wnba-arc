@@ -1,28 +1,11 @@
 import { photoUrl } from "../data/stats";
-import type { PlayerDetail, PlayerSummary, SeasonMissed } from "../data/api";
+import type { PlayerDetail, PlayerSummary } from "../data/api";
 import { PlayerSearch } from "./PlayerSearch";
 import type { HeatmapMode, League, PositionLookup, StatDetail, StatKey } from "../lib/deviation";
 import { PlayerPhoto } from "./PlayerPhoto";
 import { teamTint } from "../data/teams";
 import { DeviationHeatmap } from "./DeviationHeatmap";
 import { StatDrilldownView } from "./StatDrilldownView";
-
-/** "2019, 2021–2024" — collapse consecutive years into ranges for a compact list. */
-function compressYears(years: number[]): string {
-  const sorted = [...years].sort((a, b) => a - b);
-  const parts: string[] = [];
-  let start = sorted[0];
-  let prev = sorted[0];
-  for (let i = 1; i <= sorted.length; i++) {
-    if (sorted[i] === prev + 1) {
-      prev = sorted[i];
-      continue;
-    }
-    parts.push(start === prev ? `${start}` : `${start}–${prev}`);
-    start = prev = sorted[i];
-  }
-  return parts.join(", ");
-}
 
 interface PlayerViewProps {
   player: PlayerDetail;
@@ -71,16 +54,6 @@ export function PlayerView({
   onGoHome,
   onPick,
 }: PlayerViewProps) {
-  // Missed (no-data) seasons, grouped by reason so several gaps read as one compact line — the
-  // heatmap shows the gaps, but only this note carries *why* (injury / maternity / overseas).
-  const missed = player.seasons.filter((s): s is SeasonMissed => !s.played);
-  const missedByReason = new Map<string, number[]>();
-  for (const m of missed) {
-    const reason = (m.reason || "did not play").toLowerCase();
-    missedByReason.set(reason, [...(missedByReason.get(reason) ?? []), m.year]);
-  }
-  const missedGroups = [...missedByReason.entries()];
-
   return (
     <main id="main" className="view-main">
       {/* Top row: back to all players (left) + jump straight to another player (right). */}
@@ -124,19 +97,9 @@ export function PlayerView({
         onDrill={onDrill}
       />
 
-      {/* Missed-season reasons — the one thing the grid's gaps can't show on their own. */}
-      {missedGroups.length > 0 && (
-        <div role="note" className="note-card" style={{ margin: "var(--space-5) 0 0" }}>
-          {missedGroups.map(([reason, years]) => (
-            <div key={`ms-${reason}`}>
-              <strong style={{ fontWeight: 600 }}>
-                {years.length === 1 ? `No ${years[0]} season on record` : `No seasons on record for ${compressYears(years)}`}
-              </strong>{" "}
-              — {reason}.
-            </div>
-          ))}
-        </div>
-      )}
+      {/* No separate "missed seasons" note: the API's reason is always "Did not play" (ESPN has
+          no historical injury data), which the grid's empty row, its cell popover and its cell
+          labels already say. If real reasons are ever ingested, the popover is their home. */}
 
       <StatDrilldownView
         player={player}

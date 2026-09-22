@@ -1,26 +1,27 @@
-import { aboveLabel, ordinal, type CareerSummary as Summary, type HeatmapMode } from "../lib/deviation";
+import { ordinal, type CareerSummary as Summary } from "../lib/deviation";
 
 interface CareerSummaryProps {
   summary: Summary;
-  /** The word after the number ("14.3 points"); empty for a shooting %, which shows the bare "34.6%". */
+  /** The word after the number, in full ("points"; "%" for a shooting %) — what a screen reader hears. */
   unit: string;
-  mode: HeatmapMode;
+  /** The same word as printed ("PTS"). When it differs from `unit`, the short form is shown and
+      hidden from assistive tech, and the full word is given to it instead: "14.3 PTS" on screen,
+      "14.3 points" spoken (a code like "STL" is read letter by letter otherwise). */
+  unitShort: string;
 }
 
 /**
- * The career at a glance for one stat: a row of "plates" — high, low, career average, seasons
- * above the reference, best league rank — each a bordered cell with its label sitting on the
- * border. A definition list: the label is the term, the number and its note the definitions.
+ * The career at a glance for one stat: a row of "plates" — high, low, career average, best league
+ * rank — each a bordered cell with its label sitting on the border. A definition list: the label is the term, the number and its note the definitions.
  * Chosen over tiles, stat lines, a range strip and prose on a side-by-side preview (DECISIONS,
  * 2026-09-18); the plates are equal-width and the labels are kept short enough never to wrap.
  */
-export function CareerSummary({ summary: s, unit, mode }: CareerSummaryProps) {
+export function CareerSummary({ summary: s, unit, unitShort }: CareerSummaryProps) {
   const plates: { k: string; v: string; u?: string; q?: string; n: string }[] = [
     { k: "High", v: s.high.fmt, u: unit, n: String(s.high.year) },
     { k: "Low", v: s.low.fmt, u: unit, n: String(s.low.year) },
     { k: "Career avg", v: s.careerAvg, u: unit, n: `${s.seasons} season${s.seasons === 1 ? "" : "s"}` },
   ];
-  if (s.above) plates.push({ k: aboveLabel(mode), v: String(s.above.n), q: `of ${s.above.of}`, n: "seasons" });
   // "WNBA 2026" not "2026 in the league": the plate is ~100px wide and the long form wrapped; the
   // league is still named, since the rank is a league rank whatever the compare mode.
   if (s.bestRank) plates.push({ k: "Best rank", v: ordinal(s.bestRank.rank), q: `of ${s.bestRank.pool}`, n: `WNBA ${s.bestRank.year}` });
@@ -36,9 +37,16 @@ export function CareerSummary({ summary: s, unit, mode }: CareerSummaryProps) {
             {p.v}
             {p.u && (
               <>
-                {/* "35%" has no space before its sign; "1.9 steals" has a word space. */}
+                {/* "35%" has no space before its sign; "1.9 STL" has a word space. */}
                 {p.u === "%" ? "" : " "}
-                <span className="cs-q">{p.u}</span>
+                {unitShort === p.u ? (
+                  <span className="cs-q">{p.u}</span>
+                ) : (
+                  <>
+                    <span className="cs-q" aria-hidden="true">{unitShort}</span>
+                    <span className="sr-only">{p.u}</span>
+                  </>
+                )}
               </>
             )}
             {p.q && (

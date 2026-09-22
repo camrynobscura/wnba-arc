@@ -1,6 +1,5 @@
 import { describe, it, expect } from "vitest";
 import {
-  aboveLabel,
   buildHeatmapGrid,
   buildStatDetail,
   cellPercentile,
@@ -10,12 +9,15 @@ import {
   makeLeague,
   makePositionLookup,
   ordinal,
+  bandShape,
   ownStatAverage,
+  pctAxis,
   positionNoun,
   type HeatmapCell,
   type HeatmapGrid,
   type League,
   type PositionLookup,
+  type StatBar,
 } from "./deviation";
 import { STATS } from "../data/stats";
 import type { LeagueSeason, PlayerDetail, PositionSeason, Season, SeasonPlayed } from "../data/api";
@@ -276,7 +278,7 @@ describe("buildHeatmapGrid — the switchable-reference heatmap", () => {
     const p = player([playedSeason(2022, 40, { tpp: 0.44 })]);
     const g = buildHeatmapGrid(p, "league", L, POS, "F");
     expect(cell(g, 2022, "tpp").colorT).toBeCloseTo(0.6667, 3);
-    expect(cell(g, 2022, "tpp").deltaFmt).toBe("+11.0 pp");
+    expect(cell(g, 2022, "tpp").deltaFmt).toBe("+11.0 pp"); // the popover keeps the unit
     // The cell draws the rounded glance form; the popover / accessible name keep the exact value.
     expect(cell(g, 2022, "tpp").cellFmt).toBe("44%");
     expect(cell(g, 2022, "tpp").valueFmt).toBe("44.0%");
@@ -408,8 +410,6 @@ describe("buildStatDetail — the reference follows the page's mode", () => {
     expect(bar(d, 2022).up).toBe(true);
     expect(bar(d, 2021).up).toBe(false);
     expect(row(d, 2022).deltaFmt).toBe("+6.0");
-    expect(row(d, 2022).pctile).toBeCloseTo(45, 5); // pts 18 on the 0→40 ladder
-    expect(d.caption).toBe("Each season below is measured against the league average for that year.");
   });
 
   it("self mode: a FLAT career-average reference (the heatmap's own basis), no percentile, no band", () => {
@@ -421,9 +421,7 @@ describe("buildStatDetail — the reference follows the page's mode", () => {
     expect(bar(d, 2022).baseFmt).toBe("15.0");
     expect(bar(d, 2020).up).toBe(false);
     expect(bar(d, 2022).up).toBe(true);
-    expect(d.tableRows.every((r) => r.pctile === null)).toBe(true);
     expect(d.hasBand).toBe(false);
-    expect(d.caption).toBe("Each season below is measured against Test's career average.");
     expect(d.summary?.careerAvg).toBe("15.0");
   });
 
@@ -433,11 +431,8 @@ describe("buildStatDetail — the reference follows the page's mode", () => {
     const p = player([playedSeason(2022, 40, { pts: 16 }), playedSeason(2024, 40, { pts: 16 })], "C");
     const d = buildStatDetail(p, pts, "position", L, positions([2024]), "C");
     expect(bar(d, 2024).baseFmt).toBe("10.0"); // centers = 10 (guards 15, league 12)
-    expect(row(d, 2024).pctile).toBeCloseTo(80, 5); // pts 16 on the center 0→20 ladder
     expect(bar(d, 2022).baseFmt).toBeNull();
     expect(bar(d, 2022).up).toBeNull();
-    expect(d.positionNote).toMatch(/No same-position average for 2022/);
-    expect(d.caption).toBe("Each season below is measured against the average for centers that year.");
   });
 
   it("never falls back to league in position mode when the lookup is missing (reference stays null)", () => {
@@ -445,7 +440,6 @@ describe("buildStatDetail — the reference follows the page's mode", () => {
     const p = player([playedSeason(2024, 40)], "G");
     const d = buildStatDetail(p, pts, "position", L, null, "G");
     expect(d.bars[0].baseFmt).toBeNull();
-    expect(d.summary?.above).toBeNull();
   });
 });
 
@@ -493,8 +487,20 @@ describe("buildStatDetail — career summary plates", () => {
     expect(s.high).toEqual({ fmt: "20.0", year: 2022 });
     expect(s.low).toEqual({ fmt: "8.0", year: 2019 });
     expect(s.careerAvg).toBe("14.0"); // mean of 8, 14, 20 — the 4-game season excluded
-    expect(s.above).toEqual({ n: 2, of: 3 }); // league avg 12: 14 and 20 above, 8 below
     expect(s.bestRank).toEqual({ rank: 3, pool: 100, year: 2022 }); // the 1st-of-80 was a small sample
+  });
+
+  it("best rank is chosen by share of the pool, not by the rank number", () => {
+    // Gabby Williams' rebounds, measured 2026-09-21: 18th of 65 (top 28%) vs 27th of 106 (top 25%).
+    const L = league([2018, 2022]);
+    const p = player([playedSeason(2018, 40, { ...rk(18, 65) }), playedSeason(2022, 40, { ...rk(27, 106) })]);
+    expect(buildStatDetail(p, pts, "league", L, POS, "F").summary!.bestRank).toEqual({ rank: 27, pool: 106, year: 2022 });
+    // Even a 1st place loses to a smaller share of a much larger pool: 1/65 = 1.5% vs 2/158 = 1.3%.
+    const q = player([playedSeason(2018, 40, { ...rk(1, 65) }), playedSeason(2022, 40, { ...rk(2, 158) })]);
+    expect(buildStatDetail(q, pts, "league", L, POS, "F").summary!.bestRank).toEqual({ rank: 2, pool: 158, year: 2022 });
+    // Exactly equal shares (5/50 = 10/100) → the larger pool.
+    const e = player([playedSeason(2018, 40, { ...rk(5, 50) }), playedSeason(2022, 40, { ...rk(10, 100) })]);
+    expect(buildStatDetail(e, pts, "league", L, POS, "F").summary!.bestRank).toEqual({ rank: 10, pool: 100, year: 2022 });
   });
 
   it("a tied best rank goes to the larger pool, then the later year", () => {
@@ -518,13 +524,6 @@ describe("buildStatDetail — career summary plates", () => {
     const thin = player([playedSeason(2022, 3)]);
     expect(buildStatDetail(thin, pts, "league", L, POS, "F").summary).toBeNull();
   });
-
-  it("labels the above-reference plate by mode, in at most 12 characters", () => {
-    expect(aboveLabel("league")).toBe("Above league");
-    expect(aboveLabel("position")).toBe("Above peers");
-    expect(aboveLabel("self")).toBe("Above career");
-    for (const m of ["league", "position", "self"] as const) expect(aboveLabel(m).length).toBeLessThanOrEqual(12);
-  });
 });
 
 describe("buildStatDetail — chart drops thin seasons; table keeps the full record", () => {
@@ -540,17 +539,21 @@ describe("buildStatDetail — chart drops thin seasons; table keeps the full rec
       playedSeason(2022, 40, { fg3Made: 9, fg3Att: 20 }), // 45% — charted
     ];
     const detail = buildStatDetail(player(seasons), tppStat, "league", L, POS, "F");
-    expect(detail.bars.map((b) => b.year)).toEqual([2020, 2022]);
+    expect(detail.bars.map((b) => `${b.year}:${b.kind}`)).toEqual(["2019:missed", "2020:full", "2021:small", "2022:full"]);
     expect(detail.chartFallback).toBeNull();
-    expect(detail.bars.every((b) => b.baseFmt != null)).toBe(true);
+    expect(detail.bars.filter((b) => b.kind === "full").every((b) => b.baseFmt != null)).toBe(true);
     expect(detail.tableRows.map((r) => r.year)).toEqual([2022, 2021, 2020, 2019]);
     const thin = detail.tableRows.find((r) => r.year === 2021)!;
     expect(thin.smallSample).toBe(true);
     expect(thin.made).toBe(1);
     expect(thin.att).toBe(1);
     expect(thin.deltaFmt).toBe("—"); // delta suppressed for a noise season
+    // The table's Diff prints the bare number — the unit is in the header tooltip. ("+2.6 pp" wrapped
+    // in a phone column; the heatmap popover, with room, keeps " pp".)
+    expect(detail.tableRows.find((r) => r.year === 2022)!.deltaFmt).toMatch(/^[+−]\d+\.\d$/);
     expect(detail.component).toEqual({ madeShort: "3PM", attShort: "3PA", noun: "three-pointers" });
     expect(detail.unit).toBe("%"); // the sign is the word after a whole-percent plate number
+    expect(detail.unitShort).toBe("%");
   });
 
   it("counting stats have no makes/attempts columns; the rank column reads the API's rank + pool", () => {
@@ -558,7 +561,8 @@ describe("buildStatDetail — chart drops thin seasons; table keeps the full rec
     const p = player([playedSeason(2021, 40), playedSeason(2022, 40, { rank: { pts: 9, reb: 1, ast: 1, stl: 1, blk: 1 }, pool: 186 })]);
     const detail = buildStatDetail(p, ptsStat, "league", L, POS, "F");
     expect(detail.component).toBeNull();
-    expect(detail.unit).toBe("points"); // "14.3 points" on the plates
+    expect(detail.unit).toBe("points"); // what a screen reader hears after the plate number
+    expect(detail.unitShort).toBe("PTS"); // what the plate prints: "14.3 PTS" — ESPN's column code
     expect(detail.tableRows.every((r) => r.made === null && r.att === null)).toBe(true);
     const r22 = detail.tableRows.find((r) => r.year === 2022)!;
     expect(r22.rank).toBe(9);
@@ -574,8 +578,125 @@ describe("buildStatDetail — chart drops thin seasons; table keeps the full rec
       playedSeason(2022, 40, { fg3Made: 2, fg3Att: 5 }),
     ]);
     const detail = buildStatDetail(p, tppStat, "league", L, POS, "F");
-    expect(detail.bars).toHaveLength(0);
+    expect(detail.bars.every((b) => b.kind === "small")).toBe(true);
     expect(detail.chartFallback).toMatch(/enough three-point attempts/i);
     expect(detail.summary).toBeNull();
+  });
+});
+
+describe("buildStatDetail — every season on the timeline is a chart column", () => {
+  const pts = STATS.find((s) => s.key === "pts")!;
+  const tpp = STATS.find((s) => s.key === "tpp")!;
+  const missed = (year: number): Season => ({ year, played: false, reason: "Did not play" });
+
+  it("draws a full season, a small sample (hollow, no reference) and a missed year (empty), in order", () => {
+    const L = league([2018, 2019, 2020, 2021, 2022]);
+    const p = player([playedSeason(2018, 40), playedSeason(2019, 4, { pts: 30 }), playedSeason(2020, 40), missed(2021), playedSeason(2022, 40)]);
+    const d = buildStatDetail(p, pts, "league", L, POS, "F");
+    expect(d.bars.map((b) => `${b.year}:${b.kind}`)).toEqual(["2018:full", "2019:small", "2020:full", "2021:missed", "2022:full"]);
+    const small = d.bars[1];
+    expect(small.baseFmt).toBeNull();
+    expect(small.basePct).toBeNull();
+    expect(small.labelFmt).toBe("30.0"); // its value is still printed
+    const gap = d.bars[3];
+    expect(gap.hPct).toBeNull();
+    expect(gap.labelFmt).toBe("");
+    expect(gap.valFmt).toBe("—");
+  });
+
+  it("a small-sample value stays OUT of the axis fit and is clamped inside the frame", () => {
+    // The fixture's league band tops out at 36 (90th pct of the 0→40 ladder), so the axis is
+    // 36 × 1.2 = 43.2. A 50-ppg season on 4 games would lift it to 60 if it counted; it doesn't.
+    const L = league([2018, 2019, 2020]);
+    const p = player([playedSeason(2018, 40, { pts: 10 }), playedSeason(2019, 4, { pts: 50 }), playedSeason(2020, 40, { pts: 14 })]);
+    const d = buildStatDetail(p, pts, "league", L, POS, "F");
+    expect(d.axisTicks[2].label).toBe("43.2");
+    expect(d.bars[1].hPct).toBe(95); // 50 is above the top → clamped just under the edge
+  });
+
+  it("the band runs on through a missed year (the league played it)", () => {
+    const L = league([2020, 2021, 2022]);
+    const p = player([playedSeason(2020, 40), missed(2021), playedSeason(2022, 40)]);
+    const d = buildStatDetail(p, pts, "league", L, POS, "F");
+    expect(d.bars.map((b) => b.band != null)).toEqual([true, true, true]);
+  });
+
+  it("the fallback still replaces the plot with fewer than two full seasons", () => {
+    const L = league([2021, 2022]);
+    const p = player([playedSeason(2021, 40, { tpp: 1, fg3Made: 1, fg3Att: 1 }), playedSeason(2022, 40, { tpp: 0.5, fg3Made: 1, fg3Att: 2 })]);
+    expect(buildStatDetail(p, tpp, "league", L, POS, "F").chartFallback).not.toBeNull();
+  });
+});
+
+describe("pctAxis — a shooting-% chart's fitted vertical scale", () => {
+  it("fits the data with whole-five ends and a whole-ten span (the measured Gabby Williams TS% case)", () => {
+    // Her seasons 42–55%, league refs 51.8–56.1% → 40–60 (from zero the data used ~21% of the plot).
+    expect(pctAxis([0.48, 0.47, 0.5, 0.51, 0.42, 0.55, 0.51, 0.561, 0.518])).toEqual({ lo: 0.4, hi: 0.6 });
+  });
+
+  it("never shows less than 20 points, so a tiny gap stays tiny; ties grow upward", () => {
+    // 55–56 → 50–60 first, then grows up (less room above: 4 vs 5), then down → centered on the data.
+    expect(pctAxis([0.55, 0.56])).toEqual({ lo: 0.45, hi: 0.65 });
+    // 52–63 → 50–65 is only 15 wide with equal room both sides → grows up to 50–70.
+    expect(pctAxis([0.52, 0.63])).toEqual({ lo: 0.5, hi: 0.7 });
+  });
+
+  it("keeps at least a point of clearance, so a value on a five doesn't sit on the frame", () => {
+    const a = pctAxis([0.4, 0.55]);
+    expect(a.lo).toBeLessThanOrEqual(0.39);
+    expect(a.hi).toBeGreaterThanOrEqual(0.56);
+    expect(Math.round((a.hi - a.lo) * 100) % 10).toBe(0);
+  });
+
+  it("grows toward the side with less room, and never below zero", () => {
+    expect(pctAxis([0.31, 0.44])).toEqual({ lo: 0.3, hi: 0.5 });
+    expect(pctAxis([0.02, 0.08])).toEqual({ lo: 0, hi: 0.2 });
+    expect(pctAxis([])).toEqual({ lo: 0, hi: 1 });
+  });
+});
+
+describe("buildStatDetail — the chart's vertical scale by stat type", () => {
+  const pts = STATS.find((s) => s.key === "pts")!;
+  const tpp = STATS.find((s) => s.key === "tpp")!;
+
+  it("a shooting % is drawn on the fitted axis: whole-percent ticks, dots placed within it", () => {
+    const L = league([2021, 2022]);
+    const p = player([playedSeason(2021, 40, { tpp: 0.31, fg3Made: 31, fg3Att: 100 }), playedSeason(2022, 40, { tpp: 0.44, fg3Made: 44, fg3Att: 100 })]);
+    const d = buildStatDetail(p, tpp, "league", L, POS, "F");
+    const refs = d.bars.map((b) => parseFloat(b.baseFmt!) / 100);
+    const a = pctAxis([0.31, 0.44, ...refs]);
+    expect(d.axisTicks.map((t) => t.label)).toEqual([a.lo, (a.lo + a.hi) / 2, a.hi].map((v) => `${Math.round(v * 100)}%`));
+    expect(d.axisTicks[0].label).not.toBe("0%"); // the point of the change
+    expect(d.bars[1].hPct).toBeCloseTo(((0.44 - a.lo) / (a.hi - a.lo)) * 100, 1);
+    expect(d.bars.map((b) => b.labelFmt)).toEqual(["31%", "44%"]); // beside the dot: the glance form, no tenth
+    for (const b of d.bars) for (const y of [b.hPct!, b.basePct!]) expect(y > 0 && y < 100).toBe(true);
+  });
+
+  it("a counting stat still starts at zero", () => {
+    const L = league([2021, 2022]);
+    const p = player([playedSeason(2021, 40, { pts: 10 }), playedSeason(2022, 40, { pts: 18 })]);
+    const d = buildStatDetail(p, pts, "league", L, POS, "F");
+    expect(d.axisTicks[0].label).toBe("0.0");
+    expect(d.bars.map((b) => b.labelFmt)).toEqual(["10.0", "18.0"]); // a counting stat keeps its tenth
+  });
+});
+
+describe("bandShape — the band fills its first and last columns", () => {
+  const bar = (band: StatBar["band"]): StatBar => ({ year: 2020, yy: "20", kind: "full", valFmt: "", labelFmt: "", baseFmt: null, hPct: 50, basePct: null, up: null, band });
+  const b = (lo: number, mid: number, hi: number) => ({ loPct: lo, midPct: mid, hiPct: hi });
+
+  it("runs through the column centers and extends flat to the plot's outer edges", () => {
+    // Four columns → centers at 12.5 / 37.5 / 62.5 / 87.5; the ends repeat the end seasons' values at 0 and 100.
+    const s = bandShape([bar(b(10, 40, 80)), bar(b(20, 50, 90)), bar(b(10, 45, 70)), bar(b(0, 30, 60))])!;
+    expect(s.median).toBe("0,60 12.5,60 37.5,50 62.5,55 87.5,70 100,70");
+    expect(s.polygon.split(" ").slice(0, 6)).toEqual(["0,20", "12.5,20", "37.5,10", "62.5,30", "87.5,40", "100,40"]); // top edge (90th)
+    expect(s.polygon.split(" ").slice(6)).toEqual(["100,100", "87.5,100", "62.5,90", "37.5,80", "12.5,90", "0,90"]); // bottom edge, reversed
+  });
+
+  it("when the end seasons have no band, stops at the banded columns' own edges; none → null", () => {
+    // Columns 0 and 3 have no band (a position-year with no bucket) → x from 25 (col 1's left) to 75 (col 2's right).
+    const s = bandShape([bar(null), bar(b(10, 40, 80)), bar(b(20, 50, 90)), bar(null)])!;
+    expect(s.median).toBe("25,60 37.5,60 62.5,50 75,50");
+    expect(bandShape([bar(null), bar(null)])).toBeNull();
   });
 });

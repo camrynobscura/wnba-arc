@@ -415,22 +415,6 @@ select.select-reset {
   box-shadow: var(--shadow-lg);
 }
 
-/* Inset note / callout — soft-tinted card with a left accent border. Shared by the
-   data-omission notes (missed seasons, small samples, no-position baseline) on the summary
-   and drill-down so they read identically. Each caller sets its own margin. */
-.note-card {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-  padding: var(--space-3);
-  font-size: var(--fs-xs);
-  line-height: 1.4;
-  color: var(--color-neutral-700);
-  background: color-mix(in srgb, var(--color-text) 3.5%, transparent);
-  border-left: 2px solid var(--color-divider);
-  border-radius: 0 var(--radius-md) var(--radius-md) 0;
-}
-
 /* — header / nav — the top bar and the controls that live in it — */
 .nav {
   display: flex;
@@ -550,13 +534,24 @@ select.select-reset {
 .table td:not(:first-child) {
   text-align: right;
 }
-/* Zebra striping — aids row-tracking on the wide drill-down table. Selected row
-   sets its own (blue) background inline, which overrides both this and :hover. */
+/* Zebra striping — aids row-tracking on the wide drill-down table. */
 .table tbody tr:nth-child(even) {
   background: color-mix(in srgb, var(--color-text) 3.5%, transparent);
 }
-.table tbody tr:hover {
-  background: color-mix(in srgb, var(--color-text) 7%, transparent);
+/* Hover wash only where hovering exists: on a touch screen a row touched while scrolling keeps
+   :hover until the next tap, which looked like a second "selected" row next to the real one. */
+@media (hover: hover) {
+  .table tbody tr:hover {
+    background: color-mix(in srgb, var(--color-text) 7%, transparent);
+  }
+}
+/* The row a chart column was clicked for: a heavier wash than hover/zebra (same specificity as
+   both, so it must come after them) and a bold year. Neutral, not a color — color means data. */
+.table tbody tr.is-selected {
+  background: color-mix(in srgb, var(--color-neutral-900) 10%, transparent);
+}
+.table tbody tr.is-selected td:first-child {
+  font-weight: 700;
 }
 
 /* — deviation heatmap (the summary view) — see components/DeviationHeatmap.tsx. Cells are
@@ -764,25 +759,6 @@ select.select-reset {
 .scale-ends b {
   font-weight: 600;
 }
-.hm-legend-key {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  margin-top: var(--space-2);
-  font-size: var(--fs-2xs);
-}
-/* inline-block + vertical-align so the same dot works both in the flex legend and inline next
-   to a table year; flex:none keeps it from shrinking inside the legend. */
-.hm-legend-dot {
-  display: inline-block;
-  vertical-align: middle;
-  flex: none;
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--color-neutral-600);
-}
-
 /* — feedback & a11y widgets: loading spinner, info tooltip, skip link — */
 /* Loading indicator — a wave of accent fill across small hairline blocks, echoing
    the deviation blocks + the blueprint frame. Decorative (aria-hidden); the state
@@ -912,7 +888,7 @@ select.select-reset {
    the table's rank column. (See components/StatDrilldownView.tsx.)
    ══════════════════════════════════════════════════════════════════════ */
 
-/* — career summary: a row of "plates" — equal columns however many facts there are (4 or 5),
+/* — career summary: a row of "plates" — equal columns however many facts there are (3 or 4),
    each a bordered cell whose label sits ON the border like a fieldset legend. The label and the
    border share one grey (neutral-700 — passes as text on both grounds, which the lighter
    neutral-600 does not); the number is the only ink. Chosen over tiles/lines on a side-by-side
@@ -957,7 +933,7 @@ select.select-reset {
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
-/* The word after the number — the stat's name ("1.9 steals") or a qualifier ("1st of 158"): one
+/* The word after the number — the stat's box-score code ("1.9 STL") or a qualifier ("1st of 158"): one
    quiet treatment for both, muted; the gap is the word space alone (none before a "%"). */
 .cs-q {
   font-size: var(--fs-sm);
@@ -969,9 +945,9 @@ select.select-reset {
   font-size: var(--fs-xs);
   color: var(--color-neutral-700);
 }
-/* Phones: five equal columns of a ~280px row would be ~50px each. Wrap to three per row instead,
-   the leftover two stretching to fill the second row (3 + 2); exactly four plates (a shooting %,
-   which has no rank) go two and two. The number steps down one size so "36th of 186" still fits. */
+/* Phones: four equal columns of a ~280px row would be ~60px each, too narrow for "36th of 186".
+   Four plates (a counting stat, which has a rank) go two and two; three (a shooting %, which has
+   none) stay on one row. The number steps down one size so "36th of 186" still fits. */
 @media (max-width: 520px) {
   .cs {
     display: flex;
@@ -988,6 +964,97 @@ select.select-reset {
   .cs-v {
     font-size: var(--fs-xl);
   }
+}
+
+/* — the chart's frame: a fixed y-axis column beside a scroller. The scroller only scrolls on a
+   phone (like .hm-scroll): a long career keeps every season at least COL_MIN wide (set inline)
+   and slides sideways under the fixed axis labels. Both columns carry the same top clearance so
+   a value label above the topmost dot has room INSIDE the scroller — a scroller clips on both
+   axes, and the card's own padding is outside it. (A floor-level label to the right of the LAST
+   column's dot would reach past the plot's edge — the view adds .dd-edge-label for that case.) */
+.dd-card {
+  padding: 6px var(--space-5) var(--space-3);
+}
+.dd-body {
+  display: flex;
+}
+.dd-axis {
+  flex: none;
+  width: 32px;
+  padding-top: 14px;
+}
+.dd-tick {
+  position: absolute;
+  right: 4px;
+  transform: translateY(-50%);
+  font-size: var(--fs-3xs);
+  color: var(--color-neutral-700);
+  white-space: nowrap;
+}
+.dd-scroll {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.dd-inner {
+  padding-top: 14px;
+  box-sizing: content-box; /* the inline min-width is the PLOT's width; the paddings sit outside it */
+}
+@media (max-width: 480px) {
+  .dd-card {
+    padding-left: var(--space-3);
+    padding-right: var(--space-3);
+  }
+  .dd-scroll {
+    overflow-x: auto;
+  }
+  /* Only when the last column's label sits to the right of its dot: room for it inside the scroller. */
+  .dd-inner.dd-edge-label {
+    padding-right: var(--space-6);
+  }
+  /* Denser columns (COL_MIN 22px): a 10px label is 15–17px wide, so neighbours at the same height
+     keep 5–7px of air; at 11px they were 3px apart and near-equal values ran together ("51%51%").
+     Scoped under .dd-scroll to outrank the base .dd-value rule, which comes later in this file. */
+  .dd-scroll .dd-value {
+    font-size: var(--fs-3xs);
+  }
+}
+/* A season that is shown but not compared — a small sample, or a year with no reference: a ring,
+   not a filled dot. The same class draws the legend's swatch. */
+.dd-hollow {
+  background: transparent;
+  border: 2px solid var(--color-neutral-500);
+  box-sizing: border-box;
+}
+/* A season column: the click target for the row highlight. */
+.dd-col {
+  cursor: pointer;
+  border-radius: 4px;
+}
+.dd-col.is-selected {
+  background-color: color-mix(in srgb, var(--color-neutral-900) 8%, transparent);
+}
+/* A missed year: a faint diagonal hatch — the chart's "no season here" mark. A "—" glyph in the
+   column sat by the middle gridline and read as a stray mark; a hatch is texture, not a value.
+   Thin 1px lines every 6px at 10% ink, so the band and gridlines still show through. Set as a
+   background-image so the selection wash (a background-color) can sit under it. */
+.dd-col.dd-missed {
+  background-image: repeating-linear-gradient(-45deg, transparent 0 5px, color-mix(in srgb, var(--color-text) 10%, transparent) 5px 6px);
+}
+
+/* — the chart's value labels: each season's number printed beside the player's dot (the chart
+   had none once the clickable subject season went, and its only readout was a mouse-only title).
+   Condensed face + tabular figures so a label fits a ~40px column; ink, not the dot's color —
+   10–11px red or blue text on the band fails as readable. */
+.dd-value {
+  position: absolute;
+  font-family: var(--font-heading);
+  font-weight: 500;
+  font-size: var(--fs-2xs);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text);
+  white-space: nowrap;
+  pointer-events: none;
 }
 
 /* — the chart's band: the middle 80% of the comparison group each year, drawn as one faint
@@ -1011,8 +1078,4 @@ select.select-reset {
   background: var(--color-neutral-900);
   opacity: 0.12;
   border-radius: 2px;
-}
-/* The rank column ("9th of 186") must not wrap inside the fixed-layout table. */
-.table td.nowrap {
-  white-space: nowrap;
 }

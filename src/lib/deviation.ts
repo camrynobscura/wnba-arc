@@ -184,9 +184,11 @@ function sgn(r: number): string {
   return "±";
 }
 
-/** Raw delta in the stat's own units — percentage *points* for rate stats. */
-export function fmtRaw(r: number, pct: boolean): string {
-  return sgn(r) + (pct ? (Math.abs(r) * 100).toFixed(1) + " pp" : Math.abs(r).toFixed(1));
+/** Raw delta in the stat's own units — percentage *points* for rate stats ("+2.6 pp"). `unit: false`
+    drops the " pp" suffix: the table's Diff column prints the bare number (the two-token form wrapped
+    inside a 40px phone column) and names the unit in its header tooltip instead. */
+export function fmtRaw(r: number, pct: boolean, unit = true): string {
+  return sgn(r) + (pct ? (Math.abs(r) * 100).toFixed(1) + (unit ? " pp" : "") : Math.abs(r).toFixed(1));
 }
 
 export function playedSeasons(player: PlayerDetail): SeasonPlayed[] {
@@ -458,20 +460,57 @@ export function cellPercentile(
 // earlier version compared everything to one "subject" season the reader picked; the heatmap's
 // cell popover now carries per-season detail, so the subject and its picker went. DECISIONS.)
 
-/** One charted season. Percent values are heights on the chart's 0–100 scale (0 = bottom). */
+/** One column of the chart — EVERY season on the player's timeline, so the x-axis matches the
+    heatmap's rows and the table's rows (a missed year is a gap here as it is there). Percent values
+    are heights on the chart's 0–100 scale (0 = bottom). */
 export interface StatBar {
   year: number;
   yy: string;
+  /** What the column draws: a full season (value dot + reference dot + connector); a "small" one
+      (a small sample, or a played season with no value) as a hollow dot with its value and no
+      reference — shown but not compared, like the heatmap's grey cell; a missed year as an empty
+      column ("—"). */
+  kind: "full" | "small" | "missed";
   valFmt: string;
+  /** The value as printed beside its dot: the heatmap cell's glance form ("14.3", "51%") — a
+      column can be under 40px wide, so a shooting % drops its tenth; the table has the exact form. */
+  labelFmt: string;
   /** That season's reference, formatted; null when there is none (a position-year with no bucket). */
   baseFmt: string | null;
-  hPct: number;
+  /** The value's height. A small-sample value is kept OUT of the axis fit (a 1-of-1 100% would
+      squash everything) and clamped just inside the frame instead; null with nothing to draw. */
+  hPct: number | null;
   basePct: number | null;
   /** Above (true) or below (false) the reference; null with no reference → a neutral dot. */
   up: boolean | null;
   /** The comparison group's spread that year — 10th, median, and 90th percentile heights. Peer
       modes and counting stats only (the ladders exist for nothing else); null otherwise. */
   band: { loPct: number; midPct: number; hiPct: number } | null;
+}
+
+/**
+ * The band's outline for the chart's SVG, in percent coordinates (x: 0–100 across the plot, y: 0
+ * at the TOP). The edges run through each banded season's column CENTER — and extend flat to the
+ * OUTER edge of the first and last banded columns, so the band fills those columns instead of
+ * stopping at their midpoints (a season's range applies to its whole column). `polygon` is the
+ * 10th–90th area, `median` the dotted line. Null when no charted season has a band.
+ */
+export function bandShape(bars: StatBar[]): { polygon: string; median: string } | null {
+  const n = bars.length;
+  const banded = bars.map((b, i) => ({ band: b.band, i })).filter((x): x is { band: NonNullable<StatBar["band"]>; i: number } => x.band != null);
+  if (banded.length === 0) return null;
+  const num = (v: number) => +v.toFixed(2);
+  const first = banded[0];
+  const last = banded[banded.length - 1];
+  const xs = [num((first.i / n) * 100), ...banded.map(({ i }) => num(((i + 0.5) / n) * 100)), num(((last.i + 1) / n) * 100)];
+  const edge = (pick: (b: NonNullable<StatBar["band"]>) => number) => {
+    const ys = [pick(first.band), ...banded.map(({ band }) => pick(band)), pick(last.band)].map((p) => num(100 - p));
+    return xs.map((x, k) => `${x},${ys[k]}`);
+  };
+  return {
+    polygon: [...edge((b) => b.hiPct), ...edge((b) => b.loPct).reverse()].join(" "),
+    median: edge((b) => b.midPct).join(" "),
+  };
 }
 
 export interface StatTableRow {
@@ -485,8 +524,6 @@ export interface StatTableRow {
   att: number | null;
   deltaFmt: string;
   deltaColor: string;
-  /** Percentile within the comparison group (peer modes, counting stats); null otherwise. */
-  pctile: number | null;
   /** League rank that season (1 = best) and the qualified pool it's among — from the API. Counting
       stats only, and only for a season that qualified. Always a LEAGUE rank, whatever the mode. */
   rank: number | null;
@@ -503,10 +540,10 @@ export interface CareerSummary {
   low: { fmt: string; year: number };
   /** Career average of this stat (pooled makes/attempts for a shooting %), formatted; "—" if none. */
   careerAvg: string;
-  /** Full seasons above the reference, out of those that had one; null when none had one. */
-  above: { n: number; of: number } | null;
-  /** Best league rank across full seasons ("1st of 158"); ties go to the larger pool, then the
-      later year. Null for shooting %s (no rank) or when no season qualified. */
+  /** Best league rank across full seasons, shown as a rank ("27th of 106") but CHOSEN by the rank's
+      share of its pool (27/106 beats 18/65): the league keeps growing, so a bare rank number means
+      something different every year. Equal shares go to the larger pool, then the later year.
+      Null for shooting %s (no rank) or when no season qualified. */
   bestRank: { rank: number; pool: number; year: number } | null;
 }
 
@@ -515,16 +552,18 @@ export interface StatDetail {
   short: string;
   /** True for shooting-percentage stats (no "per game" unit); false for counting stats. */
   pct: boolean;
-  /** The word after a summary number: the stat's name for a counting stat ("14.3 points", "1.9 steals");
-      "%" for a shooting %, whose plate numbers are whole percents ("35" + "%"). */
+  /** The word after a summary number, in full: the stat's name for a counting stat ("points",
+      "steals"); "%" for a shooting %, whose plate numbers are whole percents ("35" + "%"). The
+      plates SHOW `unitShort` and give this one to screen readers. */
   unit: string;
+  /** The same word as the plates print it: the stat's box-score code, upper case exactly as the
+      heatmap and table headers show it ("14.3 PTS", "1.9 STL") — these are ESPN's own column
+      labels (PTS/REB/AST/STL/BLK), codes rather than words, so they carry no singular/plural; in
+      lower case they read as words and looked inconsistent ("pts" vs "reb"). "%" for a shooting %. */
+  unitShort: string;
   /** For a rate stat, the makes/attempts column labels the table should add (e.g. 3PM/3PA);
       null for a counting stat, where those columns don't apply. */
   component: { madeShort: string; attShort: string; noun: string } | null;
-  /** "Each season below is measured against …" — names the reference, scoped to the chart + table. */
-  caption: string;
-  /** Position mode: charted seasons with no same-position bucket (no reference → neutral dot). */
-  positionNote?: string;
   summary: CareerSummary | null;
   /** When the chart can't show a meaningful trend (fewer than 2 trustworthy seasons), this is
       the line the view renders in place of the plot. Null when the chart renders normally. */
@@ -566,11 +605,33 @@ export function compareOptions(canSelf: boolean, positionAvailable: boolean, pos
   ];
 }
 
-/** The summary plate that counts seasons above the reference, labeled by mode. Twelve characters
-    at most on purpose: the plate is narrow and the label must not wrap. "Peers" stands in for
-    "other guards/forwards/centers", which doesn't fit. */
-export function aboveLabel(mode: HeatmapMode): string {
-  return mode === "league" ? "Above league" : mode === "position" ? "Above peers" : "Above career";
+/**
+ * The vertical scale for a SHOOTING-% chart: fitted to the data instead of starting at zero.
+ * From zero, a true-shooting career of 42–56% used a fifth of the plot and every gap looked the
+ * same. This is a dot chart — the reader compares positions, not bar lengths — so a non-zero
+ * floor is honest, and the bottom tick says so ("40%"). Counting stats keep their zero: it is a
+ * real floor players sit near (blocks 0.2–0.5), and so does the league band's low edge.
+ *
+ * Rules, in tenths of a percentage point (integers, so no float drift):
+ *  - covers every value passed (the player's seasons AND the reference dots), with at least one
+ *    point of clearance so no dot sits on the frame;
+ *  - ends snap to whole fives and the span to a whole ten, so the three ticks read "40% 50% 60%";
+ *  - never narrower than 20 points — a pure fit would stretch a 55→56% career across the whole
+ *    plot; with the floor a one-point gap stays small;
+ *  - grows toward the side with less room (ties go up, as headroom), never below 0%.
+ */
+export function pctAxis(values: number[]): { lo: number; hi: number } {
+  if (values.length === 0) return { lo: 0, hi: 1 };
+  const t = values.map((v) => Math.round(v * 1000));
+  const tmin = Math.min(...t);
+  const tmax = Math.max(...t);
+  let lo = Math.max(0, Math.floor((tmin - 10) / 50) * 50);
+  let hi = Math.ceil((tmax + 10) / 50) * 50;
+  while (hi - lo < 200 || (hi - lo) % 100 !== 0) {
+    if (tmin - lo < hi - tmax && lo >= 50) lo -= 50;
+    else hi += 50;
+  }
+  return { lo: lo / 1000, hi: hi / 1000 };
 }
 
 export function buildStatDetail(
@@ -602,35 +663,46 @@ export function buildStatDetail(
     mode === "self" ? careerAvg : mode === "position" ? (posOk ? positions.avg(year, playerPosition, key) : null) : league.avg(year, key);
   const ladderFor = (year: number): number[] | null =>
     mode === "self" ? null : mode === "position" ? (posOk ? positions.ladder(year, playerPosition, key) : null) : league.ladder(year, key);
-  const pctileFor = (year: number, v: number): number | null =>
-    mode === "self" ? null : mode === "position" ? (posOk ? positions.pctile(year, playerPosition, key, v) : null) : league.pctile(year, key, v);
   const bandFor = (year: number) => {
     const l = ladderFor(year);
     return l && l.length >= 11 ? { lo: l[1], mid: l[5], hi: l[9] } : null;
   };
   const rankOf = (s: SeasonPlayed): number | null => (ck != null && s.rank ? s.rank[ck] : null);
 
-  // Scale spans the charted values, their references, and the band tops, so nothing clips and the
-  // axis never rescales between modes for the same reason twice. 1.2 leaves headroom.
-  const tops = chartable
-    .flatMap((s) => [s[key] as number, refFor(s.year), bandFor(s.year)?.hi ?? null])
-    .filter((v): v is number => v != null);
-  const maxVal = Math.max(...tops, 0) * 1.2 || 1;
-  const pctOf = (v: number) => +((v / maxVal) * 100).toFixed(2);
+  // Scale spans everything the plot draws — the charted values, their references, the band's
+  // edges — so nothing clips. A counting stat runs from ZERO to 1.2× the top (headroom); a shooting
+  // % gets a fitted axis (see pctAxis: from zero its data used a sliver of the plot).
+  // The band exists for any year with a ladder — a missed year included (the league played),
+  // so it runs on through a gap in the player's timeline.
+  const drawn = [
+    ...chartable.flatMap((s) => [s[key] as number, refFor(s.year)]),
+    ...player.seasons.flatMap((s) => [bandFor(s.year)?.hi ?? null, bandFor(s.year)?.lo ?? null]),
+  ].filter((v): v is number => v != null);
+  const axis = stat.pct ? pctAxis(drawn) : { lo: 0, hi: Math.max(...drawn, 0) * 1.2 || 1 };
+  const pctOf = (v: number) => +(((v - axis.lo) / (axis.hi - axis.lo)) * 100).toFixed(2);
+  const clamp = (h: number) => Math.min(95, Math.max(5, h));
 
-  const bars: StatBar[] = chartable.map((s) => {
-    const v = s[key] as number; // non-null by the chartable filter
-    const b = refFor(s.year);
+  const bars: StatBar[] = player.seasons.map((s) => {
     const band = bandFor(s.year);
+    const bandPct = band ? { loPct: pctOf(band.lo), midPct: pctOf(band.mid), hiPct: pctOf(band.hi) } : null;
+    const yy = String(s.year).slice(2);
+    if (!s.played) return { year: s.year, yy, kind: "missed", valFmt: "—", labelFmt: "", baseFmt: null, hPct: null, basePct: null, up: null, band: bandPct };
+    const v = s[key];
+    if (v == null || small(s)) {
+      return { year: s.year, yy, kind: "small", valFmt: fmtV(v, stat.pct), labelFmt: v == null ? "" : fmtCell(v, stat.pct), baseFmt: null, hPct: v == null ? null : clamp(pctOf(v)), basePct: null, up: null, band: bandPct };
+    }
+    const b = refFor(s.year);
     return {
       year: s.year,
-      yy: String(s.year).slice(2),
+      yy,
+      kind: "full",
       valFmt: fmtV(v, stat.pct),
+      labelFmt: fmtCell(v, stat.pct),
       baseFmt: b != null ? fmtV(b, stat.pct) : null,
       hPct: pctOf(v),
       basePct: b != null ? pctOf(b) : null,
       up: b != null ? v >= b : null,
-      band: band ? { loPct: pctOf(band.lo), midPct: pctOf(band.mid), hiPct: pctOf(band.hi) } : null,
+      band: bandPct,
     };
   });
 
@@ -646,7 +718,7 @@ export function buildStatDetail(
 
   const tableRows: StatTableRow[] = player.seasons.map((x) => {
     if (!x.played) {
-      return { year: x.year, min: null, valFmt: "—", gp: null, made: null, att: null, deltaFmt: "—", deltaColor: "var(--color-neutral-700)", pctile: null, rank: null, pool: null, missed: true, smallSample: false, reason: x.reason };
+      return { year: x.year, min: null, valFmt: "—", gp: null, made: null, att: null, deltaFmt: "—", deltaColor: "var(--color-neutral-700)", rank: null, pool: null, missed: true, smallSample: false, reason: x.reason };
     }
     const v = x[key];
     const b = refFor(x.year);
@@ -662,9 +734,8 @@ export function buildStatDetail(
       gp: x.gp,
       made: componentPair ? (x[componentPair.made] as number) : null,
       att: componentPair ? (x[componentPair.att] as number) : null,
-      deltaFmt: hasDelta ? fmtRaw(v - b, stat.pct) : "—",
+      deltaFmt: hasDelta ? fmtRaw(v - b, stat.pct, false) : "—",
       deltaColor: hasDelta && v - b >= 0 ? "var(--hm-above-text)" : "var(--hm-below-text)",
-      pctile: !sm && v != null ? pctileFor(x.year, v) : null,
       rank: sm ? null : rankOf(x),
       pool: x.pool ?? null,
       missed: false,
@@ -681,50 +752,44 @@ export function buildStatDetail(
     const val = (s: SeasonPlayed) => s[key] as number;
     const high = chartable.reduce((a, s) => (val(s) > val(a) ? s : a));
     const low = chartable.reduce((a, s) => (val(s) < val(a) ? s : a));
-    const withRef = chartable.filter((s) => refFor(s.year) != null);
     const ranked = chartable.filter((s) => rankOf(s) != null && s.pool != null);
-    // Best = the lowest rank; a tie goes to the larger pool (the stronger, more complete fact),
-    // then the later year.
+    // Best = the smallest SHARE of the pool (rank ÷ pool), not the smallest rank number: 18th of
+    // 65 is the top 28%, 27th of 106 the top 25%, and the pool grows as the league adds teams.
+    // Compared by cross-multiplying (r·poolA vs rA·pool) so equal shares are exactly equal — no
+    // float division. Equal shares go to the larger pool (the more complete fact), then the later year.
     const best = ranked.reduce<SeasonPlayed | null>((a, s) => {
       if (a == null) return s;
       const r = rankOf(s) as number, ra = rankOf(a) as number;
-      return r < ra || (r === ra && ((s.pool as number) > (a.pool as number) || (s.pool === a.pool && s.year > a.year))) ? s : a;
+      const p = s.pool as number, pa = a.pool as number;
+      const lhs = r * pa, rhs = ra * p;
+      return lhs < rhs || (lhs === rhs && (p > pa || (p === pa && s.year > a.year))) ? s : a;
     }, null);
     summary = {
       seasons: chartable.length,
       high: { fmt: plateFmt(val(high)), year: high.year },
       low: { fmt: plateFmt(val(low)), year: low.year },
       careerAvg: plateFmt(careerAvg),
-      above: withRef.length ? { n: withRef.filter((s) => val(s) > (refFor(s.year) as number)).length, of: withRef.length } : null,
       bestRank: best ? { rank: rankOf(best) as number, pool: best.pool as number, year: best.year } : null,
     };
   }
-
-  const first = firstName(player.name);
-  const caption =
-    mode === "self"
-      ? `Each season below is measured against ${first}'s career average.`
-      : mode === "league"
-        ? "Each season below is measured against the league average for that year."
-        : `Each season below is measured against the average for ${positionNoun(playerPosition)} that year.`;
-  const noBucket = mode === "position" ? chartable.filter((s) => refFor(s.year) == null).map((s) => s.year) : [];
 
   return {
     label: stat.label,
     short: stat.short,
     pct: stat.pct,
     unit: stat.pct ? "%" : stat.label.toLowerCase(),
+    unitShort: stat.pct ? "%" : stat.short,
     component: componentPair ? { madeShort: componentPair.madeShort, attShort: componentPair.attShort, noun: componentPair.noun } : null,
-    caption,
-    positionNote: noBucket.length
-      ? `No same-position average for ${noBucket.join(", ")} — too few ${positionNoun(playerPosition)} on record those seasons.`
-      : undefined,
     summary,
     chartFallback,
     bars,
     // Table lists newest season first; the chart stays left-to-right chronological.
     tableRows: [...tableRows].reverse(),
-    axisTicks: [0, 50, 100].map((yPct) => ({ yPct, label: fmtV((maxVal * yPct) / 100, stat.pct) })),
+    // A fitted % axis lands on whole fives, so its labels drop the tenth ("40%", not "40.0%").
+    axisTicks: [0, 50, 100].map((yPct) => {
+      const v = axis.lo + ((axis.hi - axis.lo) * yPct) / 100;
+      return { yPct, label: stat.pct ? `${Math.round(v * 100)}%` : fmtV(v, false) };
+    }),
     hasBand: bars.some((b) => b.band != null),
   };
 }

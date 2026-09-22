@@ -167,30 +167,34 @@ export function DeviationHeatmap({
 
   const noun = scaleNoun(effMode, playerPosition);
   const refPhrase = referencePhrase(effMode, playerPosition);
+  // Two phrasings of the percentile's group: the cell's spoken label says "81st percentile in the
+  // league"; the popover prints "81% of the league" (an ordinal there read as a rank).
   const pctWhere = effMode === "position" ? `among ${positionNoun(playerPosition)}` : "in the league";
-  const anySmall = grid.rows.some((row) => row.some((cell) => cell.smallSample));
+  const pctOfWhom = effMode === "position" ? `of ${positionNoun(playerPosition)}` : "of the league";
 
   const modeOptions = compareOptions(canSelf, positionAvailable, playerPosition);
 
   return (
     <section aria-labelledby="heatmap-title" style={{ margin: "var(--space-1) 0" }}>
+      {/* Visually hidden: the section keeps its accessible name and its place in the heading
+          outline, but a sighted reader gets no label — "Season by season" said nothing the grid
+          doesn't show, and duplicated the drill-down's "Year by year" (also dropped). First in the
+          DOM, ahead of the control, so heading navigation lands before everything in the section. */}
+      <h2 id="heatmap-title" className="sr-only">Season-by-season heatmap</h2>
+      {/* Control on the LEFT, the hint on the right, both on the select's baseline. The hint is one
+          short line now (it says only what nothing else does — that cells open); as the row's left
+          item it sat alone under a gap the height of the select's label and looked stranded. On a
+          phone the row wraps: control, then the hint directly above the color key and the grid. */}
       <div style={{ display: "flex", flexWrap: "wrap", alignItems: "flex-end", justifyContent: "space-between", gap: "var(--space-3)", marginBottom: "var(--space-3)" }}>
-        <div style={{ flex: "1 1 320px", minWidth: 0 }}>
-          {/* Visually hidden: the section keeps its accessible name and its place in the heading
-              outline, but a sighted reader gets no label — "Season by season" said nothing the grid
-              doesn't show, and duplicated the drill-down's "Year by year" (also dropped). The
-              sentence below is the section's lead instead. */}
-          <h2 id="heatmap-title" className="sr-only">Season-by-season heatmap</h2>
-          <p className="text-muted" style={{ fontSize: "var(--fs-sm)", margin: 0 }}>
-            Each cell is {firstName(player.name)}'s stat that season vs. {refPhrase} — color shows how far above or below. Tap or hover a cell for its exact gap and a link to that stat's history.
-          </p>
-        </div>
         <LabeledSelect
           label="Compare to"
           value={effMode}
           options={modeOptions}
           onChange={(v) => onModeChange(v as HeatmapMode)}
         />
+        <p className="text-muted" style={{ fontSize: "var(--fs-sm)", margin: 0 }}>
+          Tap or hover a cell for details.
+        </p>
       </div>
 
       {/* Diverging color key, adapting its end labels to the current reference. */}
@@ -290,7 +294,7 @@ export function DeviationHeatmap({
           anchor={cellRefs.current.get(`${openCoord.r}-${openCoord.c}`) ?? null}
           noun={noun}
           pct={cellPercentile(openCell, effMode, league, positions, playerPosition)}
-          pctWhere={pctWhere}
+          pctOfWhom={pctOfWhom}
           pinned={pinned != null}
           popoverRef={popoverRef}
           onPointerEnter={() => {
@@ -307,11 +311,9 @@ export function DeviationHeatmap({
         />
       )}
 
-      {anySmall && (
-        <div className="hm-legend-key text-muted" style={{ marginTop: "var(--space-3)" }}>
-          <span className="hm-legend-dot" /> small sample (few games or attempts) — not compared
-        </div>
-      )}
+      {/* No key for small-sample cells: they are greyed with a corner dot (.hm-ss), and the popover
+          (hover/tap/arrow) and the cell's spoken label both say "small sample — not compared". A key
+          under the grid repeated that. */}
     </section>
   );
 }
@@ -321,7 +323,8 @@ interface CellPopoverProps {
   anchor: HTMLElement | null;
   noun: string;
   pct: number | null;
-  pctWhere: string;
+  /** "of the league" / "of forwards" — printed after the percentile ("81% of the league"). */
+  pctOfWhom: string;
   pinned: boolean;
   popoverRef: React.RefObject<HTMLDivElement | null>;
   onPointerEnter: () => void;
@@ -338,7 +341,7 @@ const VIEWPORT_PAD = 8; // px the popover keeps from the viewport edges
  * clamped inside the viewport. Re-measured on scroll/resize (either axis, including the grid's
  * own horizontal scroll on phones) so it tracks the cell.
  */
-function CellPopover({ cell, anchor, noun, pct, pctWhere, pinned, popoverRef, onPointerEnter, onPointerLeave, onDrill }: CellPopoverProps) {
+function CellPopover({ cell, anchor, noun, pct, pctOfWhom, pinned, popoverRef, onPointerEnter, onPointerLeave, onDrill }: CellPopoverProps) {
   const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
 
   useLayoutEffect(() => {
@@ -417,8 +420,11 @@ function CellPopover({ cell, anchor, noun, pct, pctWhere, pinned, popoverRef, on
         {pct != null && (
           <>
             <dt>Percentile</dt>
+            {/* "81% of the league" — higher than that share of it. Was "81st in the league", which
+                reads as a rank (81st place). The cell's spoken label keeps "81st percentile", which
+                is unambiguous when said aloud. */}
             <dd>
-              {ordinal(Math.round(pct))} <span className="text-muted">{pctWhere}</span>
+              {Math.round(pct)}% <span className="text-muted">{pctOfWhom}</span>
             </dd>
           </>
         )}
