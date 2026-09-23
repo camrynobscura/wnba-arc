@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import type { PlayerDetail } from "../data/api";
+import type { PlayerDetail, SeasonPlayed } from "../data/api";
 import { STATS } from "../data/stats";
-import { buildHeatmapGrid, cellPercentile, compareOptions, firstName, type HeatmapCell, type HeatmapMode, type League, ordinal, type PositionLookup, positionNoun, scaleNoun, selfModeAvailable, type StatKey } from "../lib/deviation";
+import { buildHeatmapGrid, compareOptions, firstName, isCountingStat, type HeatmapCell, type HeatmapMode, type League, ordinal, type PositionLookup, positionNoun, scaleNoun, selfModeAvailable, type StatKey } from "../lib/deviation";
 import { InfoTip } from "./InfoTip";
 import { ScaleKey } from "./ScaleKey";
 import { LabeledSelect } from "./Select";
@@ -167,10 +167,20 @@ export function DeviationHeatmap({
 
   const noun = scaleNoun(effMode, playerPosition);
   const refPhrase = referencePhrase(effMode, playerPosition);
-  // Two phrasings of the percentile's group: the cell's spoken label says "81st percentile in the
-  // league"; the popover prints "81% of the league" (an ordinal there read as a rank).
-  const pctWhere = effMode === "position" ? `among ${positionNoun(playerPosition)}` : "in the league";
-  const pctOfWhom = effMode === "position" ? `of ${positionNoun(playerPosition)}` : "of the league";
+  // The rank a cell's season holds among the MODE's crowd — the player's position in position mode,
+  // otherwise the league — with the pool it's among ("34th of 187 players", "9th of 66 forwards").
+  // Null for a shooting % (no rank), a missed / small-sample cell, or a position-year with no bucket.
+  // The same numbers the drill-down's table and plates show, so the page never disagrees with itself.
+  const seasonByYear = new Map(player.seasons.filter((s): s is SeasonPlayed => s.played).map((s) => [s.year, s]));
+  const rankNoun = effMode === "position" ? positionNoun(playerPosition) : "players";
+  const cellRank = (cell: HeatmapCell): { rank: number; pool: number } | null => {
+    if (!cell.played || cell.smallSample || !isCountingStat(cell.statKey)) return null;
+    const s = seasonByYear.get(cell.year);
+    if (!s) return null;
+    const rank = effMode === "position" ? s.posRank?.[cell.statKey] : s.rank?.[cell.statKey];
+    const pool = effMode === "position" ? s.posPool : s.pool;
+    return rank != null && pool != null ? { rank, pool } : null;
+  };
 
   const modeOptions = compareOptions(canSelf, positionAvailable, playerPosition);
 
@@ -244,8 +254,8 @@ export function DeviationHeatmap({
                 <Cell
                   key={`${cell.year}-${cell.statKey}`}
                   cell={cell}
-                  pct={cellPercentile(cell, effMode, league, positions, playerPosition)}
-                  pctWhere={pctWhere}
+                  rank={cellRank(cell)}
+                  rankNoun={rankNoun}
                   noun={noun}
                   refPhrase={refPhrase}
                   tabbable={active.r === r && active.c === c}
@@ -293,8 +303,8 @@ export function DeviationHeatmap({
           cell={openCell}
           anchor={cellRefs.current.get(`${openCoord.r}-${openCoord.c}`) ?? null}
           noun={noun}
-          pct={cellPercentile(openCell, effMode, league, positions, playerPosition)}
-          pctOfWhom={pctOfWhom}
+          rank={cellRank(openCell)}
+          rankNoun={rankNoun}
           pinned={pinned != null}
           popoverRef={popoverRef}
           onPointerEnter={() => {
@@ -322,9 +332,9 @@ interface CellPopoverProps {
   cell: HeatmapCell;
   anchor: HTMLElement | null;
   noun: string;
-  pct: number | null;
-  /** "of the league" / "of forwards" — printed after the percentile ("81% of the league"). */
-  pctOfWhom: string;
+  rank: { rank: number; pool: number } | null;
+  /** "players" / "forwards" — the crowd the rank is among ("34th of 187 players"). */
+  rankNoun: string;
   pinned: boolean;
   popoverRef: React.RefObject<HTMLDivElement | null>;
   onPointerEnter: () => void;
@@ -341,7 +351,7 @@ const VIEWPORT_PAD = 8; // px the popover keeps from the viewport edges
  * clamped inside the viewport. Re-measured on scroll/resize (either axis, including the grid's
  * own horizontal scroll on phones) so it tracks the cell.
  */
-function CellPopover({ cell, anchor, noun, pct, pctOfWhom, pinned, popoverRef, onPointerEnter, onPointerLeave, onDrill }: CellPopoverProps) {
+function CellPopover({ cell, anchor, noun, rank, rankNoun, pinned, popoverRef, onPointerEnter, onPointerLeave, onDrill }: CellPopoverProps) {
   const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
 
   useLayoutEffect(() => {
@@ -417,14 +427,13 @@ function CellPopover({ cell, anchor, noun, pct, pctOfWhom, pinned, popoverRef, o
             </dd>
           </>
         )}
-        {pct != null && (
+        {rank && (
           <>
-            <dt>Percentile</dt>
-            {/* "81% of the league" — higher than that share of it. Was "81st in the league", which
-                reads as a rank (81st place). The cell's spoken label keeps "81st percentile", which
-                is unambiguous when said aloud. */}
+            <dt>Rank</dt>
+            {/* The same rank the table and the Best-rank plate show (a percentile lived here until
+                2026-09-21; the rank is what the rest of the page uses). */}
             <dd>
-              {Math.round(pct)}% <span className="text-muted">{pctOfWhom}</span>
+              {ordinal(rank.rank)} <span className="text-muted">of {rank.pool} {rankNoun}</span>
             </dd>
           </>
         )}
@@ -441,8 +450,8 @@ function CellPopover({ cell, anchor, noun, pct, pctOfWhom, pinned, popoverRef, o
 
 interface CellProps {
   cell: HeatmapCell;
-  pct: number | null;
-  pctWhere: string;
+  rank: { rank: number; pool: number } | null;
+  rankNoun: string;
   noun: string;
   refPhrase: string;
   tabbable: boolean;
@@ -455,7 +464,7 @@ interface CellProps {
   onTap: () => void;
 }
 
-function Cell({ cell, pct, pctWhere, noun, refPhrase, tabbable, expanded, setRef, onFocus, onHover, onPress, onTap }: CellProps) {
+function Cell({ cell, rank, rankNoun, noun, refPhrase, tabbable, expanded, setRef, onFocus, onHover, onPress, onTap }: CellProps) {
   // Background: diverging color for a scored cell; the neutral base for a played cell with no
   // reference; class-driven grey for small-sample; empty for a missed season.
   const bg =
@@ -477,8 +486,8 @@ function Cell({ cell, pct, pctWhere, noun, refPhrase, tabbable, expanded, setRef
       ? `${stat} ${cell.year}: ${cell.valueFmt}, small sample — not compared`
       : cell.delta == null
         ? `${stat} ${cell.year}: ${cell.valueFmt}, no ${noun} that season`
-        : `${stat} ${cell.year}: ${cell.valueFmt}, ${cell.deltaFmt} vs ${refPhrase}` +
-          (pct != null ? `, ${ordinal(Math.round(pct))} percentile ${pctWhere}` : "");
+        : `${stat} ${cell.year}: ${cell.valueFmt}, ${cell.deltaFmt}${isCountingStat(cell.statKey) ? "" : " percentage points"} vs ${refPhrase}` +
+          (rank ? `, ranked ${ordinal(rank.rank)} of ${rank.pool} ${rankNoun}` : "");
 
   return (
     <button

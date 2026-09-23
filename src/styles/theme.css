@@ -889,9 +889,10 @@ select.select-reset {
    ══════════════════════════════════════════════════════════════════════ */
 
 /* — career summary: a row of "plates" — equal columns however many facts there are (3 or 4),
-   each a bordered cell whose label sits ON the border like a fieldset legend. The label and the
-   border share one grey (neutral-700 — passes as text on both grounds, which the lighter
-   neutral-600 does not); the number is the only ink. Chosen over tiles/lines on a side-by-side
+   each a bordered cell whose label sits ON the border like a fieldset legend. The border is the
+   chart card's (`--color-divider`, 2026-09-23 — the two frames sit a few lines apart and read as one
+   set); the label stays neutral-700, the lightest grey that passes as text on both grounds; the number
+   is the only ink. Chosen over tiles/lines on a side-by-side
    preview (DECISIONS, 2026-09-18). */
 .cs {
   display: grid;
@@ -903,7 +904,7 @@ select.select-reset {
 }
 .cs-plate {
   position: relative;
-  border: 1px solid var(--color-neutral-700);
+  border: 1px solid var(--color-divider); /* the chart card's border, so the two frames match */
   padding: var(--space-4) var(--space-2) var(--space-3);
   text-align: center;
   display: flex;
@@ -1057,25 +1058,3 @@ select.select-reset {
   pointer-events: none;
 }
 
-/* — the chart's band: the middle 80% of the comparison group each year, drawn as one faint
-   polygon behind the dots (10th to 90th percentile), the median dotted. Kept very light so it
-   reads as context, not as a series — the "lighter polygon" of the band-style comparison. */
-.dd-band {
-  fill: var(--color-neutral-900);
-  opacity: 0.05;
-}
-.dd-median {
-  fill: none;
-  stroke: var(--color-neutral-500);
-  stroke-width: 1;
-  stroke-dasharray: 3 3;
-  vector-effect: non-scaling-stroke;
-}
-.legend-band {
-  display: inline-block;
-  width: 18px;
-  height: 10px;
-  background: var(--color-neutral-900);
-  opacity: 0.12;
-  border-radius: 2px;
-}

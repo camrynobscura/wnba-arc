@@ -1,8 +1,7 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { PlayerDetail } from "../data/api";
 import { STATS, statDescBody } from "../data/stats";
 import {
-  bandShape,
   compareOptions,
   ordinal,
   positionNoun,
@@ -56,18 +55,28 @@ export function StatDrilldownView({ player, stat, statKey, desc, mode, positionA
   // screen-reader users — who read the table directly — see no change.
   const [selectedYear, setSelectedYear] = useState<number | null>(null);
   const toggleYear = (year: number) => setSelectedYear((cur) => (cur === year ? null : year));
+  // Bring the highlighted row into view when it isn't already (on a phone the table is a screen
+  // below the chart). Left alone when the row is fully visible, as on a desktop; otherwise centered
+  // — "nearest" would park it on the viewport's bottom edge, under a phone browser's toolbar.
+  const tableRef = useRef<HTMLTableElement | null>(null);
+  useEffect(() => {
+    if (selectedYear == null) return;
+    const row = tableRef.current?.querySelector<HTMLTableRowElement>("tr.is-selected");
+    if (!row) return;
+    const r = row.getBoundingClientRect();
+    if (r.top >= 0 && r.bottom <= window.innerHeight) return;
+    row.scrollIntoView({ block: "center", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+  }, [selectedYear]);
   const colX = (i: number) => ((i + 0.5) / n) * 100; // column center, % from left
   // The rank column shows whenever the API sent a rank (counting stats). No percentile column: it
   // sat beside Rank as a second ordinal running the other way, and the cell popover has it.
   const showRank = stat.tableRows.some((r) => r.rank != null);
-  const groupNoun = mode === "position" ? positionNoun(player.pos) : "the league";
+  // The crowd a rank is among: the player's position in position mode, otherwise the league.
+  const rankNoun = mode === "position" ? positionNoun(player.pos) : "players";
+  const rankAmong = mode === "position" ? rankNoun.charAt(0).toUpperCase() + rankNoun.slice(1) : "WNBA";
   const refNoun = scaleNoun(mode, player.pos);
   const modeOptions = compareOptions(selfModeAvailable(player), positionAvailable, player.pos);
 
-  // The band: one faint polygon through every charted season that has a ladder (top edge = 90th
-  // percentile, bottom = 10th), the median dotted — filling the first and last columns to their
-  // outer edges (see bandShape). Drawn in percent coordinates on an SVG stretched over the plot.
-  const band = bandShape(bars);
   // A hollow dot on the chart (a small sample, or a full season with no reference) needs its
   // legend entry; most players have none.
   const anyNotCompared = bars.some((b) => b.kind === "small" || (b.kind === "full" && b.up == null));
@@ -109,7 +118,7 @@ export function StatDrilldownView({ player, stat, statKey, desc, mode, positionA
             // own text for a screen reader moving through the table cell by cell, where a tooltip
             // description isn't reliably spoken.
             <>
-              <InfoTip label={ordinal(r.rank)} tip={`of ${r.pool} players`} />
+              <InfoTip label={ordinal(r.rank)} tip={`of ${r.pool} ${rankNoun}`} />
               <span className="sr-only"> of {r.pool}</span>
             </>
           ) : (
@@ -150,7 +159,7 @@ export function StatDrilldownView({ player, stat, statKey, desc, mode, positionA
         </div>
       </div>
 
-      {stat.summary && <CareerSummary summary={stat.summary} unit={stat.unit} unitShort={stat.unitShort} />}
+      {stat.summary && <CareerSummary summary={stat.summary} unit={stat.unit} unitShort={stat.unitShort} rankAmong={rankAmong} />}
 
       {/* No caption naming the reference here: the "Compare to" control above and the legend below
           both say it ("League avg"), and the sentence was a third copy. No note for position-years
@@ -172,12 +181,6 @@ export function StatDrilldownView({ player, stat, statKey, desc, mode, positionA
             <span aria-hidden="true" className="legend-dot" style={{ background: "var(--color-neutral-600)" }} />
             {refNoun.charAt(0).toUpperCase() + refNoun.slice(1)}
           </span>
-          {stat.hasBand && (
-            <span style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
-              <span aria-hidden="true" className="legend-band" />
-              Middle 80% of {groupNoun}
-            </span>
-          )}
           {anyNotCompared && (
             <span style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
               <span aria-hidden="true" className="legend-dot dd-hollow" />
@@ -214,19 +217,6 @@ export function StatDrilldownView({ player, stat, statKey, desc, mode, positionA
                   {stat.axisTicks.map((t) => (
                     <div key={t.label + t.yPct} style={{ position: "absolute", left: 0, right: 0, top: `${100 - t.yPct}%`, borderTop: "1px solid var(--color-divider)" }} />
                   ))}
-
-                  {/* The comparison group's middle 80% each year, behind everything else — through a
-                      missed year too (the league played it). */}
-                  {band && (
-                    <svg
-                      viewBox="0 0 100 100"
-                      preserveAspectRatio="none"
-                      style={{ position: "absolute", inset: 0, width: "100%", height: "100%", zIndex: 1, overflow: "visible" }}
-                    >
-                      <polygon points={band.polygon} className="dd-band" />
-                      <polyline points={band.median} className="dd-median" />
-                    </svg>
-                  )}
 
                   {/* Vertical column dividers between seasons */}
                   {bars.map((_, i) =>
@@ -343,7 +333,7 @@ export function StatDrilldownView({ player, stat, statKey, desc, mode, positionA
           distributed columns and makes the table fit its container at any width. Missed seasons
           show as "—" rows (the reason is in the season cell for screen readers). */}
       <div style={{ marginTop: "var(--space-6)" }}>
-        <table className="table" aria-label="Season stats">
+        <table ref={tableRef} className="table" aria-label="Season stats">
           <thead>
             <tr>
               {/* "Year", not "Season": at 46px the longer word overran its 40px phone column and
@@ -368,7 +358,10 @@ export function StatDrilldownView({ player, stat, statKey, desc, mode, positionA
               </th>
               {showRank && (
                 <th scope="col">
-                  <InfoTip label="Rank" tip="League rank that season among the qualified players in this dataset (1st = best). How many there are changes by year — hover or tap a rank to see." />
+                  <InfoTip
+                    label="Rank"
+                    tip={`${mode === "position" ? `Rank among the qualified ${rankNoun}` : "League rank among the qualified players"} in this dataset that season (1st = best). How many there are changes by year — hover or tap a rank to see.`}
+                  />
                 </th>
               )}
               <th scope="col">

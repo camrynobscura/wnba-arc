@@ -8,6 +8,8 @@ interface CareerSummaryProps {
       hidden from assistive tech, and the full word is given to it instead: "14.3 PTS" on screen,
       "14.3 points" spoken (a code like "STL" is read letter by letter otherwise). */
   unitShort: string;
+  /** Whose rank the Best-rank plate holds: "WNBA" (the league) or the position ("Forwards"). */
+  rankAmong: string;
 }
 
 /**
@@ -16,15 +18,15 @@ interface CareerSummaryProps {
  * Chosen over tiles, stat lines, a range strip and prose on a side-by-side preview (DECISIONS,
  * 2026-09-18); the plates are equal-width and the labels are kept short enough never to wrap.
  */
-export function CareerSummary({ summary: s, unit, unitShort }: CareerSummaryProps) {
+export function CareerSummary({ summary: s, unit, unitShort, rankAmong }: CareerSummaryProps) {
   const plates: { k: string; v: string; u?: string; q?: string; n: string }[] = [
     { k: "High", v: s.high.fmt, u: unit, n: String(s.high.year) },
     { k: "Low", v: s.low.fmt, u: unit, n: String(s.low.year) },
     { k: "Career avg", v: s.careerAvg, u: unit, n: `${s.seasons} season${s.seasons === 1 ? "" : "s"}` },
   ];
-  // "WNBA 2026" not "2026 in the league": the plate is ~100px wide and the long form wrapped; the
-  // league is still named, since the rank is a league rank whatever the compare mode.
-  if (s.bestRank) plates.push({ k: "Best rank", v: ordinal(s.bestRank.rank), q: `of ${s.bestRank.pool}`, n: `WNBA ${s.bestRank.year}` });
+  // "WNBA 2026" / "Forwards 2026", not "2026 in the league": the plate is ~100px wide and the long
+  // form wrapped; the crowd is still named — the rank follows the compare mode.
+  if (s.bestRank) plates.push({ k: "Best rank", v: ordinal(s.bestRank.rank), q: `of ${s.bestRank.pool}`, n: `${rankAmong} ${s.bestRank.year}` });
 
   return (
     <dl className="cs" aria-label="Career summary">

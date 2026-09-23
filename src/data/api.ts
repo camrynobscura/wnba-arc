@@ -56,6 +56,11 @@ export interface SeasonPlayed {
   /** This season's place in that pool per counting stat, 1 = best, ties share a rank; null when the
       season didn't qualify (small sample) or there's no pool. */
   rank: { pts: number; reb: number; ast: number; stl: number; blk: number } | null;
+  /** The same two among the player's own POSITION that year — the crowd the /positions averages
+      describe, gated the same way (a bucket needs 8 qualified players): where /positions has no
+      (year, position) row, both are null. */
+  posPool: number | null;
+  posRank: { pts: number; reb: number; ast: number; stl: number; blk: number } | null;
 }
 
 export interface SeasonMissed {
@@ -70,23 +75,17 @@ export interface Meta {
 }
 
 /** Per-year league context — averages + real slate length. */
-/** Spread ("step") + percentile ladders travel only for the five COUNTING stats — the ones
-    whose bars measure in league-steps. The shooting %s keep their relative-% bar, so they carry
-    neither. Both are `null` on data from an API older than migration 004; the frontend then
-    falls back to the relative-% bar. Mirror of the backend contract's StatSpread/StatPctiles. */
+/** Spread ("step") travels only for the five COUNTING stats — the ones whose bars measure in
+    league-steps. The shooting %s keep their relative-% bar, so they carry none. `null` on data from
+    an API older than migration 004; the frontend then falls back to the relative-% bar. Mirror of
+    the backend contract's StatSpread. (The API also sends value-at-decile ladders, `pctiles`; nothing
+    here reads them since the percentile and the chart's band went — 2026-09-21.) */
 export interface StatSpread {
   pts: number;
   reb: number;
   ast: number;
   stl: number;
   blk: number;
-}
-export interface StatPctiles {
-  pts: number[];
-  reb: number[];
-  ast: number[];
-  stl: number[];
-  blk: number[];
 }
 export interface LeagueSeason {
   year: number;
@@ -100,7 +99,6 @@ export interface LeagueSeason {
   tpp: number;
   tsPct: number; // league TS% — the baseline for the displayed TS%
   stdev: StatSpread | null; // per-stat population spread — the deviation bar's step
-  pctiles: StatPctiles | null; // value-at-decile ladders — for the percentile tooltip
 }
 
 /** Per-year, per-position averages — the "compare to same position" baseline. A (year,
@@ -119,7 +117,6 @@ export interface PositionSeason {
   tpp: number;
   tsPct: number;
   stdev: StatSpread | null; // the position's own spread (bars measure vs this position's variation)
-  pctiles: StatPctiles | null;
 }
 
 // ── fetch plumbing ───────────────────────────────────────────────────────────
