@@ -13,10 +13,13 @@ export interface PlayerSummary {
   id: string;
   espn: string;
   name: string;
-  team: string | null; // null when the player is off-roster (e.g. intl duty)
+  team: string | null; // null when the player is off-roster (e.g. intl duty) or retired
   teamAbbr: string | null;
-  pos: string | null;
+  pos: string | null; // null for most players from before 2012 — ESPN has no position on record
   jersey: number | null;
+  active: boolean; // ESPN's "still playing" flag; false once retired
+  firstYear: number | null; // first and last regular season on record — the career span
+  lastYear: number | null;
 }
 
 /** One player with full regular-season history. */
@@ -145,9 +148,11 @@ async function fetchJson<T>(path: string): Promise<T> {
 
 // ── endpoints ────────────────────────────────────────────────────────────────
 
-/** The select-screen list, alphabetical. */
+/** The select-screen list, alphabetical — everyone on record since 1997, retired players included.
+ *  (The API's default scope is the rolling 3-season window, for a client that wants only current
+ *  players; this app shows league history.) */
 export function getPlayers(): Promise<PlayerSummary[]> {
-  return fetchJson<PlayerSummary[]>("/players");
+  return fetchJson<PlayerSummary[]>("/players?scope=all");
 }
 
 /** One player with full history. */

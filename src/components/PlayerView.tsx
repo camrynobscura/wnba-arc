@@ -4,6 +4,7 @@ import { PlayerSearch } from "./PlayerSearch";
 import type { HeatmapMode, League, PositionLookup, StatDetail, StatKey } from "../lib/deviation";
 import { PlayerPhoto } from "./PlayerPhoto";
 import { teamTint } from "../data/teams";
+import { playerMeta } from "../lib/playerMeta";
 import { DeviationHeatmap } from "./DeviationHeatmap";
 import { StatDrilldownView } from "./StatDrilldownView";
 
@@ -80,7 +81,7 @@ export function PlayerView({
         <PlayerPhoto src={photoUrl(player.espn)} name={player.name} size={54} tint={teamTint(player.teamAbbr)} />
         <div style={{ flex: 1, minWidth: 0 }}>
           <div className="card-kicker" style={{ marginBottom: "var(--space-1)" }}>
-            {player.team} · {player.pos} · #{player.jersey}
+            {playerMeta(player, true)}
           </div>
           <h1 style={{ fontSize: "var(--fs-2xl)", margin: 0, lineHeight: 1 }}>{player.name}</h1>
         </div>

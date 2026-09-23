@@ -3,6 +3,8 @@ import type { PlayerSummary } from "../data/api";
 import { Spinner } from "./Spinner";
 
 /** Fold to a comparable form: strip diacritics, punctuation, and spaces (so "aja" matches "A'ja"). */
+import { playerMeta } from "../lib/playerMeta";
+
 export function fold(s: string): string {
   return s
     .normalize("NFD")
@@ -180,7 +182,7 @@ export function PlayerSearch({ players, listError, onPick, variant = "hero" }: P
                 className="text-muted"
                 style={{ fontFamily: "var(--font-body)", fontSize: "var(--fs-xs)", marginLeft: "auto", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", minWidth: 0 }}
               >
-                {[p.team, p.pos].filter(Boolean).join(" · ")}
+                {playerMeta(p)}
               </span>
             </div>
           ))

@@ -90,6 +90,9 @@ function player(seasons: Season[], pos: string | null = "F"): PlayerDetail {
     teamAbbr: "LV",
     pos,
     jersey: 22,
+    active: true,
+    firstYear: seasons.length ? seasons[0]!.year : null,
+    lastYear: seasons.length ? seasons[seasons.length - 1]!.year : null,
     seasons,
   };
 }

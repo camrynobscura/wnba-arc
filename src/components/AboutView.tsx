@@ -61,9 +61,9 @@ export function AboutView({ onBack }: AboutViewProps) {
           how much players actually differ on it, not as a flat percentage. That keeps an ordinary bump on a low-volume
           stat (a tenth of a block) small, while a genuinely rare number — leading the league in rebounds — fills the
           bar. A full bar is about as far from normal as anyone gets, so the handful of all-time seasons past that point
-          simply max out. Click into any stat for its full year-by-year history and where the season ranks — its
-          percentile against the league or the chosen position. Shooting percentages are the exception — they're shown
-          as a plain gap from the average.
+          simply max out. Click into any stat for its full year-by-year history and where each season ranked — "6th of
+          146" among everyone who played that year, or among the chosen position. Shooting percentages are the
+          exception — they're shown as a plain gap from the average.
         </p>
       </section>
 
@@ -73,8 +73,19 @@ export function AboutView({ onBack }: AboutViewProps) {
           ARC pulls from ESPN and refreshes nightly, so the current season keeps up as games are played.
         </p>
         <p style={{ marginBottom: "var(--space-3)" }}>
-          <strong>Who's in.</strong> Any player who's appeared in the last three seasons. Players who miss a year for
-          injury, maternity, or an overseas stint stick around, with the gap shown right in their timeline.
+          <strong>Who's in.</strong> Every player who has appeared in a WNBA game since the league's first season in
+          1997, retired players included. A current player who misses a year for injury, maternity, or an overseas
+          stint sticks around, with the gap shown right in her timeline.
+        </p>
+        <p style={{ marginBottom: "var(--space-3)" }}>
+          <strong>Measured against the whole league.</strong> The averages and ranks a season is compared with include
+          everyone who played that year — so a 2004 season is measured against 2004's whole league, not just the
+          players still around today.
+        </p>
+        <p style={{ marginBottom: "var(--space-3)" }}>
+          <strong>Positions start in 2012.</strong> ESPN has no position on record for most players before then, so
+          comparing with other guards, forwards, or centers is offered from 2012 on; the league comparison covers every
+          year. A player's position is her current one, applied across her whole career.
         </p>
         <p style={{ marginBottom: "var(--space-3)" }}>
           <strong>Small samples.</strong> A season where the player appeared in less than 25% of the schedule is left
@@ -82,7 +93,8 @@ export function AboutView({ onBack }: AboutViewProps) {
         </p>
         <p style={{ marginBottom: "var(--space-3)" }}>
           <strong>What's missing.</strong> A few stats need data ESPN doesn't share (rebound percentages, and all-in-one
-          metrics like PER), so ARC leaves them out rather than guessing.
+          metrics like PER), and a handful of one-game appearances from the early 2000s have no record at all, so ARC
+          leaves them out rather than guessing.
         </p>
         <p className="text-muted" style={{ margin: 0, fontSize: "var(--fs-sm)", lineHeight: 1.5 }}>
           ARC is an independent, unofficial project — not affiliated with, endorsed by, or connected to the WNBA or
