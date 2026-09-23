@@ -545,7 +545,7 @@ describe("buildStatDetail — every season on the timeline is a chart column", (
     const p = player([playedSeason(2018, 40, { pts: 10 }), playedSeason(2019, 4, { pts: 50 }), playedSeason(2020, 40, { pts: 14 })]);
     const d = buildStatDetail(p, pts, "league", L, POS, "F");
     expect(d.axisTicks[2].label).toBe("16.8");
-    expect(d.bars[1].hPct).toBe(95); // 50 is above the top → clamped just under the edge
+    expect(d.bars[1].hPct).toBe(88); // 50 is above the top → clamped under the label headroom
   });
 
 
@@ -574,6 +574,19 @@ describe("pctAxis — a shooting-% chart's fitted vertical scale", () => {
     expect(a.lo).toBeLessThanOrEqual(0.39);
     expect(a.hi).toBeGreaterThanOrEqual(0.56);
     expect(Math.round((a.hi - a.lo) * 100) % 10).toBe(0);
+  });
+
+  it("keeps the top value under the label headroom, growing the top (the Nneka Ogwumike 3P% case)", () => {
+    // Measured 2026-09-23: 3P% values 8–62% fit a 5–65% axis, putting the 62% at 95% of the height
+    // and its label above the frame. The top must sit at ≤ 88%.
+    const vals = [0.3, 0.08, 0.62, 0.34, 0.35, 0.34, 0.5, 0.37, 0.37, 0.34, 0.41, 0.37, 0.4];
+    const a = pctAxis(vals);
+    expect((0.62 - a.lo) / (a.hi - a.lo)).toBeLessThanOrEqual(0.88);
+    expect(Math.round((a.hi - a.lo) * 100) % 10).toBe(0);
+    // A tight case: 42–57.8 fit 40–60 by the other rules, but 57.8 would sit at 89% → 35–65.
+    expect(pctAxis([0.42, 0.578])).toEqual({ lo: 0.35, hi: 0.65 });
+    // Just under the line stays put: 57.5 on 40–60 is exactly 87.5%.
+    expect(pctAxis([0.42, 0.575])).toEqual({ lo: 0.4, hi: 0.6 });
   });
 
   it("grows toward the side with less room, and never below zero", () => {

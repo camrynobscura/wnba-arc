@@ -526,6 +526,9 @@ export function compareOptions(canSelf: boolean, positionAvailable: boolean, pos
  *  - ends snap to whole fives and the span to a whole ten, so the three ticks read "40% 50% 60%";
  *  - never narrower than 20 points — a pure fit would stretch a 55→56% career across the whole
  *    plot; with the floor a one-point gap stays small;
+ *  - the TOP value sits no higher than LABEL_HEADROOM of the span, so its value label (printed
+ *    above the dot) stays under the top gridline — one point of clearance was nothing on a
+ *    60-point span (Nneka Ogwumike's 3P%: 62% on a 5–65% axis put the label 10px above the frame);
  *  - grows toward the side with less room (ties go up, as headroom), never below 0%.
  */
 export function pctAxis(values: number[]): { lo: number; hi: number } {
@@ -535,12 +538,24 @@ export function pctAxis(values: number[]): { lo: number; hi: number } {
   const tmax = Math.max(...t);
   let lo = Math.max(0, Math.floor((tmin - 10) / 50) * 50);
   let hi = Math.ceil((tmax + 10) / 50) * 50;
-  while (hi - lo < 200 || (hi - lo) % 100 !== 0) {
-    if (tmin - lo < hi - tmax && lo >= 50) lo -= 50;
-    else hi += 50;
+  for (;;) {
+    const span = hi - lo;
+    if (span < 200 || span % 100 !== 0) {
+      if (tmin - lo < hi - tmax && lo >= 50) lo -= 50;
+      else hi += 50;
+    } else if (tmax - lo > LABEL_HEADROOM * span) {
+      hi += 50;
+    } else break;
   }
   return { lo: lo / 1000, hi: hi / 1000 };
 }
+
+/** The highest share of the plot's height a value dot may sit at and still have room for its
+    label above it: the label sits LABEL_GAP (12px) above the dot's centre and is ~11px tall, on a
+    220px plot → 23/220 ≈ 10.5% must stay free (both numbers live in StatDrilldownView). Used by the
+    fitted % axis and to clamp a small-sample dot; a counting stat's 1.2× headroom (top at 83%)
+    already satisfies it. */
+export const LABEL_HEADROOM = 0.88;
 
 export function buildStatDetail(
   player: PlayerDetail,
@@ -582,7 +597,7 @@ export function buildStatDetail(
   const drawn = chartable.flatMap((s) => [s[key] as number, refFor(s.year)]).filter((v): v is number => v != null);
   const axis = stat.pct ? pctAxis(drawn) : { lo: 0, hi: Math.max(...drawn, 0) * 1.2 || 1 };
   const pctOf = (v: number) => +(((v - axis.lo) / (axis.hi - axis.lo)) * 100).toFixed(2);
-  const clamp = (h: number) => Math.min(95, Math.max(5, h));
+  const clamp = (h: number) => Math.min(LABEL_HEADROOM * 100, Math.max(5, h));
 
   const bars: StatBar[] = player.seasons.map((s) => {
     const yy = String(s.year).slice(2);
