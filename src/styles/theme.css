@@ -512,7 +512,8 @@ select.select-reset {
 /* The reason bubble opens DOWNWARD: the bar is stuck to the viewport's top edge, so "above" (the
    InfoTip default) would be off-screen. Anchored to the segment's right edge so it stays inside
    the column on a phone. */
-.seg-tip {
+.seg-btn > .infotip-bubble.seg-tip {
+  /* Three classes deep so it outranks `.infotip-bubble` wherever that rule lands in the cascade. */
   top: calc(100% + 8px);
   bottom: auto;
   left: auto;
@@ -952,20 +953,24 @@ select.select-reset {
   }
 }
 
-/* Info tooltip: a focusable term with a bubble shown on hover/focus. The bubble is a
-   child of the trigger, so moving the pointer onto it keeps it open (WCAG 1.4.13). */
+/* Info tooltip: a focusable term with a bubble shown on hover/focus/tap. The bubble is NOT a
+   DOM child of the trigger: InfoTip.tsx portals it to the end of <body> as an ordinary absolutely
+   positioned element, placed in page coordinates from the trigger's rectangle (rules in the
+   component). Why not simpler things: a child bubble is clipped by the phone heatmap's horizontal
+   scroller (a box that scrolls one way clips the other); a `popover` / `position: fixed` bubble
+   makes iOS 26 Safari tint its bottom toolbar from it (black, every time a tip opened — WebKit bug,
+   no workaround found, 2026-09-24). Absolute flow content is ignored by Safari's sampler, is clipped
+   by nothing, and scrolls with the page. */
 .infotip {
   position: relative;
   cursor: help;
   text-decoration: underline dotted;
   text-underline-offset: 3px;
 }
+/* The look — shared by every bubble (the compare bar's `.seg-tip` reuses it as a child bubble). */
 .infotip-bubble {
   display: none;
   position: absolute;
-  bottom: calc(100% + 6px);
-  left: 50%;
-  transform: translateX(-50%);
   z-index: 20;
   width: max-content;
   max-width: 200px;
@@ -987,6 +992,11 @@ select.select-reset {
 /* Open state is JS-driven (see InfoTip.tsx) so only one bubble shows at a time. */
 .infotip-bubble.is-open {
   display: block;
+}
+/* InfoTip's own bubble, in <body>: top/left are set inline by the component (page coordinates). */
+.infotip-floating {
+  top: 0;
+  left: 0;
 }
 
 /* Skip-to-content link: off-screen until focused (WCAG 2.4.1). */
