@@ -7,7 +7,7 @@ import { playerPath } from "../lib/routes";
 
 /** "/" — the landing / player-select screen. */
 export function SelectRoute() {
-  const { players, loadError, lastScrapedAt } = useAppData();
+  const { players, loadError, meta } = useAppData();
   const navigate = useNavigate();
 
   // Resolve the picked espn id to a name for the pretty slug — from the roster if loaded,
@@ -20,7 +20,7 @@ export function SelectRoute() {
   return (
     <>
       <SelectView featured={FEATURED} players={players} listError={loadError} onPick={pick} />
-      <Footer lastScrapedAt={lastScrapedAt} />
+      <Footer meta={meta} />
     </>
   );
 }

@@ -75,6 +75,9 @@ export interface SeasonMissed {
 /** Dataset freshness — mirrors the API's `/meta`. */
 export interface Meta {
   lastScrapedAt: string | null; // ISO 8601 UTC of the latest successful scrape; null if none
+  /** "YYYY-MM-DD" of the latest completed regular-season game in the data — the footer's "Stats
+      through …". Null until the API has recorded one (older API builds omit the field entirely). */
+  statsThrough?: string | null;
 }
 
 /** Per-year league context — averages + real slate length. */

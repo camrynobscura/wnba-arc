@@ -1,31 +1,61 @@
 import { Link } from "react-router-dom";
+import type { Meta } from "../data/api";
 import { ThemeToggle } from "./ThemeToggle";
 
 interface FooterProps {
-  /** ISO 8601 UTC of the latest successful scrape, or null when unknown. */
-  lastScrapedAt: string | null;
+  /** GET /meta, or null while loading / when the fetch failed. */
+  meta: Meta | null;
   /** False on the About page itself, where an About link would point at the page it's on. */
   showAbout?: boolean;
 }
 
-/** Formats an ISO timestamp as e.g. "Aug 23, 2026"; null on a bad/empty value. */
-function formatScrapedAt(iso: string | null): string | null {
-  if (!iso) return null;
+const DATE_FMT: Intl.DateTimeFormatOptions = { year: "numeric", month: "short", day: "numeric" };
+
+/** "YYYY-MM-DD" → "Sep 23, 2026", read as a calendar date (NOT `new Date(iso)`, which would take
+    it as UTC midnight and print the day before in the Americas). Null on a bad value. */
+function formatDay(ymd: string): string | null {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(ymd);
+  if (!m) return null;
+  return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])).toLocaleDateString(undefined, DATE_FMT);
+}
+
+/** ISO timestamp → "Sep 23, 2026"; null on a bad/empty value. */
+function formatInstant(iso: string): string | null {
   const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return null;
-  return d.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
+  return Number.isNaN(d.getTime()) ? null : d.toLocaleDateString(undefined, DATE_FMT);
+}
+
+/**
+ * The freshness line for the footer chip. "Stats through <date of the last completed game>" is
+ * the sentence a stats site uses and the one a reader wants: in-season it's yesterday's games,
+ * in the playoffs and the off-season it stays on the last regular-season game — which is the
+ * point. The old "Data current as of <run time>" kept saying "yesterday" all winter and read as if
+ * something had changed (user, 2026-09-24). That line is the fallback for an API that hasn't
+ * recorded a game date yet.
+ */
+export function freshnessLine(meta: Meta | null): { lead: string; day: string; dateTime: string } | null {
+  if (!meta) return null;
+  if (meta.statsThrough) {
+    const day = formatDay(meta.statsThrough);
+    if (day) return { lead: "Stats through", day, dateTime: meta.statsThrough };
+  }
+  if (meta.lastScrapedAt) {
+    const day = formatInstant(meta.lastScrapedAt);
+    if (day) return { lead: "Data current as of", day, dateTime: meta.lastScrapedAt };
+  }
+  return null;
 }
 
 /**
  * The app's quiet chrome, at the bottom of every page: the About link and the light/dark switch
  * (both lived in a sticky top bar until 2026-09-23 — the bar went, since the only control worth
- * pinning on a player page is its "Compare to" lens), plus dataset freshness when known. The
- * freshness chip alone hides when the scrape time is unknown (before the API exposes `/meta`, or
- * a failed fetch), so it never surfaces an error or an empty line. (The unofficial · data-from-ESPN
- * attribution lives in the About page's "The data" section.)
+ * pinning on a player page is its "Compare to" lens), plus the data-freshness chip when known. The
+ * chip alone hides when nothing is known (before the API answers, or a failed fetch), so it never
+ * surfaces an error or an empty line. (The unofficial · data-from-ESPN attribution lives in the
+ * About page's "The data" section.)
  */
-export function Footer({ lastScrapedAt, showAbout = true }: FooterProps) {
-  const asOf = formatScrapedAt(lastScrapedAt);
+export function Footer({ meta, showAbout = true }: FooterProps) {
+  const fresh = freshnessLine(meta);
 
   return (
     <footer className="foot">
@@ -42,9 +72,9 @@ export function Footer({ lastScrapedAt, showAbout = true }: FooterProps) {
         )}
         <ThemeToggle />
       </div>
-      {asOf && (
+      {fresh && (
         <span className="foot-chip text-muted">
-          Data current as of <time dateTime={lastScrapedAt ?? undefined}>{asOf}</time>
+          {fresh.lead} <time dateTime={fresh.dateTime}>{fresh.day}</time>
         </span>
       )}
     </footer>

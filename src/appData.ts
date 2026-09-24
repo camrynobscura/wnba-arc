@@ -1,5 +1,5 @@
 import { createContext, useContext } from "react";
-import type { PlayerSummary } from "./data/api";
+import type { Meta, PlayerSummary } from "./data/api";
 import type { League, PositionLookup } from "./lib/deviation";
 
 /** App-wide data loaded once at startup and shared with every route via context. The
@@ -9,7 +9,8 @@ export interface AppData {
   loadError: string | null;
   league: League | null;
   positions: PositionLookup | null;
-  lastScrapedAt: string | null;
+  /** GET /meta — data freshness for the footer; null until loaded (or if the fetch failed). */
+  meta: Meta | null;
 }
 
 export const AppDataContext = createContext<AppData | null>(null);

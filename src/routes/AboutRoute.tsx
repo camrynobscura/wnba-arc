@@ -5,7 +5,7 @@ import { useAppData } from "../appData";
 
 /** "/about" — reachable from every page's footer (and the landing page). Back returns where you came from. */
 export function AboutRoute() {
-  const { lastScrapedAt } = useAppData();
+  const { meta } = useAppData();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -17,7 +17,7 @@ export function AboutRoute() {
   return (
     <>
       <AboutView onBack={goBack} />
-      <Footer lastScrapedAt={lastScrapedAt} showAbout={false} />
+      <Footer meta={meta} showAbout={false} />
     </>
   );
 }

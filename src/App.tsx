@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Navigate, Route, Routes, useLocation } from "react-router-dom";
-import { getLeague, getMeta, getPlayers, getPositions, type LeagueSeason, type PlayerSummary, type PositionSeason } from "./data/api";
+import { getLeague, getMeta, getPlayers, getPositions, type LeagueSeason, type Meta, type PlayerSummary, type PositionSeason } from "./data/api";
 import { makeLeague, makePositionLookup } from "./lib/deviation";
 import { AppDataContext, type AppData } from "./appData";
 import { SelectRoute } from "./routes/SelectRoute";
@@ -19,7 +19,7 @@ export default function App() {
   const [leagueData, setLeagueData] = useState<LeagueSeason[] | null>(null);
   const [positionData, setPositionData] = useState<PositionSeason[] | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [lastScrapedAt, setLastScrapedAt] = useState<string | null>(null);
+  const [meta, setMeta] = useState<Meta | null>(null);
 
   useEffect(() => {
     Promise.all([getPlayers(), getLeague()])
@@ -35,8 +35,8 @@ export default function App() {
   // position baseline simply isn't offered.
   useEffect(() => {
     getMeta()
-      .then((m) => setLastScrapedAt(m.lastScrapedAt))
-      .catch(() => setLastScrapedAt(null));
+      .then((m) => setMeta(m))
+      .catch(() => setMeta(null));
   }, []);
   useEffect(() => {
     getPositions()
@@ -48,8 +48,8 @@ export default function App() {
   const positions = useMemo(() => (positionData ? makePositionLookup(positionData) : null), [positionData]);
 
   const appData = useMemo<AppData>(
-    () => ({ players, loadError, league, positions, lastScrapedAt }),
-    [players, loadError, league, positions, lastScrapedAt],
+    () => ({ players, loadError, league, positions, meta }),
+    [players, loadError, league, positions, meta],
   );
 
   return (

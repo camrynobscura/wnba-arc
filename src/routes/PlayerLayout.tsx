@@ -20,7 +20,7 @@ export interface PlayerOutletCtx {
  *  between players (or landing on a deep link cold) drives the fetch. */
 export function PlayerLayout() {
   const { slug } = useParams();
-  const { players, loadError, league, positions, lastScrapedAt } = useAppData();
+  const { players, loadError, league, positions, meta } = useAppData();
   const navigate = useNavigate();
   // Name-slugs resolve against the roster (so the id stays out of the URL); the id-form resolves
   // without it. Null while the roster is still loading OR when nothing matches — the gates below
@@ -65,7 +65,7 @@ export function PlayerLayout() {
   return (
     <>
       <Outlet context={{ detail, league, positions } satisfies PlayerOutletCtx} />
-      <Footer lastScrapedAt={lastScrapedAt} />
+      <Footer meta={meta} />
     </>
   );
 }
