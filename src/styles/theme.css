@@ -670,6 +670,20 @@ select.select-reset {
 .table td:not(:first-child) {
   text-align: right;
 }
+/* Column dividers between the body cells: a hairline so the columns' equal widths are visible.
+   Without them the right-aligned numbers read as unevenly spaced (the gaps vary with each word's
+   width — the columns are identical, `table-layout: fixed`). Lighter than the row rules (5% vs 8%);
+   the zebra stays for row tracking; none in the header row (the labels sit on one clean line).
+   Drawn as a 1px background line inside the cell, NOT a border, stopping 1px short of the top and
+   bottom: as a translucent border it crossed the (translucent) row rules and every intersection
+   stacked into a darker dot — and the user wants the row and header rules exactly as they were.
+   The line never touches the row rules, so nothing stacks. (User's idea, 2026-09-24.) */
+.table td:not(:last-child) {
+  background-image: linear-gradient(color-mix(in srgb, var(--color-text) 5%, transparent), color-mix(in srgb, var(--color-text) 5%, transparent));
+  background-repeat: no-repeat;
+  background-size: 1px calc(100% - 2px);
+  background-position: right 1px;
+}
 /* Zebra striping — aids row-tracking on the wide drill-down table. */
 .table tbody tr:nth-child(even) {
   background: color-mix(in srgb, var(--color-text) 3.5%, transparent);

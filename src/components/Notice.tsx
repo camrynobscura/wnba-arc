@@ -10,12 +10,13 @@ export function Notice({ title, detail, onBack }: { title: string; detail?: stri
           isn't an allowed role for <main> and would drop the main landmark (a11y audit 2026-08-27).
           The <h1> gives these loading/error/not-found screens a real page heading. */}
       <div role={isError ? "alert" : "status"} aria-live={isError ? "assertive" : "polite"}>
+        <h1 style={{ fontSize: "var(--fs-lg)", margin: "0 0 var(--space-2)" }}>{title}</h1>
+        {/* The word first, the wave under it (user's call, 2026-09-24 — it sat above the word). */}
         {!isError && (
-          <div style={{ marginBottom: "var(--space-4)" }}>
+          <div style={{ marginTop: "var(--space-3)" }}>
             <Spinner />
           </div>
         )}
-        <h1 style={{ fontSize: "var(--fs-lg)", margin: "0 0 var(--space-2)" }}>{title}</h1>
         {detail && (
           <p className="text-muted" style={{ fontSize: "var(--fs-sm)", wordBreak: "break-word" }}>
             {detail}
