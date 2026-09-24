@@ -705,6 +705,7 @@ select.select-reset {
   display: grid;
   gap: 2px;
   --hm-yearcol: 40px;
+  --hm-cellmin: 40px; /* a cell's minimum width (the column template reads it) */
 }
 /* Full 4-digit year by default; 2-digit + narrower year column on mobile. */
 .hm-year-short {
@@ -719,6 +720,16 @@ select.select-reset {
   }
   .hm-year-short {
     display: inline;
+  }
+}
+/* Phones under 400px (iPhone SE / mini 375, 14 / 15 390, 16 393): with 40px cells the eight stat
+   columns need 362px and the column has 335–353, so TS% scrolled off the screen. 36px cells + a 24px
+   year column need 328 — every stat on screen at 375 — and a cell still clears the 24px WCAG target
+   minimum by a wide margin (measured 2026-09-24; DECISIONS). */
+@media (max-width: 400px) {
+  .heatmap {
+    --hm-yearcol: 24px;
+    --hm-cellmin: 36px;
   }
 }
 /* Column headers = the 7 stats (short label, full name in a tooltip). */

@@ -208,7 +208,7 @@ export function DeviationHeatmap({
         role="grid"
         aria-label={`${firstName(player.name)}'s seasons vs. ${refPhrase}`}
         className="heatmap"
-        style={{ gridTemplateColumns: `var(--hm-yearcol) repeat(${nCols}, minmax(40px, 1fr))` }}
+        style={{ gridTemplateColumns: `var(--hm-yearcol) repeat(${nCols}, minmax(var(--hm-cellmin), 1fr))` }}
         onKeyDown={onGridKeyDown}
         onMouseLeave={() => {
           // Leaving the grid ends the hover preview — unless the pointer went onto the popover
