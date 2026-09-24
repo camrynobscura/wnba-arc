@@ -1,20 +1,17 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { PlayerDetail, SeasonPlayed } from "../data/api";
 import { STATS } from "../data/stats";
-import { buildHeatmapGrid, compareOptions, firstName, isCountingStat, type HeatmapCell, type HeatmapMode, type League, ordinal, type PositionLookup, positionNoun, scaleNoun, selfModeAvailable, type StatKey } from "../lib/deviation";
+import { buildHeatmapGrid, compareSentence, firstName, isCountingStat, type HeatmapCell, type HeatmapMode, type League, ordinal, type PositionLookup, positionNoun, scaleNoun, selfModeAvailable, type StatKey } from "../lib/deviation";
 import { InfoTip } from "./InfoTip";
 import { ScaleKey } from "./ScaleKey";
-import { LabeledSelect } from "./Select";
 
 interface DeviationHeatmapProps {
   player: PlayerDetail;
   league: League;
   positions: PositionLookup | null;
   playerPosition: string | null;
-  /** Whether "vs their position" can be offered (position known AND /positions loaded). */
-  positionAvailable: boolean;
+  /** The page's reference mode — set in the sticky CompareBar, not here. */
   mode: HeatmapMode;
-  onModeChange: (m: HeatmapMode) => void;
   /** Go to one stat's year-by-year history — the popover's link, or Enter on a focused cell. */
   onDrill: (statKey: StatKey) => void;
 }
@@ -60,9 +57,7 @@ export function DeviationHeatmap({
   league,
   positions,
   playerPosition,
-  positionAvailable,
   mode,
-  onModeChange,
   onDrill,
 }: DeviationHeatmapProps) {
   // Self mode needs ≥2 seasons to be meaningful (one season vs. itself is all-neutral); a
@@ -182,8 +177,6 @@ export function DeviationHeatmap({
     return rank != null && pool != null ? { rank, pool } : null;
   };
 
-  const modeOptions = compareOptions(canSelf, positionAvailable, playerPosition);
-
   return (
     <section aria-labelledby="heatmap-title" style={{ margin: "var(--space-1) 0" }}>
       {/* Visually hidden: the section keeps its accessible name and its place in the heading
@@ -191,20 +184,14 @@ export function DeviationHeatmap({
           doesn't show, and duplicated the drill-down's "Year by year" (also dropped). First in the
           DOM, ahead of the control, so heading navigation lands before everything in the section. */}
       <h2 id="heatmap-title" className="sr-only">Season-by-season heatmap</h2>
-      {/* Control on the LEFT, the hint on the right, both on the select's baseline. The hint is one
-          short line now (it says only what nothing else does — that cells open); as the row's left
-          item it sat alone under a gap the height of the select's label and looked stranded. On a
-          phone the row wraps: control, then the hint directly above the color key and the grid. */}
-      <div style={{ display: "flex", flexWrap: "wrap", alignItems: "flex-end", justifyContent: "space-between", gap: "var(--space-3)", marginBottom: "var(--space-3)" }}>
-        <LabeledSelect
-          label="Compare to"
-          value={effMode}
-          options={modeOptions}
-          onChange={(v) => onModeChange(v as HeatmapMode)}
-        />
-        <p className="text-muted" style={{ fontSize: "var(--fs-sm)", margin: 0 }}>
-          Tap or hover a cell for details.
-        </p>
+      {/* What's compared, in one sentence that follows the mode ("Each season against A'ja's own
+          career averages.") — for a reader arriving cold, which a two-word segment in the bar can't
+          do (user, 2026-09-24). Then the one interaction hint (cells open). Sentence left, hint
+          right on a wide screen; on a phone the row wraps and they stack. Both sit directly above
+          the color key so sentence → key → grid read as one unit. */}
+      <div className="text-muted" style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", columnGap: "var(--space-4)", rowGap: "var(--space-1)", fontSize: "var(--fs-sm)", marginBottom: "var(--space-3)" }}>
+        <p style={{ margin: 0 }}>{compareSentence(effMode, firstName(player.name), playerPosition)}</p>
+        <p style={{ margin: 0 }}>Tap or hover over a cell for details.</p>
       </div>
 
       {/* Diverging color key, adapting its end labels to the current reference. */}

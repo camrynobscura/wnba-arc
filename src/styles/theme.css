@@ -415,19 +415,142 @@ select.select-reset {
   box-shadow: var(--shadow-lg);
 }
 
-/* — header / nav — the top bar and the controls that live in it — */
-.nav {
+/* — compare bar — the player page's ONE sticky row (components/CompareBar.tsx): the page-wide
+   "Compare to" segmented control, centered (user's call, 09-23; it was left-aligned where the old
+   dropdown sat), and nothing else. It replaced the app-wide top bar (2026-09-23). Sticky on every width — a 48px band is worth it for the one control
+   that recolors both sections. z-index sits under the cell popover / InfoTip bubbles (20) and the
+   skip link (100), over the grid. — */
+.has-compare-bar {
+  /* 2px top rule + 12px + the 34px control + 12px + 1px hairline. Keep in step with .compare-bar —
+     the scroll-margin below reads it. */
+  --compare-bar-h: 61px;
+}
+.compare-bar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
   display: flex;
   align-items: center;
-  gap: var(--space-4);
-  padding: var(--space-3) var(--space-4);
-  border-bottom: none;
+  justify-content: center;
+  gap: var(--space-3);
+  padding: var(--space-3) 0; /* was 7px of air around the control — "claustrophobic" (user) */
+  margin-bottom: var(--space-4);
+  background: var(--color-bg);
+  /* The top rule is the player header's (it used to sit on the header itself); the bottom hairline
+     is what separates the stuck bar from whatever scrolls under it. */
+  border-top: 2px solid var(--color-divider);
+  border-bottom: 1px solid var(--color-divider);
 }
-.nav-brand {
-  font-family: var(--font-heading);
-  font-weight: var(--font-heading-weight);
-  font-size: var(--fs-lg);
-  margin-right: auto;
+/* Anything focused or scrolled-to inside the page stops clear of the stuck bar (WCAG 2.4.11 —
+   focus not obscured), including the "See … history" jump into the drill-down section. */
+.has-compare-bar * {
+  scroll-margin-top: calc(var(--compare-bar-h) + var(--space-3));
+}
+.seg-wrap {
+  display: flex;
+  align-items: center;
+}
+/* "A'ja vs" ahead of the segments: the name in full ink, a little heavier; the "vs" muted, with
+   8px of air on each side (its own padding, not a flex gap, so the spacing belongs to the word). */
+.seg-lead {
+  display: inline-flex;
+  align-items: center;
+  font-size: var(--fs-sm);
+  white-space: nowrap;
+}
+.seg-who {
+  color: var(--color-text);
+  font-weight: 500;
+}
+.seg-vs {
+  padding: 0 10px 0 8px; /* user's tuning: a touch more air before the segments than after the name */
+  /* The app's muted tone (.text-muted), not neutral-600: that grey failed 4.5:1 on the light ground. */
+  color: color-mix(in srgb, var(--color-text) 68%, transparent);
+}
+.seg {
+  display: inline-flex;
+  border: 1px solid var(--color-divider);
+}
+.seg-btn {
+  position: relative;
+  height: 32px;
+  padding: 0 var(--space-3);
+  font: inherit;
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  color: var(--color-text);
+  background: transparent;
+  border: 0;
+  border-right: 1px solid var(--color-divider);
+  border-radius: 0;
+  cursor: pointer;
+}
+.seg-btn:last-child {
+  border-right: 0;
+}
+.seg-btn:hover {
+  background: color-mix(in srgb, var(--color-neutral-900) 8%, transparent);
+}
+/* The current mode: the text color as a fill, the page color as ink — monochrome, like the rest
+   of the chrome (color is for data and team identity). */
+.seg-btn[aria-pressed="true"] {
+  background: var(--color-text);
+  color: var(--color-bg);
+}
+/* Unavailable for this player: shown, not hidden (the bar keeps its shape), and still focusable
+   so its reason (the tooltip) is reachable. Same dimming as `.btn:disabled`. */
+.seg-btn[aria-disabled="true"] {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.seg-btn[aria-disabled="true"]:hover {
+  background: transparent;
+}
+.seg-btn:focus-visible {
+  z-index: 1; /* the ring draws over the neighbouring segments' borders */
+}
+/* The reason bubble opens DOWNWARD: the bar is stuck to the viewport's top edge, so "above" (the
+   InfoTip default) would be off-screen. Anchored to the segment's right edge so it stays inside
+   the column on a phone. */
+.seg-tip {
+  top: calc(100% + 8px);
+  bottom: auto;
+  left: auto;
+  right: 0;
+  transform: none;
+  opacity: 1; /* not dimmed with its disabled parent's text: it must stay readable */
+  font-weight: 400;
+}
+@media (forced-colors: active) {
+  .seg-btn[aria-pressed="true"] {
+    forced-color-adjust: none;
+    background: Highlight;
+    color: HighlightText;
+  }
+}
+
+/* — footer — About, the theme switch and the freshness chip, as a row of 34px hairline chips — */
+.foot {
+  width: 100%;
+  max-width: var(--app-width);
+  margin: 0 auto;
+  padding: 0 var(--space-5) var(--space-6);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+.foot-chip {
+  /* The freshness chip. inline-block + line-height, not inline-flex: a flex box would drop the
+     space between the chip's text and its <time> child ("as ofSep 23"). 34px outer = 32px line + the
+     hairlines. */
+  display: inline-block;
+  line-height: 32px;
+  padding: 0 var(--space-3);
+  font-size: var(--fs-xs);
+  letter-spacing: 0.02em;
+  border: 1px solid var(--color-divider);
 }
 
 /* The compact, always-visible player-page search (see components/PlayerSearch.tsx):
@@ -437,6 +560,16 @@ select.select-reset {
   border-bottom: 1px solid var(--color-divider);
   background: transparent;
   border-radius: 0;
+  font-size: var(--fs-md);
+}
+/* iOS Safari zooms the page when a focused input's font-size is under 16px — the compact search
+   at 14px did exactly that ("zooms in the tiniest bit", user). On touch devices text inputs and
+   selects are 1rem; the hero search already is. */
+@media (pointer: coarse) {
+  .search-underline,
+  .input {
+    font-size: 1rem;
+  }
 }
 .search-underline:focus {
   outline: none;
@@ -446,8 +579,10 @@ select.select-reset {
   color: var(--color-neutral-600);
 }
 
-/* Light/dark switch — square hairline button, of a piece with the blueprint frame. */
+/* Light/dark switch — square hairline button, of a piece with the blueprint frame. Also the
+   footer's About link (an <a>, hence the text-decoration reset). */
 .theme-toggle {
+  text-decoration: none;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1058,3 +1193,48 @@ select.select-reset {
   pointer-events: none;
 }
 
+
+/* — a <select> as a section title (components/Select.tsx `variant="title"`; the drill-down's stat
+   picker, which doubles as its heading). The visible title is a span in the heading face (type set
+   inline in the component); the native select lies over it invisible at the normal size, so the
+   browser's popup menu is normal-sized (Safari sizes the menu by the select's font and ignores
+   <option> styling) and the box is exactly the text's width. No box until the pointer or focus is on
+   it — a boxed headline read as an input; the chevron says "control" — and it hangs out to the left by
+   its own padding + hairline so the text lines up with the column. — */
+.select-wrap.is-title {
+  padding: var(--space-1) 34px var(--space-1) var(--space-2);
+  margin-left: calc(-1 * (var(--space-2) + 1px));
+  border: 1px solid transparent;
+  cursor: pointer;
+}
+.select-wrap.is-title:hover {
+  border-color: var(--color-divider);
+}
+/* The ring the global :focus-visible rule would draw on the (invisible) select, drawn on the wrapper. */
+.select-wrap.is-title:has(select:focus-visible) {
+  outline: 2px solid var(--color-text);
+  outline-offset: 2px;
+  border-color: var(--color-divider); /* the hairline, as on hover — a dark border + the ring read as a double frame */
+}
+.select-title-label {
+  display: inline-block;
+  color: var(--color-text);
+}
+.select-title {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  opacity: 0;
+  cursor: pointer;
+  font: inherit;
+  font-size: var(--fs-md); /* what the popup menu renders in */
+}
+.select-wrap.is-title::after {
+  width: 14px;
+  height: 8px;
+  right: 10px;
+  top: calc(50% + 2px); /* a couple of px below center (user's tuning) */
+}

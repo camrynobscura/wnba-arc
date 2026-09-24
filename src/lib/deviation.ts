@@ -503,13 +503,44 @@ export function selfModeAvailable(player: PlayerDetail): boolean {
   return playedSeasons(player).length >= 2;
 }
 
-/** The "Compare to" options — the heatmap's control and the drill-down's synced copy render the
-    same list, so the page never offers a mode in one place it can't honor in the other. */
-export function compareOptions(canSelf: boolean, positionAvailable: boolean, position: string | null): { value: HeatmapMode; label: string }[] {
+/**
+ * The one-line sentence above the heatmap's color key saying what every season is measured
+ * against — the mode in words, for a reader who arrives cold. The key beneath it says how the
+ * colors read, so this names only the comparison. Position mode names the crowd ("other centers").
+ */
+export function compareSentence(mode: HeatmapMode, playerFirstName: string, position: string | null): string {
+  if (mode === "self") return `Each season against ${playerFirstName}'s own career averages.`;
+  if (mode === "league") return "Each season against the league averages of that year.";
+  return `Each season against other ${positionNoun(position)} that year.`;
+}
+
+/** One segment of the page's "Compare to" control (components/CompareBar.tsx). */
+export interface CompareSegment {
+  value: HeatmapMode;
+  /** Short — the control is a segmented bar, not a dropdown: "Self", "League", "Guards". */
+  label: string;
+  /** Shown but not selectable, with `reason` as its tooltip. */
+  disabled: boolean;
+  reason: string | null;
+}
+
+/**
+ * The three "Compare to" segments, ALWAYS all three so the bar never changes shape from one
+ * player to the next. A mode the page can't honor is disabled with the reason: "Self" needs two
+ * seasons (one season vs. itself is all-neutral), the position mode needs a position on record
+ * (ESPN has none before 2012) and the /positions lookup loaded. The label for the position
+ * segment is the crowd itself ("Centers"), or "Position" when there is no position to name.
+ */
+export function compareSegments(canSelf: boolean, position: string | null, positionsLoaded: boolean): CompareSegment[] {
+  const noun = positionNoun(position);
+  const positionLabel = position == null ? "Position" : noun.charAt(0).toUpperCase() + noun.slice(1);
+  const positionReason = position == null ? "No position on record" : positionsLoaded ? null : "Position averages unavailable";
   return [
-    ...(canSelf ? [{ value: "self" as const, label: "their career" }] : []),
-    { value: "league" as const, label: "the league" },
-    ...(positionAvailable ? [{ value: "position" as const, label: `other ${positionNoun(position)}` }] : []),
+    // "Self" (user's call, 2026-09-24): "Career" read as career totals; "A'ja vs Self" is the sports
+    // idiom, and the sentence above the color key spells out the comparison.
+    { value: "self", label: "Self", disabled: !canSelf, reason: canSelf ? null : "Needs two or more seasons" },
+    { value: "league", label: "League", disabled: false, reason: null },
+    { value: "position", label: positionLabel, disabled: positionReason != null, reason: positionReason },
   ];
 }
 

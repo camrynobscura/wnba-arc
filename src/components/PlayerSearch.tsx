@@ -202,7 +202,8 @@ export function PlayerSearch({ players, listError, onPick, variant = "hero" }: P
         <input
           {...comboProps}
           className="search-underline"
-          style={{ width: "100%", height: 30, paddingLeft: "var(--space-6)", fontSize: "var(--fs-md)", color: "var(--color-text)", fontFamily: "var(--font-body)" }}
+          // Font size lives in .search-underline (theme.css) so the touch-device rule there can win.
+          style={{ width: "100%", height: 30, paddingLeft: "var(--space-6)", color: "var(--color-text)", fontFamily: "var(--font-body)" }}
           placeholder={listError ? "Search unavailable" : players ? "Search players…" : "Loading roster…"}
           disabled={listError != null}
         />

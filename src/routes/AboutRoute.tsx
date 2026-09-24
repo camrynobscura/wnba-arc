@@ -3,7 +3,7 @@ import { AboutView } from "../components/AboutView";
 import { Footer } from "../components/Footer";
 import { useAppData } from "../appData";
 
-/** "/about" — reachable from any screen via the header. Back returns where you came from. */
+/** "/about" — reachable from every page's footer (and the landing page). Back returns where you came from. */
 export function AboutRoute() {
   const { lastScrapedAt } = useAppData();
   const navigate = useNavigate();
@@ -17,7 +17,7 @@ export function AboutRoute() {
   return (
     <>
       <AboutView onBack={goBack} />
-      <Footer lastScrapedAt={lastScrapedAt} />
+      <Footer lastScrapedAt={lastScrapedAt} showAbout={false} />
     </>
   );
 }

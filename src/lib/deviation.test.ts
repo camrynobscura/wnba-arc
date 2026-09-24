@@ -2,6 +2,8 @@ import { describe, it, expect } from "vitest";
 import {
   buildHeatmapGrid,
   buildStatDetail,
+  compareSegments,
+  compareSentence,
   fmtCell,
   isSmallSample,
   isStatSmallSample,
@@ -625,3 +627,40 @@ describe("buildStatDetail — the chart's vertical scale by stat type", () => {
   });
 });
 
+
+describe("compareSegments", () => {
+  it("offers all three modes to a multi-season player with a position and the lookup loaded", () => {
+    const segs = compareSegments(true, "C", true);
+    expect(segs.map((s) => s.value)).toEqual(["self", "league", "position"]);
+    expect(segs.map((s) => s.label)).toEqual(["Self", "League", "Centers"]);
+    expect(segs.every((s) => !s.disabled && s.reason == null)).toBe(true);
+  });
+
+  it("always returns three segments — a mode the page can't honor is disabled with a reason", () => {
+    const one = compareSegments(false, "G", true);
+    expect(one).toHaveLength(3);
+    expect(one[0]).toMatchObject({ value: "self", disabled: true, reason: "Needs two or more seasons" });
+    expect(one[2]).toMatchObject({ value: "position", label: "Guards", disabled: false });
+
+    const noPos = compareSegments(true, null, true);
+    expect(noPos[2]).toMatchObject({ value: "position", label: "Position", disabled: true, reason: "No position on record" });
+
+    const noLookup = compareSegments(true, "F", false);
+    expect(noLookup[2]).toMatchObject({ value: "position", label: "Forwards", disabled: true, reason: "Position averages unavailable" });
+  });
+
+  it("never disables the league mode", () => {
+    for (const segs of [compareSegments(false, null, false), compareSegments(true, "C", true)]) {
+      expect(segs[1]).toEqual({ value: "league", label: "League", disabled: false, reason: null });
+    }
+  });
+});
+
+describe("compareSentence", () => {
+  it("names the comparison for each mode, the crowd in position mode", () => {
+    expect(compareSentence("self", "A'ja", "C")).toBe("Each season against A'ja's own career averages.");
+    expect(compareSentence("league", "A'ja", "C")).toBe("Each season against the league averages of that year.");
+    expect(compareSentence("position", "A'ja", "C")).toBe("Each season against other centers that year.");
+    expect(compareSentence("position", "Sabrina", "G")).toBe("Each season against other guards that year.");
+  });
+});

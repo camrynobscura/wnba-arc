@@ -2,11 +2,9 @@ import { useEffect, useRef, useState } from "react";
 import type { PlayerDetail } from "../data/api";
 import { STATS, statDescBody } from "../data/stats";
 import {
-  compareOptions,
   ordinal,
   positionNoun,
   scaleNoun,
-  selfModeAvailable,
   type HeatmapMode,
   type StatDetail,
   type StatKey,
@@ -23,12 +21,10 @@ interface StatDrilldownViewProps {
   statKey: StatKey;
   /** The stat's one-line description (STATS[].desc); shown under its name without the lead-in. */
   desc: string;
-  /** The page's reference mode. The section shows a second, synced "Compare to" control so the
-      reader can switch without scrolling back to the heatmap; both write the same URL state. */
+  /** The page's reference mode — set in the sticky CompareBar, which stays in reach while the
+      reader is down here (it replaced a synced second dropdown in this header). */
   mode: HeatmapMode;
-  positionAvailable: boolean;
   onStatChange: (key: StatKey) => void;
-  onModeChange: (mode: HeatmapMode) => void;
 }
 
 const PLOT_H = 220; // px
@@ -45,7 +41,7 @@ const COL_MIN = 22; // px
  * (or reached via a heatmap cell's "See … history" link / Enter). The heading has tabIndex=-1 so
  * that link can move focus here for keyboard/screen-reader users.
  */
-export function StatDrilldownView({ player, stat, statKey, desc, mode, positionAvailable, onStatChange, onModeChange }: StatDrilldownViewProps) {
+export function StatDrilldownView({ player, stat, statKey, desc, mode, onStatChange }: StatDrilldownViewProps) {
   const bars = stat.bars;
   const n = bars.length;
   // Click a chart column → that year's row lights up in the table (and the column itself), so a
@@ -75,7 +71,6 @@ export function StatDrilldownView({ player, stat, statKey, desc, mode, positionA
   const rankNoun = mode === "position" ? positionNoun(player.pos) : "players";
   const rankAmong = mode === "position" ? rankNoun.charAt(0).toUpperCase() + rankNoun.slice(1) : "WNBA";
   const refNoun = scaleNoun(mode, player.pos);
-  const modeOptions = compareOptions(selfModeAvailable(player), positionAvailable, player.pos);
 
   // A hollow dot on the chart (a small sample, or a full season with no reference) needs its
   // legend entry; most players have none.
@@ -136,26 +131,32 @@ export function StatDrilldownView({ player, stat, statKey, desc, mode, positionA
       aria-labelledby="drilldown-title"
       style={{ marginTop: "var(--space-8)", paddingTop: "var(--space-6)", borderTop: "2px solid var(--color-divider)" }}
     >
-      {/* Header: name + description, then the section's two controls on their own row beneath —
-          ALWAYS beneath. As one wrapping row the controls sat to the right only when the description
-          was short enough (Points, alone of the eight stats) and dropped under it for the rest, so
-          the layout jumped as the reader changed stats. The controls still sit ABOVE everything they
-          change — the plates, the chart, the table. The comparison control is a synced copy of the
-          page's: changing it here changes the heatmap too (one state). */}
+      {/* Header: the stat picker IS the title — a <select> set in the heading face ("Blocks ▾"),
+          the one-line description under it. Until 2026-09-23 this was an <h2> "Blocks", the
+          description, and then a labelled "Stat" dropdown reading "Blocks" again 60px below: the same
+          fact twice, plus a row. The real heading is visually hidden — it keeps the section in the
+          outline / heading navigation and stays the focus target for the heatmap's "See … history"
+          link (tabIndex=-1). The description stays: for the shooting %s it is the only always-visible
+          explanation on the page (the column InfoTips need a hover / tap). */}
       <div>
-        <div>
-          {/* tabIndex=-1: a programmatic focus target for the heatmap's "See … history" link. */}
-          <h2 id="drilldown-title" tabIndex={-1} style={{ margin: 0, fontSize: "var(--fs-2xl)" }}>
-            {stat.label}
-          </h2>
-          {/* The description without its "Points — " lead-in: the heading already says the name. */}
-          <div className="text-muted" style={{ fontSize: "var(--fs-sm)", marginTop: "var(--space-1)" }}>
-            {statDescBody(desc)}
-          </div>
+        {/* A kicker names the section — without it a lone "Blocks ▾" had no context (user). Plain
+            text for sighted readers; the hidden heading below carries the section's name for AT. */}
+        <div className="card-kicker" style={{ marginBottom: "var(--space-1)" }}>
+          Stat detail
         </div>
-        <div style={{ display: "flex", gap: "var(--space-3)", flexWrap: "wrap", marginTop: "var(--space-3)" }}>
-          <LabeledSelect label="Stat" value={statKey} options={STATS.map((s) => ({ value: s.key, label: s.label }))} onChange={(v) => onStatChange(v as StatKey)} />
-          <LabeledSelect label="Compare to" value={mode} options={modeOptions} onChange={(v) => onModeChange(v as HeatmapMode)} />
+        <h2 id="drilldown-title" tabIndex={-1} className="sr-only">
+          {stat.label}, year by year
+        </h2>
+        <LabeledSelect
+          variant="title"
+          ariaLabel="Stat"
+          value={statKey}
+          options={STATS.map((s) => ({ value: s.key, label: s.label }))}
+          onChange={(v) => onStatChange(v as StatKey)}
+        />
+        {/* The description without its "Points — " lead-in: the title already says the name. */}
+        <div className="text-muted" style={{ fontSize: "var(--fs-sm)", marginTop: "var(--space-1)" }}>
+          {statDescBody(desc)}
         </div>
       </div>
 

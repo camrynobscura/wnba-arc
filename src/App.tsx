@@ -1,9 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Navigate, Route, Routes, useLocation, useNavigate } from "react-router-dom";
+import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { getLeague, getMeta, getPlayers, getPositions, type LeagueSeason, type PlayerSummary, type PositionSeason } from "./data/api";
 import { makeLeague, makePositionLookup } from "./lib/deviation";
 import { AppDataContext, type AppData } from "./appData";
-import { Header } from "./components/Header";
 import { SelectRoute } from "./routes/SelectRoute";
 import { AboutRoute } from "./routes/AboutRoute";
 import { PlayerLayout } from "./routes/PlayerLayout";
@@ -53,14 +52,13 @@ export default function App() {
     [players, loadError, league, positions, lastScrapedAt],
   );
 
-  const navigate = useNavigate();
-
   return (
     <div style={{ minHeight: "100%", display: "flex", flexDirection: "column" }}>
       <a href="#main" className="skip-link">
         Skip to main content
       </a>
-      <Header onGoHome={() => navigate("/")} onAbout={() => navigate("/about")} />
+      {/* No app-wide top bar: the landing page is home, the player page's sticky CompareBar is the
+          way back, and About + the theme switch live in the footer of every page. */}
       <ScrollToTop />
       <AppDataContext.Provider value={appData}>
         <Routes>

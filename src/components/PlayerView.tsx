@@ -1,7 +1,8 @@
 import { photoUrl } from "../data/stats";
 import type { PlayerDetail, PlayerSummary } from "../data/api";
 import { PlayerSearch } from "./PlayerSearch";
-import type { HeatmapMode, League, PositionLookup, StatDetail, StatKey } from "../lib/deviation";
+import type { CompareSegment, HeatmapMode, League, PositionLookup, StatDetail, StatKey } from "../lib/deviation";
+import { CompareBar } from "./CompareBar";
 import { PlayerPhoto } from "./PlayerPhoto";
 import { teamTint } from "../data/teams";
 import { playerMeta } from "../lib/playerMeta";
@@ -13,9 +14,9 @@ interface PlayerViewProps {
   league: League;
   positions: PositionLookup | null;
   playerPosition: string | null;
-  /** Whether "vs their position" can be offered (position known AND /positions loaded). */
-  positionAvailable: boolean;
   mode: HeatmapMode;
+  /** The sticky bar's three "Compare to" segments (unavailable ones disabled with a reason). */
+  segments: CompareSegment[];
   /** The drill-down's stat, its built detail (for the page's mode), and its description. */
   statKey: StatKey;
   statDesc: string;
@@ -33,17 +34,19 @@ interface PlayerViewProps {
 }
 
 /**
- * The whole player page, on one canvas: the season × stat heatmap (overview, switchable
- * reference) on top, and the year-by-year drill-down for one stat beneath it. Overview → detail
- * without a navigation; the selected stat lives in the URL so the page is still shareable.
+ * The whole player page, on one canvas: the season × stat heatmap (overview) on top, and the
+ * year-by-year drill-down for one stat beneath it. Overview → detail without a navigation; the
+ * selected stat lives in the URL so the page is still shareable. The reference both sections are
+ * measured against is ONE control, the sticky CompareBar under the player header (the app has no
+ * top nav; the way back to the list is the top row's button).
  */
 export function PlayerView({
   player,
   league,
   positions,
   playerPosition,
-  positionAvailable,
   mode,
+  segments,
   statKey,
   statDesc,
   statDetail,
@@ -56,8 +59,10 @@ export function PlayerView({
   onPick,
 }: PlayerViewProps) {
   return (
-    <main id="main" className="view-main">
-      {/* Top row: back to all players (left) + jump straight to another player (right). */}
+    <main id="main" className="view-main has-compare-bar">
+      {/* Top row: back to all players (left) + jump straight to another player (right). (A cut of
+          the sticky bar carried the back button instead, leaving the search floating alone up here —
+          it looked stranded, and the player's name can't share the row with it on a phone.) */}
       <div className="view-header">
         <button className="btn btn-ghost" style={{ gap: "var(--space-2)" }} onClick={onGoHome}>
           <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
@@ -74,8 +79,7 @@ export function PlayerView({
           alignItems: "center",
           gap: "var(--space-4)",
           paddingBottom: "var(--space-4)",
-          marginBottom: "var(--space-4)",
-          borderBottom: "2px solid var(--color-divider)",
+          /* The 2px rule under the header is the CompareBar's top border now (theme.css). */
         }}
       >
         <PlayerPhoto src={photoUrl(player.espn)} name={player.name} size={54} tint={teamTint(player.teamAbbr)} />
@@ -87,14 +91,14 @@ export function PlayerView({
         </div>
       </div>
 
+      <CompareBar playerName={player.name} mode={mode} segments={segments} onModeChange={onModeChange} />
+
       <DeviationHeatmap
         player={player}
         league={league}
         positions={positions}
         playerPosition={playerPosition}
-        positionAvailable={positionAvailable}
         mode={mode}
-        onModeChange={onModeChange}
         onDrill={onDrill}
       />
 
@@ -108,9 +112,7 @@ export function PlayerView({
         statKey={statKey}
         desc={statDesc}
         mode={mode}
-        positionAvailable={positionAvailable}
         onStatChange={onStatChange}
-        onModeChange={onModeChange}
       />
     </main>
   );

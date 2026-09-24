@@ -4,7 +4,7 @@ import { PlayerView } from "../components/PlayerView";
 import { STATS } from "../data/stats";
 import { useAppData } from "../appData";
 import type { PlayerOutletCtx } from "./PlayerLayout";
-import { buildStatDetail, selfModeAvailable, type HeatmapMode, type StatKey } from "../lib/deviation";
+import { buildStatDetail, compareSegments, selfModeAvailable, type HeatmapMode, type StatKey } from "../lib/deviation";
 import { playerPath, statPath, toMode, toStatKey } from "../lib/routes";
 
 /** The drill-down stat shown when the URL has no `:stat` segment ("/player/aja-wilson"). */
@@ -31,6 +31,9 @@ export function PlayerRoute() {
   const requested = toMode(searchParams.get("vs"));
   const mode: HeatmapMode =
     requested === "position" && !positionAvailable ? (canSelf ? "self" : "league") : requested === "self" && !canSelf ? "league" : requested;
+  // The sticky bar's segments — the same availability rules as the resolution above, so the bar
+  // never offers a mode the page would immediately degrade.
+  const segments = useMemo(() => compareSegments(canSelf, detail.pos, positions != null), [canSelf, detail.pos, positions]);
 
   // No :stat → the default; an unknown segment → bounce to the bare player path (below).
   const statKey: StatKey | null = statParam == null ? DEFAULT_STAT : toStatKey(statParam);
@@ -78,8 +81,8 @@ export function PlayerRoute() {
       league={league}
       positions={positions}
       playerPosition={detail.pos}
-      positionAvailable={positionAvailable}
       mode={mode}
+      segments={segments}
       statKey={statKey}
       statDesc={statDef.desc}
       statDetail={statDetail}

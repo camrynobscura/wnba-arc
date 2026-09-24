@@ -20,7 +20,7 @@ export function SelectView({ featured, players, listError, onPick }: SelectViewP
     <main id="main" style={{ maxWidth: "var(--app-width)", width: "100%", margin: "0 auto", padding: "var(--space-10) var(--space-5) var(--space-10)" }}>
       <h1 style={{ fontSize: "var(--fs-3xl)", marginBottom: "var(--space-3)" }}>How far from normal is this season?</h1>
       <p className="text-muted" style={{ fontSize: "var(--fs-base)", marginBottom: "var(--space-6)" }}>
-        Pick a current WNBA player. See how any season compares to the rest of their own career, and to the league that year.
+        Pick a WNBA player. See how any season compares to the rest of their own career, and to the league that year.
       </p>
 
       <PlayerSearch variant="hero" players={players} listError={listError} onPick={onPick} />
