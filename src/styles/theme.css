@@ -921,49 +921,82 @@ select.select-reset {
   font-weight: 600;
 }
 /* — feedback & a11y widgets: loading spinner, info tooltip, skip link — */
-/* Loading indicator — a wave of accent fill across small hairline blocks, echoing
-   the deviation blocks + the blueprint frame. Decorative (aria-hidden); the state
-   text beside it carries meaning to assistive tech. */
+/* Loading indicator — three basketballs dribbling (the user's pick, 2026-09-25, from a preview of
+   seven basketball loaders; replaced the outlined "wave" of five blocks left over from the deviation
+   bars). Drawn in ink — outline + seams in currentColor — not orange: color here means data or team
+   identity, and orange sits beside the heatmap's "above" red. Decorative (aria-hidden); the status
+   text beside it is what assistive tech announces.
+
+   The motion is gravity-shaped, not a symmetric ease: floor at 0% / 100%, apex at 50%; the up leg
+   decelerates (ease-out-quad), the down leg accelerates (ease-in-quad), so the ball hangs at the top,
+   is fastest at the floor, and reverses in an instant. The squash lives only in the first and last 6%
+   of the cycle — the moment it is on the floor. One bounce = 0.95s; the three balls trail by 0.16s.
+   --spinner-ball sizes the ball; --spinner-hop is the height of the bounce (both in px). 22 / 18 on
+   the loading screen (user: larger, 2026-09-25); the inline variant below is smaller. */
 .spinner {
+  --spinner-ball: 22px;
+  --spinner-hop: -18px;
   display: inline-flex;
+  gap: 10px;
+  align-items: flex-end;
+  /* Room for the hop above the resting balls, so the row's box never changes size. */
+  height: calc(var(--spinner-ball) - var(--spinner-hop));
+}
+/* Inline beside small text ("Loading roster…"): a smaller ball and a shorter hop. */
+.spinner.spinner-sm {
+  --spinner-ball: 11px;
+  --spinner-hop: -8px;
   gap: 4px;
-  align-items: center;
 }
-.spinner span {
-  width: 8px;
-  height: 15px;
-  border: 1px solid var(--color-neutral-600);
-  background: transparent;
-  animation: spinner-wave 1.1s ease-in-out infinite;
+.spinner svg {
+  display: block;
+  width: var(--spinner-ball);
+  height: var(--spinner-ball);
+  overflow: visible;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  transform-origin: 50% 100%;
+  animation: spinner-bounce 0.95s linear infinite;
 }
-.spinner span:nth-child(2) {
-  animation-delay: 0.13s;
+.spinner svg:nth-child(2) {
+  animation-delay: 0.16s;
 }
-.spinner span:nth-child(3) {
-  animation-delay: 0.26s;
+.spinner svg:nth-child(3) {
+  animation-delay: 0.32s;
 }
-.spinner span:nth-child(4) {
-  animation-delay: 0.39s;
+.spinner .ball-outline {
+  stroke-width: 1.6;
 }
-.spinner span:nth-child(5) {
-  animation-delay: 0.52s;
+.spinner .ball-seam {
+  stroke-width: 1.2;
 }
-@keyframes spinner-wave {
-  0%,
-  60%,
+@keyframes spinner-bounce {
+  0% {
+    transform: translateY(0) scale(1.14, 0.84);
+    animation-timing-function: linear;
+  }
+  6% {
+    transform: translateY(calc(var(--spinner-hop) * 0.12)) scale(1, 1);
+    animation-timing-function: cubic-bezier(0.33, 0.66, 0.66, 1);
+  }
+  50% {
+    transform: translateY(var(--spinner-hop)) scale(1, 1);
+    animation-timing-function: cubic-bezier(0.33, 0, 0.66, 0.33);
+  }
+  94% {
+    transform: translateY(calc(var(--spinner-hop) * 0.12)) scale(1, 1);
+    animation-timing-function: linear;
+  }
   100% {
-    background: transparent;
-  }
-  30% {
-    background: var(--color-neutral-600);
+    transform: translateY(0) scale(1.14, 0.84);
   }
 }
-/* No traveling wave for reduced-motion users — hold a static half-fill instead of
-   freezing mid-animation, so it still reads as "in progress" (WCAG 2.3 spirit). */
 @media (prefers-reduced-motion: reduce) {
-  .spinner span {
-    animation: none;
-    background: color-mix(in srgb, var(--color-neutral-600) 35%, transparent);
+  /* No indicator at all — just the "Loading…" text (user's call, 2026-09-25). Hidden, not
+     stilled: three motionless balls beside the word read as decoration with no job. */
+  .spinner {
+    display: none;
   }
 }
 

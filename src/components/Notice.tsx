@@ -11,9 +11,9 @@ export function Notice({ title, detail, onBack }: { title: string; detail?: stri
           The <h1> gives these loading/error/not-found screens a real page heading. */}
       <div role={isError ? "alert" : "status"} aria-live={isError ? "assertive" : "polite"}>
         <h1 style={{ fontSize: "var(--fs-lg)", margin: "0 0 var(--space-2)" }}>{title}</h1>
-        {/* The word first, the wave under it (user's call, 2026-09-24 — it sat above the word). */}
+        {/* The word first, the indicator under it (user's call, 2026-09-24 — it sat above the word). */}
         {!isError && (
-          <div style={{ marginTop: "var(--space-3)" }}>
+          <div style={{ marginTop: "var(--space-6)" }}>
             <Spinner />
           </div>
         )}

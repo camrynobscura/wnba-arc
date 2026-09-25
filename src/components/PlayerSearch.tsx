@@ -148,7 +148,7 @@ export function PlayerSearch({ players, listError, onPick, variant = "hero" }: P
       >
         {searchPending ? (
           <div className="text-muted" style={{ padding: "var(--space-3) var(--space-4)", fontSize: "var(--fs-sm)", display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
-            <Spinner /> Loading roster…
+            <Spinner small /> Loading roster…
           </div>
         ) : noMatches ? (
           <div className="text-muted" style={{ padding: "var(--space-3) var(--space-4)", fontSize: "var(--fs-sm)" }}>No players match “{query}”.</div>
@@ -235,7 +235,7 @@ export function PlayerSearch({ players, listError, onPick, variant = "hero" }: P
 
       {searchPending && (
         <p className="text-muted" style={{ fontSize: "var(--fs-xs)", marginTop: "var(--space-2)", display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
-          <Spinner /> Loading full roster…
+          <Spinner small /> Loading full roster…
         </p>
       )}
       {listError && (
