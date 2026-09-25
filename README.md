@@ -1,151 +1,167 @@
 # WNBA Arc
 
-**Is this the best season of a player's career, or just another year at the office?**
-WNBA Arc reframes each stat as a distance from what's normal, so a career year stands out
-at a glance and a quiet one does too.
+**How far from normal is this season?**
+WNBA Arc shows a player's whole career as one grid of seasons and stats, colored by how far
+each number sits from what's normal — for that player, for the league that year, or for the
+players at the same position that year. A career year stands out at a glance, and a quiet one does too.
 
 **[Live demo →](https://wnba-arc.netlify.app)**
 
-| Season summary — light | Season summary — dark |
+| Player page — light | Player page — dark |
 | :--: | :--: |
-| ![Career Trend heatmap and season deviation bars, light theme](assets/summary-light.png) | ![The same player summary in dark theme](assets/summary-dark.png) |
+| ![A'ja Wilson's season-by-season heatmap with a cell's detail popover open, the career summary plates, and the year-by-year chart, light theme](assets/summary-light.png) | ![The same player page in the dark theme](assets/summary-dark.png) |
 
 ---
 
 ## The idea
 
-A single stat line rarely tells you much. Is 18 points a big year for a player, or a
-typical one? WNBA Arc answers that by measuring every stat against a baseline — the league
-that season, or the player's same-position peers — and showing how far above or below that
-baseline each stat lands. You still see the real numbers; the visualization just tells you
-how unusual they are.
+A single stat line rarely tells you much. Is 18 points a big year for a player, or a typical one?
+The answer depends on what you compare it to. WNBA Arc keeps the real numbers and adds the
+comparison: every season is measured against one **reference** you pick — the player's own career
+average, the league average that year, or the average for guards, forwards, or centers that year —
+and the color says how unusual it is. Same grid, three different questions.
 
 ## What it does
 
-- **Career Trend** — a heatmap of every season against the player's own career average
-  (warmer above, cooler below), so a whole career reads in one glance.
-- **Season comparison** — for one selected season, segmented deviation bars showing each
-  stat against that year's baseline, with the real value as the headline.
-- **Single-stat drill-down** — a year-by-year dumbbell chart plus a full history table
-  (makes/attempts for shooting %s, value, games, minutes, percentile, and delta vs.
-  baseline) for any stat.
-- **Two baselines** — compare a season against the whole **league** that year, or other
-  players at the **same position** (guards / forwards / centers) that year. Same-position is
-  offered only when there's a real sample; it never silently falls back to the league.
-- **Honest about the data** — missed seasons show as gaps in the timeline, small-sample
-  seasons are flagged and kept out of baselines, and stats that can't be sourced reliably are
-  left out rather than estimated.
-- **Shareable, linkable** — player, stat, season, and comparison all live in the URL, so
-  back/forward and link-sharing work.
-- **Light & dark themes** that follow the OS by default, with a manual toggle.
+- **One heatmap per career** — every season the player has played, across eight stats (points,
+  rebounds, assists, steals, blocks, FG%, 3P%, true shooting %). Warm cells are above the reference,
+  cool cells below; the cell shows the value. Missed seasons stay on the timeline as empty rows.
+- **Details on demand** — hover, tap, or arrow-key onto a cell and a popover shows the exact value,
+  the reference average, the difference, and that season's rank ("3rd of 141 players"), with a link
+  to the stat's full history. A tap reveals and never navigates, so a phone gets the same detail as a mouse.
+- **One switch for the whole page** — a sticky bar under the player's name (`A'ja vs Self | League |
+  Centers`). Both sections follow it, so the page never disagrees with itself. A mode the page can't
+  honor stays visible but disabled, with the reason: a one-season player has no "Self", and a player
+  with no position on record (most before 2012) has no position segment.
+- **Stat detail** — for any one stat: career plates (high, low, career average, best rank and where it
+  happened), a per-season dumbbell chart (the season's value against its reference, hollow when it
+  can't be compared, a hatched column for a missed year; click a column to highlight its row), and the
+  full yearly table with games, minutes, rank, and the difference. For shooting percentages the table
+  also shows makes and attempts, so a small sample explains itself.
+- **Everyone since 1997** — every player who has appeared in a WNBA regular season, retired players
+  included (1,217 today), so a 2004 season is measured against 2004's whole league. A retired player's
+  header reads "Retired · 1997–2003 · G".
+- **Search** by player or team, accent- and punctuation-insensitive ("aja" finds A'ja Wilson), with a
+  keyboard-navigable results list.
+- **Linkable** — player, stat, and reference all live in the URL (`/player/aja-wilson/blk?vs=league`),
+  so back/forward and sharing work.
+- **Light and dark themes** that follow the OS until you choose; headshots carry a quarter-strength
+  wash of the player's team color.
+- **Honest about the data** — small-sample seasons are greyed and kept out of every average, stats
+  that can't be sourced reliably are left out, and the footer says which game the stats run through.
 
-## How the deviation math works
+## How the comparison works
 
-The core question is *"how far from normal is this number?"* — and both "normal" and "far"
-mean different things for different stats, so the bar metric is chosen per stat type. All of
-this lives in [`src/lib/deviation.ts`](src/lib/deviation.ts): pure, React-free, and
-unit-tested.
+All of the logic lives in [`src/lib/deviation.ts`](src/lib/deviation.ts): pure, React-free, and
+unit-tested. The same functions feed the heatmap and the stat detail, so the two views always agree.
 
-**Baseline.** Every comparison is against the **subject season's** peer group — the whole
-league that year, or the player's position peers that year. There's no multi-year window: one
-season is compared to that same season's crowd, so the baseline, the bar's ruler, and the
-percentile all come from one coherent group. Position averages are gated at ≥ 8 qualified
-players, so thin buckets (mostly pre-2015) aren't offered rather than silently collapsing to
-the league.
+**Three references.** *Self* compares each season to the player's own career average. *League*
+compares each season to that year's league average, and *Position* to that year's average for the
+player's position. In the peer modes, the reference is always the same year's crowd — there is no
+multi-year window, so the average, the ruler, and the rank all describe one group.
 
-**Counting stats** (points, rebounds, assists, steals, blocks) are measured in
-**standard-deviation "steps"**: the distance from the baseline divided by the comparison
-group's spread, with a full bar at **3 steps** (`FULL_STEPS`). This replaced a
-relative-percentage bar that had two measured failures — it *saturated* for elite players (a
-star clears +50% on nearly every stat, so every bar pinned to full) and it *exploded* on
-small-denominator stats (0.1 → 0.2 blocks reads as +100%). Measuring in the group's own spread
-is honest across stats that vary by very different amounts.
+**Color for counting stats** (points, rebounds, assists, steals, blocks) is measured in
+**standard-deviation "steps"**: the distance from the reference divided by the comparison group's
+spread that year, fully saturated at 3 steps (`FULL_STEPS`). A flat percentage would saturate for
+stars (a top scorer clears +50% on nearly every stat) and explode on small numbers (0.1 → 0.2 blocks
+reads as +100%); measuring in the group's own spread is honest across stats that vary by very
+different amounts.
 
-**Shooting percentages** (FG%, 3P%, TS%) keep a **relative-change bar** (full at ± 50%,
-`BAR_FULL_SCALE`): they don't saturate — a great shooter is only ~ +13–36% over the league —
-and a percent-of-a-percent step would be hard to read.
+**Shooting percentages** (FG%, 3P%, TS%) use a relative-change scale instead, full at ±50%
+(`BAR_FULL_SCALE`): they never saturate the way counting stats do, and a percent-of-a-percent step
+would be hard to read.
 
-**Percentile.** For counting stats, each season's rank within its group is interpolated from
-stored decile ladders and shown as the "Pct" column in the drill-down table. The bar answers
-*how far*; the percentile answers *how rare* — two different questions, so both are shown.
+**Self mode** scales each stat to the player's own range, with a floor at 0.5 × the league spread
+(`HEATMAP_STEP_FLOOR`) so a career that spans a league-trivial range — a tenth of a block — can't paint
+itself as dramatic. It needs at least two seasons.
 
-**Small samples** are gated two independent ways: a season under **25%** of the scheduled
-slate (`SMALL_SAMPLE_FRACTION`, kept in sync with the data service) and a shooting % on fewer
-than **10 attempts** (`MIN_RATE_ATTEMPTS`). Gated seasons are greyed in the heatmap, dropped
-from the drill-down chart, kept in the table, and excluded from baseline averages — so a
-1-for-1 "100%" three-point year can't distort anything.
+**Ranks** come from the data service: a season's place among the qualified players that year (or among
+the player's position, in position mode), 1 = best, from the same pool the averages are computed on.
+The "best rank" plate picks the season by its **share** of the pool, not the raw place — the league
+keeps adding teams, so 27th of 106 beats 18th of 65.
 
-**Career Trend** is the one view that measures a player against *their own* career average,
-self-scaled to their own range — with a floor at 0.5 × the league spread, so a career that
-spans a league-trivial range (a tenth of a block) can't paint itself as dramatic.
+**Small samples** are gated two independent ways: a season under **25%** of that year's schedule
+(`SMALL_SAMPLE_FRACTION`, kept equal to the data service's) and a shooting percentage on fewer than
+**10 attempts** (`MIN_RATE_ATTEMPTS`). A gated season is greyed in the heatmap, drawn hollow on the
+chart, shows no difference in the table, and is excluded from the career average — so a 1-for-1 "100%"
+three-point year can't distort anything. Career shooting averages **pool** makes and attempts
+(`SUM(made) / SUM(att)`) rather than averaging season percentages, the same way the service computes
+the league's.
+
+**Position averages** start in 2012 (ESPN has no position on record for most players before then) and
+need at least 8 qualified players in the (year, position) bucket; where there is no bucket, the cell is
+neutral and says so rather than quietly using the league number.
 
 ## Architecture
 
 Two repositories make up the system:
 
 - **`wnba-arc`** (this repo) — the React frontend.
-- **`wnba-data`** (separate, private) — a Node/TypeScript + Express + Postgres service that
-  scrapes ESPN nightly, computes the derived stats and per-season league/position baselines,
-  and serves them over a small read-only JSON API.
+- **`wnba-data`** (separate) — a Node/TypeScript + Express + Postgres service that ingests ESPN's
+  stats data nightly, computes the derived stats, per-year league and position averages, spreads, and
+  ranks, and serves them over a small read-only JSON API.
 
-The API's JSON shape is the contract between them; the frontend keeps its own mirror types (no
-shared package). Inside the frontend, the dependency direction is strictly one-way —
-**components → lib → data**:
+The API's JSON shape is the contract between them; the frontend keeps its own mirror types (no shared
+package). Inside the frontend the dependency direction is one-way — **components → lib → data**:
 
-- **`src/data/`** — the only layer that touches the network. [`api.ts`](src/data/api.ts) is
-  the typed client (`getPlayers` / `getPlayer` / `getLeague` / `getPositions` / `getMeta`) and
-  the contract types; `stats.ts` holds the stat definitions and `featured.ts` the
-  landing-page list.
-- **`src/lib/`** — pure logic, no React, no fetch. [`deviation.ts`](src/lib/deviation.ts)
-  turns raw season rows plus league/position data into baseline context, deviation rows, and
-  per-stat detail; `routes.ts` maps players to name-only URL slugs; `theme.ts` handles the
-  light/dark choice. `deviation.ts` and `routes.ts` are unit-tested — which is *why* they're
-  kept free of React.
+- **`src/data/`** — the only layer that touches the network. [`api.ts`](src/data/api.ts) is the typed
+  client (`getPlayers` / `getPlayer` / `getLeague` / `getPositions` / `getMeta`) and the contract
+  types; `stats.ts` defines the eight stats, `teams.ts` the team colors, `featured.ts` the landing
+  page's static list.
+- **`src/lib/`** — pure logic, no React, no fetch. [`deviation.ts`](src/lib/deviation.ts) turns season
+  rows plus league/position data into the heatmap grid, the compare-bar segments, and the stat detail
+  (plates, chart, table); `routes.ts` maps players to name-only URL slugs; `playerMeta.ts` builds the
+  line under a name; `theme.ts` handles the light/dark choice.
 - **`src/routes/` + `App.tsx`** — the shell loads the roster, league, positions, and freshness
-  metadata once and shares them via context (`appData.ts`); route components (`PlayerLayout`,
-  `SummaryRoute`, `StatRoute`, …) fetch each player's detail on demand and gate loading /
-  error / not-found states.
-- **`src/components/`** — presentational components: the heatmap, deviation bars, drill-down,
-  search, and so on.
-- **`src/styles/`** — [`theme.css`](src/styles/theme.css) is the single design-system source
-  (tokens for color ramps, spacing, the type scale, and both themes); `app.css` holds a few
-  interaction styles.
+  metadata once and shares them via context (`appData.ts`); `PlayerLayout` fetches one player's
+  history and gates loading / error / not-found; `PlayerRoute` resolves the URL into a mode and a stat.
+- **`src/components/`** — the heatmap and its popover, the compare bar, the stat detail (plates, chart,
+  table), search, tooltips, footer, and the landing and about pages.
+- **`src/styles/`** — [`theme.css`](src/styles/theme.css) is the single design-system source: tokens
+  for the neutral ramp, the diverging heat scale, spacing, the type scale, and both themes. The UI is
+  deliberately monochrome — color is reserved for data (the red/blue heat) and identity (team tints).
 
-Routing uses **name-only slugs** (`/player/aja-wilson`, `/player/aja-wilson/blk`) with
-`?year=` / `?vs=` query params, so the full view state lives in the URL.
+Routing uses **name-only slugs** (`/player/aja-wilson`, `/player/aja-wilson/blk`) with `?vs=league` or
+`?vs=position` for the reference (self is the default), so the full view state lives in the URL.
 
 ## Accessibility
 
-Built to **WCAG 2.1 AA**: keyboard-operable throughout, semantic landmarks and headings,
-non-color cues alongside every color encoding, and AA-contrast text in both themes. Audited
-with axe across Chromium, Firefox, and WebKit — zero violations.
+Built to **WCAG 2.1 AA**, with the 2.2 additions where they apply:
+
+- The heatmap is a real ARIA grid with a roving tabindex — one Tab stop, arrow keys move between
+  cells, Enter opens the stat's history. Each cell's accessible name carries the value, the difference,
+  the reference, and the rank, so nothing is pointer-only.
+- Tooltips and the cell popover are hoverable, dismissible with Escape, and reachable by keyboard
+  (1.4.13). Disabled compare-bar segments stay focusable so their reason is reachable.
+- Focus is never hidden under the sticky bar (2.4.11); the heatmap and the chart scroll sideways on
+  phones so the page never does (1.4.10); animations have static fallbacks under
+  `prefers-reduced-motion`; focus rings survive `forced-colors`.
+- Every interactive state has been scanned with axe in Chromium, Firefox, and WebKit, in both themes —
+  zero violations. A manual screen-reader pass has not been done yet.
 
 ## Tech
 
 - **React 19 + TypeScript + Vite**
-- **react-router** in declarative SPA mode — player / stat / season / comparison state lives
-  in the URL
-- Plain-CSS design-system tokens (a single source for spacing, color ramps, the type scale,
-  and both themes) — no CSS framework
-- A layered structure (see [Architecture](#architecture)): typed API client → pure logic → components
-- Data comes from a **companion service** (a separate Node/TypeScript + Express + Postgres
-  API) over a small JSON contract. This repo is the frontend of that two-part system.
+- **react-router 7** — player / stat / reference state lives in the URL
+- Plain-CSS design tokens, no CSS framework; type set in Barlow and Barlow Condensed (Google Fonts)
+- **vitest** on the pure logic
+- Data from the **companion service** (`wnba-data`) over a small JSON contract
 
 ## Running locally
 
-Requires Node 20+ and a running instance of the data API on its default port (3001).
+Requires Node 20.19+ or 22.12+ and a running instance of the data API on its default port (3001).
 
 ```bash
 npm install
 npm run dev               # http://localhost:5173 (or the next free port)
 ```
 
-No `.env` is needed in dev: the Vite dev server proxies `/api` to the data API
-(`vite.config.ts`), so the browser never makes a cross-origin request. `VITE_API_BASE` is
-only for production builds, where it points at the deployed API (see `.env.example`).
+No `.env` is needed in dev: the Vite dev server proxies `/api` to the data API (`vite.config.ts`), so
+the browser never makes a cross-origin request. `VITE_API_BASE` is only for production builds, where it
+points at the deployed API (see `.env.example`).
 
-To try it on a phone, start the dev server with `npm run dev -- --host` and open the
-network URL Vite prints; the proxy means the phone needs no access to the API itself.
+To try it on a phone, start the dev server with `npm run dev -- --host` and open the network URL Vite
+prints; the proxy means the phone needs no access to the API itself.
 
 Other scripts:
 
@@ -157,14 +173,17 @@ npm run test      # run the unit tests (vitest) once
 npm run test:watch # re-run tests on change
 ```
 
-Tests cover the pure logic in `src/lib/` — the baseline and deviation math (subject
-selection, small-sample gating, step-vs-relative bar geometry, position baselines, and
-percentiles) in `deviation.test.ts`, and the URL-slug helpers in `routes.test.ts`.
+Tests cover the pure logic: the grid, references, small-sample gating, pooled averages, the compare-bar
+segments, the fitted chart axis, and the best-rank rule in `deviation.test.ts`; URL slugs in
+`routes.test.ts`; the header line in `playerMeta.test.ts`; stat descriptions, team colors, the footer's
+freshness line, and tooltip placement in their own files.
 
 ## Data source
 
-Player stats come from ESPN's public stats data, refreshed nightly, with efficiency stats
-(true shooting %, usage rate, and the rest) computed from box-score totals so they stay
-consistent with the raw numbers. A few stats are intentionally omitted — rebound percentages
-need opponent data that isn't published, and all-in-one metrics like PER can't be derived
-from a box score — rather than shipping unreliable numbers.
+Player stats come from ESPN's public stats data, refreshed nightly by the data service. True shooting %
+is computed from box-score totals; the service also derives other efficiency and usage rates, but only
+TS% is shown here. A few stats are intentionally omitted — rebound percentages need opponent data that
+isn't published, and all-in-one metrics like PER can't be derived from a box score — rather than
+shipping unreliable numbers.
+
+WNBA Arc is an independent, unofficial project, not affiliated with the WNBA or ESPN.
