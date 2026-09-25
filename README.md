@@ -38,11 +38,14 @@ and the color says how unusual it is. Same grid, three different questions.
   can't be compared, a hatched column for a missed year; click a column to highlight its row), and the
   full yearly table with games, minutes, rank, and the difference. For shooting percentages the table
   also shows makes and attempts, so a small sample explains itself.
-- **Everyone since 1997** — every player who has appeared in a WNBA regular season, retired players
-  included (1,217 today), so a 2004 season is measured against 2004's whole league. A retired player's
-  header reads "Retired · 1997–2003 · G".
-- **Search** by player or team, accent- and punctuation-insensitive ("aja" finds A'ja Wilson), with a
-  keyboard-navigable results list.
+- **Everyone since 1997** — every player who has appeared in a WNBA regular season, past players
+  included (1,217 today), so a 2004 season is measured against 2004's whole league. A player who isn't
+  on a roster gets her career span under her name ("1997–2003 · G"). Not the word "retired": the
+  source's flag can't tell a retirement from a mid-season waiver, so the years speak for themselves.
+- **Search** by player or team, accent- and punctuation-insensitive ("aja" finds A'ja Wilson), ranked:
+  each typed word is its own check, in any order ("ionescu sab" works); names that start with your
+  words come first, then team matches, then letters buried inside a name; players from the latest
+  season ahead of past ones. Keyboard-navigable results list.
 - **Linkable** — player, stat, and reference all live in the URL (`/player/aja-wilson/blk?vs=league`),
   so back/forward and sharing work.
 - **Light and dark themes** that follow the OS until you choose; headshots carry a quarter-strength

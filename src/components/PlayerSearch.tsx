@@ -1,17 +1,8 @@
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import type { PlayerSummary } from "../data/api";
 import { Spinner } from "./Spinner";
-
-/** Fold to a comparable form: strip diacritics, punctuation, and spaces (so "aja" matches "A'ja"). */
 import { playerMeta } from "../lib/playerMeta";
-
-export function fold(s: string): string {
-  return s
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
-    .replace(/[^a-z0-9]/gi, "")
-    .toLowerCase();
-}
+import { fold, rankPlayers } from "../lib/search";
 
 interface PlayerSearchProps {
   /** Full roster from the API — null until it loads. */
@@ -32,7 +23,7 @@ const Magnifier = ({ size }: { size: number }) => (
 
 /**
  * Player/team autocomplete, shared by the landing hero and the compact in-row search on
- * player pages, so the folded matching lives in exactly one place. Implements the ARIA
+ * player pages; the matching and ranking live in lib/search.ts. Implements the ARIA
  * combobox pattern: the input is the single tab stop, ↑/↓ move a highlight through the
  * results (wrapping), Enter opens the highlighted result (or the top match if none is
  * highlighted), Escape / an outside click closes the list. Mouse hover drives the same
@@ -47,11 +38,9 @@ export function PlayerSearch({ players, listError, onPick, variant = "hero" }: P
   const listId = useId();
   const optionId = (i: number) => `${listId}-opt-${i}`;
 
-  const filtered = useMemo(() => {
-    const q = fold(query);
-    if (!q || !players) return [];
-    return players.filter((p) => fold(p.name).includes(q) || fold(p.team ?? "").includes(q));
-  }, [players, query]);
+  // Matching + ranking live in lib/search (pure, tested): each typed word is its own check,
+  // word-start matches first, then team matches, mid-word matches last; current players first.
+  const filtered = useMemo(() => (players ? rankPlayers(players, query) : []), [players, query]);
 
   const q = fold(query);
   const showDrop = open && q.length > 0 && filtered.length > 0;
