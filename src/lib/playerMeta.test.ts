@@ -33,11 +33,16 @@ describe("playerMeta", () => {
     expect(playerMeta(summary({ pos: "G", jersey: 12 }), true)).toBe("G · #12");
   });
 
-  it("a retired player: the career span stands in for the team, position only if known", () => {
+  it("an off-roster player: the career span stands in for the team, position only if known — and NO 'Retired'", () => {
     const taurasi = summary({ active: false, pos: "G", jersey: 3, firstYear: 2004, lastYear: 2024 });
-    expect(playerMeta(taurasi, true)).toBe("Retired · 2004–2024 · G"); // no number: it's her last, not hers
+    expect(playerMeta(taurasi, true)).toBe("2004–2024 · G"); // no number: it's her last, not hers
     const cooper = summary({ active: false, firstYear: 1997, lastYear: 2003 }); // no position on record
-    expect(playerMeta(cooper, true)).toBe("Retired · 1997–2003");
-    expect(playerMeta(summary({ active: false }))).toBe("Retired");
+    expect(playerMeta(cooper, true)).toBe("1997–2003");
+    // ESPN's `active` is an on-a-roster flag, not a retirement record: a player waived mid-2026 is
+    // inactive with a 2026 season. The line must not call her retired (user, 2026-09-25).
+    const waived = summary({ active: false, pos: "G", firstYear: 2020, lastYear: 2026 });
+    expect(playerMeta(waived, true)).toBe("2020–2026 · G");
+    expect(playerMeta(waived, true)).not.toMatch(/retired/i);
+    expect(playerMeta(summary({ active: false }))).toBe("");
   });
 });
