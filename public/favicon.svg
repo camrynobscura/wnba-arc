@@ -1,8 +1,22 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
-  <!-- Mini deviation chart: baseline with a red bar above and a blue bar below,
-       matching the app's above=red / below=blue convention. -->
-  <rect width="32" height="32" fill="#f2f2f3"/>
-  <line x1="4" y1="16" x2="28" y2="16" stroke="#98989b" stroke-width="1.5"/>
-  <rect x="17" y="7" width="6" height="9" fill="#c0492a"/>
-  <rect x="9" y="16" width="6" height="7" fill="#3f6d99"/>
+  <!-- Four heatmap cells — a corner of the season × stat grid: a strong and a faint "above"
+       (red) over a strong and a faint "below" (blue), on the app's page color. The colors are
+       the app's hm-above / hm-below tokens and their 45% mixes toward hm-base, per theme.
+       Follows the OS theme where the browser honors CSS inside an SVG favicon (Chrome, Firefox);
+       Safari ignores SVG favicons and uses the PNG touch icon (generated in the metadata step). -->
+  <style>
+    .bg { fill: #f2f2f3; }
+    .a1 { fill: #ea3a2a; } .a2 { fill: #f7b8b1; }
+    .b1 { fill: #3d86ca; } .b2 { fill: #b7cfe7; }
+    @media (prefers-color-scheme: dark) {
+      .bg { fill: #17191e; }
+      .a1 { fill: #f0522f; } .a2 { fill: #6b3a30; }
+      .b1 { fill: #4b93d8; } .b2 { fill: #2d4d6b; }
+    }
+  </style>
+  <rect class="bg" width="32" height="32" rx="6"/>
+  <rect class="a1" x="5" y="5" width="10" height="10" rx="2"/>
+  <rect class="a2" x="17" y="5" width="10" height="10" rx="2"/>
+  <rect class="b1" x="5" y="17" width="10" height="10" rx="2"/>
+  <rect class="b2" x="17" y="17" width="10" height="10" rx="2"/>
 </svg>
