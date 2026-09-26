@@ -216,26 +216,39 @@ export function gamesToRank(year: number, league: League): number {
     career average the cells are measured against; league / position — it isn't compared with
     that crowd's average. Both are true everywhere; each mode says the one the reader can see. */
 export function sampleNote(season: SeasonPlayed, league: League, statKey: StatKey, mode: HeatmapMode, playerPosition: string | null): string | null {
-  const sched = league.scheduled(season.year);
-  const tier = gamesTier(season, league);
-  const tail = mode === "self" ? "Left out of career average." : `Not compared with ${mode === "league" ? "league" : positionSingular(playerPosition)} average.`;
-  if (tier === "small") return `Small sample: ${season.gp} of ${sched} game${sched === 1 ? "" : "s"}. ${tail}`;
-  if (isRateStat(statKey)) {
-    const att = rateAttempts(season, statKey);
-    if (att != null && att < TINT_FLOOR[statKey]) {
-      // Round DOWN: only TS possessions are fractional (FGA + 0.44·FTA), and rounding to nearest showed
-      // 99.7 as "100 TS possessions" beside a floor of 100 (Teonni Key 2026). Whole counts are unchanged.
-      const n = Math.floor(att);
-      const s = n === 1 ? "" : "s";
-      // Short forms (user, 2026-09-25 — keep the footnote tight). Threes read "attempts from three",
-      // not "3-point attempts": "1 3-point attempt" read as "13-point attempt" (user) — a digit, a
-      // space, a digit.
-      const what = statKey === "tpp" ? `attempt${s} from three` : statKey === "fgp" ? `FG attempt${s}` : `TS possession${s}`;
-      return `Small sample: ${n} ${what}. ${tail}`;
-    }
+  const small = smallSampleReason(season, league, statKey);
+  if (small != null) {
+    const tail = mode === "self" ? "Left out of career average." : `Not compared with ${mode === "league" ? "league" : positionSingular(playerPosition)} average.`;
+    return `${small}. ${tail}`;
   }
-  if (tier === "partial") return `Partial season: ${season.gp} of ${sched} games`;
+  if (isPartialSeason(season, league)) return `Partial season: ${season.gp} of ${league.scheduled(season.year)} games`;
   return null;
+}
+
+/** Why a (season, stat) is a small sample, as the first sentence of its note — "Small sample: 9 of 44
+    games" (too few games, any stat) or "Small sample: 29 attempts from three" (too few shots for a
+    shooting %) — or null when it isn't one. Non-null exactly when `isStatSmallSample` is true. The
+    heatmap footnote adds the mode's tail; the drill-down table's rank dash uses it alone. */
+export function smallSampleReason(season: SeasonPlayed, league: League, statKey: StatKey): string | null {
+  const sched = league.scheduled(season.year);
+  if (isSmallSample(season, league)) return `Small sample: ${season.gp} of ${sched} game${sched === 1 ? "" : "s"}`;
+  if (!isRateStat(statKey)) return null;
+  const att = rateAttempts(season, statKey);
+  if (att == null || att >= TINT_FLOOR[statKey]) return null;
+  // Round DOWN: only TS possessions are fractional (FGA + 0.44·FTA), and rounding to nearest showed
+  // 99.7 as "100 TS possessions" beside a floor of 100 (Teonni Key 2026). Whole counts are unchanged.
+  const n = Math.floor(att);
+  const s = n === 1 ? "" : "s";
+  // Short forms (user, 2026-09-25 — keep the footnote tight). Threes read "attempts from three",
+  // not "3-point attempts": "1 3-point attempt" read as "13-point attempt" (user) — a digit, a
+  // space, a digit.
+  const what = statKey === "tpp" ? `attempt${s} from three` : statKey === "fgp" ? `FG attempt${s}` : `TS possession${s}`;
+  return `Small sample: ${n} ${what}`;
+}
+
+/** First letter lowered, for a note joined into a spoken sentence ("2026, small sample: 9 of 44 games"). */
+export function lowerFirst(s: string): string {
+  return s.charAt(0).toLowerCase() + s.slice(1);
 }
 
 /** The seasons a career average is computed over: those over the COLOR bar (partial seasons count —
@@ -575,11 +588,15 @@ export interface StatTableRow {
       over the rank floor, so it differs from a counting stat's. */
   rank: number | null;
   pool: number | null;
-  /** For a compared shooting-% season with no rank: why, in words ("Needs 55 attempts from three or 19 made to rank").
-      Null when ranked, or when the blank has a counting stat's reason (no position bucket). */
+  /** For a compared season with no rank: why, in words ("Needs 19 games to rank" for a partial season,
+      "Needs 55 attempts from three or 19 made to rank" for a shooting % under the rank floor). Null
+      when ranked, for a small sample (see `note`), or when the mode has no crowd that year. */
   unranked: string | null;
   missed: boolean;
   smallSample: boolean;
+  /** For a small-sample (hollow) row: why, in the heatmap footnote's words without the mode's tail
+      ("Small sample: 9 of 44 games", "Small sample: 29 attempts from three"). Null otherwise. */
+  note: string | null;
   /** A partial season (between the games bars): compared, counted, not ranked. */
   partial: boolean;
   reason?: string;
@@ -804,7 +821,7 @@ export function buildStatDetail(
 
   const tableRows: StatTableRow[] = player.seasons.map((x) => {
     if (!x.played) {
-      return { year: x.year, min: null, valFmt: "—", gp: null, made: null, att: null, deltaFmt: "—", deltaColor: "var(--color-neutral-700)", rank: null, pool: null, unranked: null, missed: true, smallSample: false, partial: false, reason: x.reason };
+      return { year: x.year, min: null, valFmt: "—", gp: null, made: null, att: null, deltaFmt: "—", deltaColor: "var(--color-neutral-700)", rank: null, pool: null, unranked: null, missed: true, smallSample: false, note: null, partial: false, reason: x.reason };
     }
     const v = x[key];
     const b = refFor(x.year);
@@ -827,6 +844,7 @@ export function buildStatDetail(
       unranked: sm ? null : rankNote(x, key, mode, league, playerPosition),
       missed: false,
       smallSample: sm,
+      note: sm ? smallSampleReason(x, league, key) : null,
       partial: isPartialSeason(x, league),
     };
   });

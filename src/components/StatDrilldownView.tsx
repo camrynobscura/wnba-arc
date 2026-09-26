@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import type { PlayerDetail } from "../data/api";
 import { STATS, statDescBody } from "../data/stats";
 import {
+  lowerFirst,
   ordinal,
   positionNoun,
   scaleNoun,
@@ -64,9 +65,11 @@ export function StatDrilldownView({ player, stat, statKey, desc, mode, onStatCha
     row.scrollIntoView({ block: "center", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
   }, [selectedYear]);
   const colX = (i: number) => ((i + 0.5) / n) * 100; // column center, % from left
-  // The rank column shows whenever the API sent a rank, or a shooting % has a season to explain
-  // ("Needs 55 attempts from three or 19 made to rank"). No percentile column: it sat beside Rank as a second ordinal
-  // running the other way, and the cell popover has it.
+  // The rank column shows whenever the API sent a rank, or a compared season has a reason it has none
+  // ("Needs 19 games to rank", "Needs 55 attempts from three or 19 made to rank"). A small-sample row's
+  // note never adds the column on its own: a page where every season is hollow keeps its table as it
+  // was (user, 2026-09-25). No percentile column: it sat beside Rank as a second ordinal running the
+  // other way, and the cell popover has it.
   const showRank = stat.tableRows.some((r) => r.rank != null || r.unranked != null);
   // The crowd a rank is among: the player's position in position mode, otherwise the league.
   const rankNoun = mode === "position" ? positionNoun(player.pos) : "players";
@@ -89,10 +92,10 @@ export function StatDrilldownView({ player, stat, statKey, desc, mode, onStatCha
         {/* A missed season is a row of dashes on screen; say why for a screen reader, which
             doesn't see the heatmap's gap. (The page no longer carries a separate note.) */}
         {r.missed && <span className="sr-only">, {(r.reason || "did not play").toLowerCase()}</span>}
-        {/* No visible small-sample marker: the row's "—" difference, the heatmap popover and the
-            "Not charted: … (small sample)" line already say it. Kept for a screen reader, which
-            hears the row without those. */}
-        {r.smallSample && !r.missed && <span className="sr-only">, small sample</span>}
+        {/* No visible small-sample marker on the year: the rank column's dash carries the note as a
+            tip. Spoken here, with its count, because the rank column isn't always shown (a page where
+            every season is hollow has none) and so the rank cell can skip saying it twice. */}
+        {r.note && !r.missed && <span className="sr-only">, {lowerFirst(r.note)}</span>}
         {r.partial && !r.missed && <span className="sr-only">, partial season</span>}
       </td>
       {/* The stat's own value is always the first column after the year — for a shooting % too,
@@ -125,6 +128,10 @@ export function StatDrilldownView({ player, stat, statKey, desc, mode, onStatCha
               <InfoTip label="—" tip={r.unranked} />
               <span className="sr-only"> {r.unranked}</span>
             </>
+          ) : r.note ? (
+            // A small sample (hollow cell): the dash carries the heatmap footnote's first sentence
+            // ("Small sample: 9 of 44 games"). The year cell already spoke it.
+            <InfoTip label="—" tip={r.note} />
           ) : (
             <span className="text-muted">—</span>
           )}

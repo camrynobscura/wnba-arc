@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { PlayerDetail, SeasonPlayed } from "../data/api";
 import { STATS } from "../data/stats";
-import { buildHeatmapGrid, compareSentence, firstName, isCountingStat, isRateStat, type HeatmapCell, type HeatmapMode, type League, ordinal, type PositionLookup, positionNoun, rankNote, scaleNoun, selfModeAvailable, type StatKey } from "../lib/deviation";
+import { buildHeatmapGrid, compareSentence, firstName, isCountingStat, isRateStat, lowerFirst, type HeatmapCell, type HeatmapMode, type League, ordinal, type PositionLookup, positionNoun, rankNote, scaleNoun, selfModeAvailable, type StatKey } from "../lib/deviation";
 import { InfoTip } from "./InfoTip";
 import { ScaleKey } from "./ScaleKey";
 
@@ -503,12 +503,12 @@ function Cell({ cell, rank, rankNote, rankNoun, noun, refPhrase, tabbable, expan
   const detail = !cell.played
     ? `${stat} ${cell.year}: did not play`
     : cell.smallSample
-      ? `${stat} ${cell.year}: ${cell.valueFmt}, ${lower(cell.note ?? "small sample — not compared")}`
+      ? `${stat} ${cell.year}: ${cell.valueFmt}, ${lowerFirst(cell.note ?? "small sample — not compared")}`
       : cell.delta == null
         ? `${stat} ${cell.year}: ${cell.valueFmt}, no ${noun} that season`
         : `${stat} ${cell.year}: ${cell.valueFmt}, ${cell.deltaFmt}${isCountingStat(cell.statKey) ? "" : " percentage points"} vs ${refPhrase}` +
-          (cell.note ? `, ${lower(cell.note)}` : "") +
-          (rank ? `, ranked ${ordinal(rank.rank)} of ${rank.pool} ${rankNoun}` : rankNote ? `, not ranked: ${lower(rankNote)}` : "");
+          (cell.note ? `, ${lowerFirst(cell.note)}` : "") +
+          (rank ? `, ranked ${ordinal(rank.rank)} of ${rank.pool} ${rankNoun}` : rankNote ? `, not ranked: ${lowerFirst(rankNote)}` : "");
 
   return (
     <button
@@ -529,11 +529,6 @@ function Cell({ cell, rank, rankNote, rankNoun, noun, refPhrase, tabbable, expan
       {cell.cellFmt}
     </button>
   );
-}
-
-/** First letter lowered, for a note joined into a spoken sentence ("…, partial season: 17 of 44 games"). */
-function lower(s: string): string {
-  return s.charAt(0).toLowerCase() + s.slice(1);
 }
 
 function statName(key: StatKey): string {

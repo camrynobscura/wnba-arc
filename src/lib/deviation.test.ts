@@ -19,6 +19,7 @@ import {
   positionNoun,
   rankNote,
   sampleNote,
+  smallSampleReason,
   type HeatmapCell,
   type HeatmapGrid,
   type League,
@@ -185,6 +186,28 @@ describe("games tiers — a quarter of the slate to be colored, 20 of 44 (scaled
     expect(sampleNote(playedSeason(2022, 15), L, "pts", "self", "G")).toBe("Partial season: 15 of 40 games"); // partial: same in every mode
   });
 
+  it("smallSampleReason is the note's first sentence, and non-null exactly when the (season, stat) is a small sample", () => {
+    expect(smallSampleReason(playedSeason(2022, 8), L, "pts")).toBe("Small sample: 8 of 40 games");
+    expect(smallSampleReason(playedSeason(2022, 40, { fg3Att: 29, fg3Made: 9 }), L, "tpp")).toBe("Small sample: 29 attempts from three");
+    expect(smallSampleReason(playedSeason(2022, 15), L, "pts")).toBeNull(); // partial is not a small sample
+    const cases = [
+      playedSeason(2022, 8),
+      playedSeason(2022, 15),
+      playedSeason(2022, 40),
+      playedSeason(2022, 40, { fg3Att: 29, fg3Made: 9 }),
+      playedSeason(2022, 40, { fgAtt: 80, fgMade: 30 }),
+      playedSeason(2022, 40, { fgAtt: 99, ftAtt: 2 }),
+      playedSeason(2022, 15, { fg3Att: 29 }),
+    ];
+    for (const season of cases) {
+      for (const key of ["pts", "reb", "fgp", "tpp", "tsPct"] as const) {
+        const reason = smallSampleReason(season, L, key);
+        expect(reason != null).toBe(isStatSmallSample(season, L, key));
+        if (reason != null) expect(sampleNote(season, L, key, "league", "G")).toBe(`${reason}. Not compared with league average.`);
+      }
+    }
+  });
+
   it("rankNote on a partial season: needs N games, for any stat, in any mode with a crowd", () => {
     const s = playedSeason(2022, 15, { pool: 122, ratePool: { fgp: 70, tpp: 65, tsPct: 98 }, posPool: 40 });
     expect(rankNote(s, "pts", "league", L, "G")).toBe("Needs 19 games to rank");
@@ -212,7 +235,11 @@ describe("games tiers — a quarter of the slate to be colored, 20 of 44 (scaled
     const full = g.rows.find((r) => r[0].year === 2022)![0];
     expect(full).toMatchObject({ partial: false, note: null });
     const d = buildStatDetail(p, STATS.find((s) => s.key === "pts")!, "league", L3, POS, "F");
-    expect(d.tableRows.find((r) => r.year === 2021)).toMatchObject({ partial: true, smallSample: false, rank: null, pool: 120, unranked: "Needs 19 games to rank" });
+    expect(d.tableRows.find((r) => r.year === 2021)).toMatchObject({ partial: true, smallSample: false, rank: null, pool: 120, unranked: "Needs 19 games to rank", note: null });
+    // A small-sample row's rank dash says why instead, in the footnote's words (no mode tail).
+    const dq = buildStatDetail(q, STATS.find((s) => s.key === "pts")!, "league", L3, POS, "F");
+    expect(dq.tableRows.find((r) => r.year === 2021)).toMatchObject({ smallSample: true, rank: null, unranked: null, note: "Small sample: 5 of 40 games" });
+    expect(dq.tableRows.find((r) => r.year === 2022)).toMatchObject({ smallSample: false, note: null });
     expect(d.summary!.careerAvg).toBe("14.0"); // (10 + 20 + 12) / 3 — the partial season counts
     expect(d.summary!.seasons).toBe(3); // and is charted
     expect(d.summary!.bestRank).toEqual({ rank: 30, pool: 120, year: 2022 });
@@ -657,6 +684,10 @@ describe("buildStatDetail — chart drops thin seasons; table keeps the full rec
     expect(thin.made).toBe(1);
     expect(thin.att).toBe(1);
     expect(thin.deltaFmt).toBe("—"); // delta suppressed for a noise season
+    expect(thin.unranked).toBeNull();
+    expect(thin.note).toBe("Small sample: 1 attempt from three"); // the rank dash's tip
+    expect(detail.tableRows.find((r) => r.year === 2022)!.note).toBeNull();
+    expect(detail.tableRows.find((r) => r.year === 2019)!.note).toBeNull(); // a missed season
     // The table's Diff prints the bare number — the unit is in the header tooltip.
     expect(detail.tableRows.find((r) => r.year === 2022)!.deltaFmt).toMatch(/^[+−]\d+\.\d$/);
     expect(detail.component).toEqual({ madeShort: "3PM", attShort: "3PA", noun: "three-pointers" });
