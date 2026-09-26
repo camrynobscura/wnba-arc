@@ -182,7 +182,7 @@ export function DeviationHeatmap({
   const cellRankNote = (cell: HeatmapCell): string | null => {
     if (!cell.played || cell.smallSample) return null;
     const s = seasonByYear.get(cell.year);
-    return s ? rankNote(s, cell.statKey, effMode, league, playerPosition) : null;
+    return s ? rankNote(s, cell.statKey, effMode, playerPosition) : null;
   };
 
   return (

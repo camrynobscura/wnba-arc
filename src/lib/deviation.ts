@@ -31,8 +31,6 @@ const BAR_FULL_SCALE = 0.5;
     comparison group) above/below the baseline. 3 already means "almost nobody's out here", so
     the rare 4-step+ signature seasons clip to a full bar. See AboutView / DECISIONS. */
 const FULL_STEPS = 3;
-/** Fallback slate length for a year the league data doesn't list (shouldn't happen). */
-const DEFAULT_SCHEDULED_GAMES = 40;
 
 /** Enough shots to COLOR a shooting-% cell — the "tint floor" (2026-09-25, DECISIONS): field-goal
     attempts for FG%, three-point attempts for 3P%, shooting possessions (FGA + 0.44 × FTA, the TS%
@@ -82,15 +80,13 @@ export function isCountingStat(key: StatKey): key is CountingKey {
 
 
 /**
- * Per-year league lookups, built once from the API's /league data. This replaces
- * the old hardcoded mock `leagueAvg`/`scheduledGames` — real per-year averages and
- * real slate lengths now flow in from the data layer.
+ * Per-year league lookups, built once from the API's /league data: real per-year averages and
+ * spreads. (The games bars don't come from here: each season carries its own team's games,
+ * SeasonPlayed.teamGames.)
  */
 export interface League {
   /** League average of a stat for a year; null if that year isn't in the data. */
   avg(year: number, key: StatKey): number | null;
-  /** The year's scheduled-game count — the small-sample denominator. */
-  scheduled(year: number): number;
   /** Population spread ("step") of a counting stat that year — the ruler for the deviation
       bars. Null for shooting %s (no step) or when the API predates the spread data (migration
       004), in which case the bar falls back to relative-%. */
@@ -101,7 +97,6 @@ export function makeLeague(seasons: LeagueSeason[]): League {
   const byYear = new Map(seasons.map((s) => [s.year, s]));
   return {
     avg: (year, key) => byYear.get(year)?.[key] ?? null,
-    scheduled: (year) => byYear.get(year)?.scheduledGames ?? DEFAULT_SCHEDULED_GAMES,
     stdev: (year, key) => (isCountingStat(key) ? (byYear.get(year)?.stdev?.[key] ?? null) : null),
   };
 }
@@ -176,29 +171,31 @@ export function playedSeasons(player: PlayerDetail): SeasonPlayed[] {
   return player.seasons.filter((x): x is SeasonPlayed => x.played);
 }
 
-/** Which of the three games tiers a season falls in for its year: "small" (under a quarter of the
-    schedule — grey, not compared), "partial" (up to the rank bar — tinted, marked, not ranked), or
-    "full". Both bars scale with the slate; both compare in exact arithmetic. */
-export function gamesTier(season: SeasonPlayed, league: League): "small" | "partial" | "full" {
-  const sched = league.scheduled(season.year);
-  if (season.gp < COLOR_GAMES_FRACTION * sched) return "small";
-  if (season.gp * FULL_SCHEDULE_GAMES < QUALIFYING_GAMES * sched) return "partial";
+/** Which of the three games tiers a season falls in: "small" (under a quarter of the games the
+    player's team played — grey, not compared), "partial" (up to the rank bar — tinted, marked, not
+    ranked), or "full". Both bars scale with the team's games (season.teamGames — the player's own
+    team, the last one if traded; the API's rank pool and averages use the same number); both
+    compare in exact arithmetic. */
+export function gamesTier(season: SeasonPlayed): "small" | "partial" | "full" {
+  const games = season.teamGames;
+  if (season.gp < COLOR_GAMES_FRACTION * games) return "small";
+  if (season.gp * FULL_SCHEDULE_GAMES < QUALIFYING_GAMES * games) return "partial";
   return "full";
 }
 
 /** True when a season's games played fall below the color bar for its year — greyed, not compared. */
-export function isSmallSample(season: SeasonPlayed, league: League): boolean {
-  return gamesTier(season, league) === "small";
+export function isSmallSample(season: SeasonPlayed): boolean {
+  return gamesTier(season) === "small";
 }
 
 /** True for a season between the two games bars: tinted and counted, marked, not ranked. */
-export function isPartialSeason(season: SeasonPlayed, league: League): boolean {
-  return gamesTier(season, league) === "partial";
+export function isPartialSeason(season: SeasonPlayed): boolean {
+  return gamesTier(season) === "partial";
 }
 
-/** Games a season needed that year to be ranked (and to be in the crowd): ceil(20 × slate ÷ 44). */
-export function gamesToRank(year: number, league: League): number {
-  return Math.ceil((QUALIFYING_GAMES * league.scheduled(year)) / FULL_SCHEDULE_GAMES);
+/** Games a season needed to be ranked (and to be in the crowd): ceil(20 × team games ÷ 44). */
+export function gamesToRank(season: SeasonPlayed): number {
+  return Math.ceil((QUALIFYING_GAMES * season.teamGames) / FULL_SCHEDULE_GAMES);
 }
 
 /** The plain-words caveat on a not-normal (asterisked) cell, with the count behind it — the user
@@ -208,13 +205,13 @@ export function gamesToRank(year: number, league: League): number {
     means IN THIS MODE (user: one line per mode, no "the"): self — the season is left out of the
     career average the cells are measured against; league / position — it isn't compared with
     that crowd's average. Both are true everywhere; each mode says the one the reader can see. */
-export function sampleNote(season: SeasonPlayed, league: League, statKey: StatKey, mode: HeatmapMode, playerPosition: string | null): string | null {
-  const small = smallSampleReason(season, league, statKey);
+export function sampleNote(season: SeasonPlayed, statKey: StatKey, mode: HeatmapMode, playerPosition: string | null): string | null {
+  const small = smallSampleReason(season, statKey);
   if (small != null) {
     const tail = mode === "self" ? "Left out of career average." : `Not compared with ${mode === "league" ? "league" : positionSingular(playerPosition)} average.`;
     return `${small}. ${tail}`;
   }
-  if (isPartialSeason(season, league)) return `Partial season: ${season.gp} of ${league.scheduled(season.year)} games`;
+  if (isPartialSeason(season)) return `Partial season: ${season.gp} of ${season.teamGames} games`;
   return null;
 }
 
@@ -222,9 +219,9 @@ export function sampleNote(season: SeasonPlayed, league: League, statKey: StatKe
     games" (too few games, any stat) or "Small sample: 29 attempts from three" (too few shots for a
     shooting %) — or null when it isn't one. Non-null exactly when `isStatSmallSample` is true. The
     heatmap footnote adds the mode's tail; the drill-down table's rank dash uses it alone. */
-export function smallSampleReason(season: SeasonPlayed, league: League, statKey: StatKey): string | null {
-  const sched = league.scheduled(season.year);
-  if (isSmallSample(season, league)) return `Small sample: ${season.gp} of ${sched} game${sched === 1 ? "" : "s"}`;
+export function smallSampleReason(season: SeasonPlayed, statKey: StatKey): string | null {
+  const games = season.teamGames;
+  if (isSmallSample(season)) return `Small sample: ${season.gp} of ${games} game${games === 1 ? "" : "s"}`;
   if (!isRateStat(statKey)) return null;
   const att = rateAttempts(season, statKey);
   if (att == null || att >= TINT_FLOOR[statKey]) return null;
@@ -248,8 +245,8 @@ export function lowerFirst(s: string): string {
     tinted means counted), or every played season when fewer than two are (a one-season career still
     gets a number). Games only — a shooting % pools makes over attempts, so an attempt-thin season
     can't distort it and stays in (a 2-of-5 adds two makes to a 500-attempt pool). */
-export function careerBasis(played: SeasonPlayed[], league: League): SeasonPlayed[] {
-  const full = played.filter((s) => !isSmallSample(s, league));
+export function careerBasis(played: SeasonPlayed[]): SeasonPlayed[] {
+  const full = played.filter((s) => !isSmallSample(s));
   return full.length >= 2 ? full : played;
 }
 
@@ -267,12 +264,12 @@ function rateAttempts(season: SeasonPlayed, statKey: StatKey): number | null {
     has one, or when the blank has the same reason a counting stat's would (no position bucket that
     year, or the season is under the games gate). League and self modes: the season is under the
     rank floor. Position mode: the same, or fewer than eight of the position cleared it. */
-export function rankNote(s: SeasonPlayed, key: StatKey, mode: HeatmapMode, league: League, playerPosition: string | null): string | null {
-  if (isSmallSample(s, league)) return null;
+export function rankNote(s: SeasonPlayed, key: StatKey, mode: HeatmapMode, playerPosition: string | null): string | null {
+  if (isSmallSample(s)) return null;
   // A partial season is compared but not in the crowd, so it has no rank for ANY stat; say how many
   // games the year needed. (No note when the mode's crowd doesn't exist for that year either.)
-  if (isPartialSeason(s, league)) {
-    return (mode === "position" ? s.posPool : s.pool) == null ? null : `Needs ${gamesToRank(s.year, league)} games to rank`;
+  if (isPartialSeason(s)) {
+    return (mode === "position" ? s.posPool : s.pool) == null ? null : `Needs ${gamesToRank(s)} games to rank`;
   }
   if (!isRateStat(key)) return null;
   if (mode === "position") {
@@ -282,8 +279,9 @@ export function rankNote(s: SeasonPlayed, key: StatKey, mode: HeatmapMode, leagu
   } else {
     if (s.ratePool == null || s.rank?.[key] != null) return null;
   }
-  // The API's floor for this year: count × 44 >= floor × slate, i.e. at least ceil(floor × slate / 44).
-  const need = (n: number) => Math.ceil((n * league.scheduled(s.year)) / FULL_SCHEDULE_GAMES);
+  // The API's floor for this season: count × 44 >= floor × team games, i.e. at least
+  // ceil(floor × team games / 44).
+  const need = (n: number) => Math.ceil((n * s.teamGames) / FULL_SCHEDULE_GAMES);
   const floor = RANK_FLOOR[key];
   const made = floor.made != null ? ` or ${need(floor.made)} made` : "";
   const att = key === "tpp" ? "attempts from three" : key === "fgp" ? "FG attempts" : "TS possessions";
@@ -294,8 +292,8 @@ export function rankNote(s: SeasonPlayed, key: StatKey, mode: HeatmapMode, leagu
     (any stat) or, for a shooting %, too few attempts of that shot. This is the per-stat gate
     the heatmap cells, drill-down bars, and summary bars all read; it supersedes the plain
     games-only isSmallSample everywhere a single (season, stat) value is shown or selected. */
-export function isStatSmallSample(season: SeasonPlayed, league: League, statKey: StatKey): boolean {
-  if (isSmallSample(season, league)) return true;
+export function isStatSmallSample(season: SeasonPlayed, statKey: StatKey): boolean {
+  if (isSmallSample(season)) return true;
   if (!isRateStat(statKey)) return false;
   const att = rateAttempts(season, statKey);
   return att != null && att < TINT_FLOOR[statKey];
@@ -458,8 +456,8 @@ export function buildHeatmapGrid(
       // The average pools every season over the GAMES gate (careerBasis); the own-range ruler uses
       // only the seasons the cells color (the tint floor too), so one attempt-thin season's wild %
       // can't stretch the scale.
-      const avg = ownStatAverage(st.key, careerBasis(played, league));
-      const comparable = played.filter((s) => !isStatSmallSample(s, league, st.key));
+      const avg = ownStatAverage(st.key, careerBasis(played));
+      const comparable = played.filter((s) => !isStatSmallSample(s, st.key));
       const basis = comparable.length >= 2 ? comparable : played;
       const vals = basis.map((s) => s[st.key]).filter((v): v is number => v != null);
       const ownMaxDev = avg != null && vals.length ? Math.max(...vals.map((v) => Math.abs(v - avg)), 1e-9) : 1;
@@ -476,7 +474,7 @@ export function buildHeatmapGrid(
         return { ...shell, played: false, value: null, valueFmt: "—", cellFmt: "—", refValue: null, refFmt: "—", delta: null, deltaFmt: "—", colorT: null, up: false, smallSample: false, partial: false, note: null, selectable: false };
       }
       const value = s[st.key];
-      const small = isStatSmallSample(s, league, st.key);
+      const small = isStatSmallSample(s, st.key);
       const avg =
         mode === "self"
           ? selfAgg.get(st.key)!.avg
@@ -512,8 +510,8 @@ export function buildHeatmapGrid(
         colorT,
         up: (delta ?? 0) >= 0,
         smallSample: small,
-        partial: isPartialSeason(s, league),
-        note: sampleNote(s, league, st.key, mode, playerPosition),
+        partial: isPartialSeason(s),
+        note: sampleNote(s, st.key, mode, playerPosition),
         selectable: value != null && !small,
       };
     }),
@@ -743,7 +741,7 @@ export function buildStatDetail(
 ): StatDetail {
   const key = stat.key;
   const allPlayed = playedSeasons(player);
-  const small = (s: SeasonPlayed) => isStatSmallSample(s, league, key);
+  const small = (s: SeasonPlayed) => isStatSmallSample(s, key);
 
   // The chart shows only trustworthy seasons: played, with a value for this stat, and NOT a small
   // sample (too few games, or too few attempts for a shooting %). Noise never reaches the plot;
@@ -752,7 +750,7 @@ export function buildStatDetail(
 
   // Career average on the SAME basis the heatmap's self mode uses (seasons over the games gate;
   // every played season if fewer than two are), so the plate and the self-mode cells agree.
-  const careerAvg = ownStatAverage(key, careerBasis(allPlayed, league));
+  const careerAvg = ownStatAverage(key, careerBasis(allPlayed));
 
   const posOk = playerPosition != null && positions != null;
   const refFor = (year: number): number | null =>
@@ -821,11 +819,11 @@ export function buildStatDetail(
       deltaColor: hasDelta && v - b >= 0 ? "var(--hm-above-text)" : "var(--hm-below-text)",
       rank: sm ? null : rankOf(x),
       pool: poolOf(x),
-      unranked: sm ? null : rankNote(x, key, mode, league, playerPosition),
+      unranked: sm ? null : rankNote(x, key, mode, playerPosition),
       missed: false,
       smallSample: sm,
-      note: sm ? smallSampleReason(x, league, key) : null,
-      partial: isPartialSeason(x, league),
+      note: sm ? smallSampleReason(x, key) : null,
+      partial: isPartialSeason(x),
     };
   });
 

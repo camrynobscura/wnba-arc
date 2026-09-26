@@ -52,6 +52,7 @@ function playedSeason(year: number, gp: number, stats: Partial<SeasonPlayed> = {
     played: true,
     age: 25,
     gp,
+    teamGames: SLATE,
     pool: null,
     rank: null,
     ratePool: null,
@@ -139,57 +140,63 @@ function positions(years: number[]): PositionLookup {
 /** Empty position lookup for the league-only tests that don't exercise position mode. */
 const POS = makePositionLookup([]);
 
-describe("games tiers — a quarter of the slate to be colored, 20 of 44 (scaled) to be ranked", () => {
-  const L = league([2022]); // slate 40 ⇒ color bar 10 GP, rank bar 19 GP
-  const slate = (year: number, scheduledGames: number): League =>
-    makeLeague([{ year, scheduledGames, pts: 12, reb: 5, ast: 3, stl: 1, blk: 0.8, fgp: 0.43, tpp: 0.33, tsPct: 0.52, stdev: { pts: 5, reb: 2, ast: 1.5, stl: 0.4, blk: 0.4 } }]);
+describe("games tiers — a quarter of the team's games to be colored, 20 of 44 (scaled) to be ranked", () => {
+  // Fixture seasons carry teamGames 40 ⇒ color bar 10 GP, rank bar 19 GP.
 
   it("small under a quarter, partial up to the rank bar, full from it", () => {
-    expect(gamesTier(playedSeason(2022, 9), L)).toBe("small");
-    expect(gamesTier(playedSeason(2022, 10), L)).toBe("partial");
-    expect(gamesTier(playedSeason(2022, 18), L)).toBe("partial");
-    expect(gamesTier(playedSeason(2022, 19), L)).toBe("full");
-    expect(isSmallSample(playedSeason(2022, 9), L)).toBe(true);
-    expect(isSmallSample(playedSeason(2022, 10), L)).toBe(false);
-    expect(isPartialSeason(playedSeason(2022, 18), L)).toBe(true);
-    expect(isPartialSeason(playedSeason(2022, 19), L)).toBe(false);
+    expect(gamesTier(playedSeason(2022, 9))).toBe("small");
+    expect(gamesTier(playedSeason(2022, 10))).toBe("partial");
+    expect(gamesTier(playedSeason(2022, 18))).toBe("partial");
+    expect(gamesTier(playedSeason(2022, 19))).toBe("full");
+    expect(isSmallSample(playedSeason(2022, 9))).toBe(true);
+    expect(isSmallSample(playedSeason(2022, 10))).toBe(false);
+    expect(isPartialSeason(playedSeason(2022, 18))).toBe(true);
+    expect(isPartialSeason(playedSeason(2022, 19))).toBe(false);
   });
 
-  it("both bars scale with the slate: 11/20 of 44, 7/13 of 28 (1997), 6/10 of 22 (the 2020 bubble)", () => {
-    for (const [year, sched, color, rank] of [[2026, 44, 11, 20], [1997, 28, 7, 13], [2020, 22, 6, 10], [2023, 40, 10, 19]] as const) {
-      const Ls = slate(year, sched);
-      expect(gamesTier(playedSeason(year, color - 1), Ls)).toBe("small");
-      expect(gamesTier(playedSeason(year, color), Ls)).toBe("partial");
-      expect(gamesTier(playedSeason(year, rank - 1), Ls)).toBe("partial");
-      expect(gamesTier(playedSeason(year, rank), Ls)).toBe("full");
-      expect(gamesToRank(year, Ls)).toBe(rank);
+  it("both bars scale with the team's games: 11/20 of 44, 7/13 of 28 (1997), 6/10 of 22 (the 2020 bubble)", () => {
+    for (const [year, games, color, rank] of [[2026, 44, 11, 20], [1997, 28, 7, 13], [2020, 22, 6, 10], [2023, 40, 10, 19]] as const) {
+      const at = (gp: number) => playedSeason(year, gp, { teamGames: games });
+      expect(gamesTier(at(color - 1))).toBe("small");
+      expect(gamesTier(at(color))).toBe("partial");
+      expect(gamesTier(at(rank - 1))).toBe("partial");
+      expect(gamesTier(at(rank))).toBe("full");
+      expect(gamesToRank(at(rank))).toBe(rank);
     }
+  });
+
+  it("the player's own team decides: 15 games is partial of 34, full of 33 (the 2018 Aces, one game forfeited)", () => {
+    expect(gamesTier(playedSeason(2018, 15, { teamGames: 34 }))).toBe("partial");
+    expect(gamesTier(playedSeason(2018, 15, { teamGames: 33 }))).toBe("full");
+    expect(sampleNote(playedSeason(2018, 12, { teamGames: 33 }), "pts", "league", "G")).toBe("Partial season: 12 of 33 games");
+    expect(smallSampleReason(playedSeason(2018, 8, { teamGames: 33 }), "pts")).toBe("Small sample: 8 of 33 games");
+    expect(gamesToRank(playedSeason(2018, 12, { teamGames: 33 }))).toBe(15);
   });
 
   it("sampleNote says how many games or shots the caveat is about, and what the grey means in this mode", () => {
     const lg = "Not compared with league average.";
-    expect(sampleNote(playedSeason(2022, 8), L, "pts", "league", "G")).toBe(`Small sample: 8 of 40 games. ${lg}`);
-    expect(sampleNote(playedSeason(2022, 8, { fg3Att: 200 }), L, "tpp", "league", "G")).toBe(`Small sample: 8 of 40 games. ${lg}`); // games first
-    expect(sampleNote(playedSeason(2022, 40, { fg3Att: 29, fg3Made: 9 }), L, "tpp", "league", "G")).toBe(`Small sample: 29 attempts from three. ${lg}`);
-    expect(sampleNote(playedSeason(2022, 40, { fgAtt: 80, fgMade: 30 }), L, "fgp", "league", "G")).toBe(`Small sample: 80 FG attempts. ${lg}`);
-    expect(sampleNote(playedSeason(2022, 40, { fgAtt: 80, ftAtt: 40 }), L, "tsPct", "league", "G")).toBe(`Small sample: 97 TS possessions. ${lg}`); // 97.6 rounded DOWN
-    expect(sampleNote(playedSeason(2022, 40, { fgAtt: 99, ftAtt: 2 }), L, "tsPct", "league", "G")).toBe(`Small sample: 99 TS possessions. ${lg}`); // 99.88: never "100" beside a floor of 100
-    expect(sampleNote(playedSeason(2022, 40, { fg3Att: 1, fg3Made: 1 }), L, "tpp", "league", "G")).toBe(`Small sample: 1 attempt from three. ${lg}`); // singular
-    expect(sampleNote(playedSeason(2022, 15), L, "pts", "league", "G")).toBe("Partial season: 15 of 40 games");
-    expect(sampleNote(playedSeason(2022, 15, { fg3Att: 29 }), L, "tpp", "league", "G")).toBe(`Small sample: 29 attempts from three. ${lg}`); // the shot floor wins over partial
-    expect(sampleNote(playedSeason(2022, 40), L, "pts", "league", "G")).toBeNull();
-    expect(sampleNote(playedSeason(2022, 40), L, "tpp", "league", "G")).toBeNull();
+    expect(sampleNote(playedSeason(2022, 8), "pts", "league", "G")).toBe(`Small sample: 8 of 40 games. ${lg}`);
+    expect(sampleNote(playedSeason(2022, 8, { fg3Att: 200 }), "tpp", "league", "G")).toBe(`Small sample: 8 of 40 games. ${lg}`); // games first
+    expect(sampleNote(playedSeason(2022, 40, { fg3Att: 29, fg3Made: 9 }), "tpp", "league", "G")).toBe(`Small sample: 29 attempts from three. ${lg}`);
+    expect(sampleNote(playedSeason(2022, 40, { fgAtt: 80, fgMade: 30 }), "fgp", "league", "G")).toBe(`Small sample: 80 FG attempts. ${lg}`);
+    expect(sampleNote(playedSeason(2022, 40, { fgAtt: 80, ftAtt: 40 }), "tsPct", "league", "G")).toBe(`Small sample: 97 TS possessions. ${lg}`); // 97.6 rounded DOWN
+    expect(sampleNote(playedSeason(2022, 40, { fgAtt: 99, ftAtt: 2 }), "tsPct", "league", "G")).toBe(`Small sample: 99 TS possessions. ${lg}`); // 99.88: never "100" beside a floor of 100
+    expect(sampleNote(playedSeason(2022, 40, { fg3Att: 1, fg3Made: 1 }), "tpp", "league", "G")).toBe(`Small sample: 1 attempt from three. ${lg}`); // singular
+    expect(sampleNote(playedSeason(2022, 15), "pts", "league", "G")).toBe("Partial season: 15 of 40 games");
+    expect(sampleNote(playedSeason(2022, 15, { fg3Att: 29 }), "tpp", "league", "G")).toBe(`Small sample: 29 attempts from three. ${lg}`); // the shot floor wins over partial
+    expect(sampleNote(playedSeason(2022, 40), "pts", "league", "G")).toBeNull();
+    expect(sampleNote(playedSeason(2022, 40), "tpp", "league", "G")).toBeNull();
     // The second sentence follows the mode: self → the career average; position → that position's average.
-    expect(sampleNote(playedSeason(2022, 8), L, "pts", "self", "G")).toBe("Small sample: 8 of 40 games. Left out of career average.");
-    expect(sampleNote(playedSeason(2022, 8), L, "pts", "position", "C")).toBe("Small sample: 8 of 40 games. Not compared with center average.");
-    expect(sampleNote(playedSeason(2022, 8), L, "pts", "position", "F")).toBe("Small sample: 8 of 40 games. Not compared with forward average.");
-    expect(sampleNote(playedSeason(2022, 15), L, "pts", "self", "G")).toBe("Partial season: 15 of 40 games"); // partial: same in every mode
+    expect(sampleNote(playedSeason(2022, 8), "pts", "self", "G")).toBe("Small sample: 8 of 40 games. Left out of career average.");
+    expect(sampleNote(playedSeason(2022, 8), "pts", "position", "C")).toBe("Small sample: 8 of 40 games. Not compared with center average.");
+    expect(sampleNote(playedSeason(2022, 8), "pts", "position", "F")).toBe("Small sample: 8 of 40 games. Not compared with forward average.");
+    expect(sampleNote(playedSeason(2022, 15), "pts", "self", "G")).toBe("Partial season: 15 of 40 games"); // partial: same in every mode
   });
 
   it("smallSampleReason is the note's first sentence, and non-null exactly when the (season, stat) is a small sample", () => {
-    expect(smallSampleReason(playedSeason(2022, 8), L, "pts")).toBe("Small sample: 8 of 40 games");
-    expect(smallSampleReason(playedSeason(2022, 40, { fg3Att: 29, fg3Made: 9 }), L, "tpp")).toBe("Small sample: 29 attempts from three");
-    expect(smallSampleReason(playedSeason(2022, 15), L, "pts")).toBeNull(); // partial is not a small sample
+    expect(smallSampleReason(playedSeason(2022, 8), "pts")).toBe("Small sample: 8 of 40 games");
+    expect(smallSampleReason(playedSeason(2022, 40, { fg3Att: 29, fg3Made: 9 }), "tpp")).toBe("Small sample: 29 attempts from three");
+    expect(smallSampleReason(playedSeason(2022, 15), "pts")).toBeNull(); // partial is not a small sample
     const cases = [
       playedSeason(2022, 8),
       playedSeason(2022, 15),
@@ -201,20 +208,20 @@ describe("games tiers — a quarter of the slate to be colored, 20 of 44 (scaled
     ];
     for (const season of cases) {
       for (const key of ["pts", "reb", "fgp", "tpp", "tsPct"] as const) {
-        const reason = smallSampleReason(season, L, key);
-        expect(reason != null).toBe(isStatSmallSample(season, L, key));
-        if (reason != null) expect(sampleNote(season, L, key, "league", "G")).toBe(`${reason}. Not compared with league average.`);
+        const reason = smallSampleReason(season, key);
+        expect(reason != null).toBe(isStatSmallSample(season, key));
+        if (reason != null) expect(sampleNote(season, key, "league", "G")).toBe(`${reason}. Not compared with league average.`);
       }
     }
   });
 
   it("rankNote on a partial season: needs N games, for any stat, in any mode with a crowd", () => {
     const s = playedSeason(2022, 15, { pool: 122, ratePool: { fgp: 70, tpp: 65, tsPct: 98 }, posPool: 40 });
-    expect(rankNote(s, "pts", "league", L, "G")).toBe("Needs 19 games to rank");
-    expect(rankNote(s, "tpp", "self", L, "G")).toBe("Needs 19 games to rank");
-    expect(rankNote(s, "reb", "position", L, "G")).toBe("Needs 19 games to rank");
-    expect(rankNote(playedSeason(2022, 15, { posPool: null }), "pts", "position", L, "G")).toBeNull(); // no position crowd that year
-    expect(rankNote(playedSeason(2022, 15), "pts", "league", L, "G")).toBeNull(); // no league row
+    expect(rankNote(s, "pts", "league", "G")).toBe("Needs 19 games to rank");
+    expect(rankNote(s, "tpp", "self", "G")).toBe("Needs 19 games to rank");
+    expect(rankNote(s, "reb", "position", "G")).toBe("Needs 19 games to rank");
+    expect(rankNote(playedSeason(2022, 15, { posPool: null }), "pts", "position", "G")).toBeNull(); // no position crowd that year
+    expect(rankNote(playedSeason(2022, 15), "pts", "league", "G")).toBeNull(); // no league row
   });
 
   it("a partial season is tinted, counted and asterisked in the grid; ranked nowhere; counted in the career average", () => {
@@ -249,18 +256,9 @@ describe("games tiers — a quarter of the slate to be colored, 20 of 44 (scaled
   });
 
   it("careerBasis: the seasons over the COLOR bar (partial ones count), or every season when fewer than two are", () => {
-    const L4 = league([2019, 2020, 2021, 2022]);
     const a = playedSeason(2019, 40), b = playedSeason(2020, 5), c = playedSeason(2021, 40), d = playedSeason(2022, 15);
-    expect(careerBasis([a, b, c, d], L4)).toEqual([a, c, d]);
-    expect(careerBasis([a, b], L4)).toEqual([a, b]); // one counted season → every season
-  });
-});
-
-describe("makeLeague — slate fallback", () => {
-  it("uses the default slate for a year the league data doesn't list", () => {
-    // A missing year must not throw; it falls back to DEFAULT_SCHEDULED_GAMES (40).
-    const L = makeLeague([]);
-    expect(L.scheduled(2022)).toBe(40);
+    expect(careerBasis([a, b, c, d])).toEqual([a, c, d]);
+    expect(careerBasis([a, b])).toEqual([a, b]); // one counted season → every season
   });
 });
 
@@ -309,61 +307,60 @@ describe("ownStatAverage — pooled rate averages (still used by the Career Tren
 });
 
 describe("isStatSmallSample — per-stat gate (games, OR the tint floor for a shooting %)", () => {
-  const L = league([2021]);
 
   it("flags a full-games season as small sample for a shooting % under its tint floor", () => {
     const s = playedSeason(2021, 40, { fg3Made: 4, fg3Att: 10 }); // full games, a 4-of-10
-    expect(isSmallSample(s, L)).toBe(false); // games gate: a full season
-    expect(isStatSmallSample(s, L, "tpp")).toBe(true); // tint floor: too few threes
-    expect(isStatSmallSample(s, L, "pts")).toBe(false); // counting stat has no shot floor
+    expect(isSmallSample(s)).toBe(false); // games gate: a full season
+    expect(isStatSmallSample(s, "tpp")).toBe(true); // tint floor: too few threes
+    expect(isStatSmallSample(s, "pts")).toBe(false); // counting stat has no shot floor
   });
 
   it("3P%: 39 attempts is small, 40 is not (fixed count, not scaled to the slate)", () => {
-    expect(isStatSmallSample(playedSeason(2021, 40, { fg3Att: 39, fg3Made: 13 }), L, "tpp")).toBe(true);
-    expect(isStatSmallSample(playedSeason(2021, 40, { fg3Att: 40, fg3Made: 13 }), L, "tpp")).toBe(false);
+    expect(isStatSmallSample(playedSeason(2021, 40, { fg3Att: 39, fg3Made: 13 }), "tpp")).toBe(true);
+    expect(isStatSmallSample(playedSeason(2021, 40, { fg3Att: 40, fg3Made: 13 }), "tpp")).toBe(false);
   });
 
   it("FG%: 99 attempts is small, 100 is not", () => {
-    expect(isStatSmallSample(playedSeason(2021, 40, { fgAtt: 99, fgMade: 45 }), L, "fgp")).toBe(true);
-    expect(isStatSmallSample(playedSeason(2021, 40, { fgAtt: 100, fgMade: 45 }), L, "fgp")).toBe(false);
+    expect(isStatSmallSample(playedSeason(2021, 40, { fgAtt: 99, fgMade: 45 }), "fgp")).toBe(true);
+    expect(isStatSmallSample(playedSeason(2021, 40, { fgAtt: 100, fgMade: 45 }), "fgp")).toBe(false);
   });
 
   it("TS%: counts shooting possessions, FGA + 0.44 × FTA, against 100", () => {
-    expect(isStatSmallSample(playedSeason(2021, 40, { fgAtt: 80, ftAtt: 40 }), L, "tsPct")).toBe(true); // 97.6
-    expect(isStatSmallSample(playedSeason(2021, 40, { fgAtt: 90, ftAtt: 25 }), L, "tsPct")).toBe(false); // 101
+    expect(isStatSmallSample(playedSeason(2021, 40, { fgAtt: 80, ftAtt: 40 }), "tsPct")).toBe(true); // 97.6
+    expect(isStatSmallSample(playedSeason(2021, 40, { fgAtt: 90, ftAtt: 25 }), "tsPct")).toBe(false); // 101
   });
 
   it("still flags a games-small season regardless of how many attempts it had", () => {
     const s = playedSeason(2021, 3, { fg3Att: 200, fg3Made: 80 }); // few games, lots of threes
-    expect(isStatSmallSample(s, L, "tpp")).toBe(true);
+    expect(isStatSmallSample(s, "tpp")).toBe(true);
   });
 });
 
 describe("rankNote — why a compared shooting-% season has no rank", () => {
-  const L = league([2022]); // slate 40 ⇒ 3P% needs ceil(60 × 40 / 44) = 55 attempts or ceil(20 × 40 / 44) = 19 made
+  // Fixture seasons carry teamGames 40 ⇒ 3P% needs ceil(60 × 40 / 44) = 55 attempts or ceil(20 × 40 / 44) = 19 made.
 
   it("league mode: under the rank floor → says how many attempts (or makes) it needed; ranked → null", () => {
     const under = playedSeason(2022, 40, { fg3Made: 9, fg3Att: 45, rank: ranks(), ratePool: { fgp: 70, tpp: 65, tsPct: 98 } });
-    expect(rankNote(under, "tpp", "league", L, "G")).toBe("Needs 55 attempts from three or 19 made to rank");
-    expect(rankNote(under, "fgp", "league", L, "G")).toBe("Needs 182 FG attempts or 78 made to rank"); // ceil(200 × 40 / 44), ceil(85 × 40 / 44)
-    expect(rankNote(under, "tsPct", "league", L, "G")).toBe("Needs 114 TS possessions to rank"); // ceil(125 × 40 / 44); TS% has no makes route
+    expect(rankNote(under, "tpp", "league", "G")).toBe("Needs 55 attempts from three or 19 made to rank");
+    expect(rankNote(under, "fgp", "league", "G")).toBe("Needs 182 FG attempts or 78 made to rank"); // ceil(200 × 40 / 44), ceil(85 × 40 / 44)
+    expect(rankNote(under, "tsPct", "league", "G")).toBe("Needs 114 TS possessions to rank"); // ceil(125 × 40 / 44); TS% has no makes route
     const ranked = playedSeason(2022, 40, { rank: ranks({ tpp: 4 }), ratePool: { fgp: 70, tpp: 65, tsPct: 98 } });
-    expect(rankNote(ranked, "tpp", "league", L, "G")).toBeNull();
+    expect(rankNote(ranked, "tpp", "league", "G")).toBeNull();
   });
 
   it("never for a counting stat, a games-small season, or a year with no pool", () => {
-    expect(rankNote(playedSeason(2022, 40, { rank: ranks() }), "pts", "league", L, "G")).toBeNull();
-    expect(rankNote(playedSeason(2022, 5, { ratePool: { fgp: 70, tpp: 65, tsPct: 98 } }), "tpp", "league", L, "G")).toBeNull();
-    expect(rankNote(playedSeason(2022, 40), "tpp", "league", L, "G")).toBeNull(); // ratePool null
+    expect(rankNote(playedSeason(2022, 40, { rank: ranks() }), "pts", "league", "G")).toBeNull();
+    expect(rankNote(playedSeason(2022, 5, { ratePool: { fgp: 70, tpp: 65, tsPct: 98 } }), "tpp", "league", "G")).toBeNull();
+    expect(rankNote(playedSeason(2022, 40), "tpp", "league", "G")).toBeNull(); // ratePool null
   });
 
   it("position mode: no bucket → null (a counting stat's blank); a thin bucket → says so; else the floor", () => {
     const noBucket = playedSeason(2022, 40, { posPool: null, posRatePool: null });
-    expect(rankNote(noBucket, "tpp", "position", L, "C")).toBeNull();
+    expect(rankNote(noBucket, "tpp", "position", "C")).toBeNull();
     const thin = playedSeason(2022, 40, { posPool: 20, posRank: ranks(), posRatePool: { fgp: 20, tpp: null, tsPct: 20 } });
-    expect(rankNote(thin, "tpp", "position", L, "C")).toBe("Fewer than 8 centers made enough to rank");
+    expect(rankNote(thin, "tpp", "position", "C")).toBe("Fewer than 8 centers made enough to rank");
     const under = playedSeason(2022, 40, { posPool: 20, posRank: ranks(), posRatePool: { fgp: 20, tpp: 12, tsPct: 20 } });
-    expect(rankNote(under, "tpp", "position", L, "C")).toBe("Needs 55 attempts from three or 19 made to rank");
+    expect(rankNote(under, "tpp", "position", "C")).toBe("Needs 55 attempts from three or 19 made to rank");
   });
 });
 

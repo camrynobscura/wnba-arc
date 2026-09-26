@@ -34,6 +34,10 @@ export interface SeasonPlayed {
   played: true;
   age: number | null; // null if birth date unknown
   gp: number;
+  /** The games the player's team played that season (so far, in the season in progress) — the Y in
+      "17 of Y games" and what every games bar scales by. The last team they played for, if traded;
+      never less than gp. From wnba-data's team_season_games (migration 008). */
+  teamGames: number;
   min: number | null; // per-game minutes; null when not available (~10%)
   pts: number;
   reb: number;
@@ -121,7 +125,7 @@ export interface StatSpread {
 }
 export interface LeagueSeason {
   year: number;
-  scheduledGames: number;
+  scheduledGames: number; // the season total (one team's count); the page reads SeasonPlayed.teamGames instead
   pts: number;
   reb: number;
   ast: number;
