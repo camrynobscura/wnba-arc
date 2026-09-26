@@ -1,6 +1,5 @@
 import { photoUrl } from "../data/stats";
-import type { PlayerDetail, PlayerSummary } from "../data/api";
-import { PlayerSearch } from "./PlayerSearch";
+import type { PlayerDetail } from "../data/api";
 import type { CompareSegment, HeatmapMode, League, PositionLookup, StatDetail, StatKey } from "../lib/deviation";
 import { CompareBar } from "./CompareBar";
 import { PlayerPhoto } from "./PlayerPhoto";
@@ -21,16 +20,11 @@ interface PlayerViewProps {
   statKey: StatKey;
   statDesc: string;
   statDetail: StatDetail;
-  /** Full roster + its load error, for the in-row "search more players" box. */
-  players: PlayerSummary[] | null;
-  listError: string | null;
   onModeChange: (m: HeatmapMode) => void;
   onStatChange: (key: StatKey) => void;
   /** Like onStatChange, but also brings the drill-down section into view (a heatmap cell's
       "See … history" link / Enter). */
   onDrill: (key: StatKey) => void;
-  onGoHome: () => void;
-  onPick: (espn: string) => void;
 }
 
 /**
@@ -50,29 +44,14 @@ export function PlayerView({
   statKey,
   statDesc,
   statDetail,
-  players,
-  listError,
   onModeChange,
   onStatChange,
   onDrill,
-  onGoHome,
-  onPick,
 }: PlayerViewProps) {
+  // No <main> and no top row here: the player layout draws both around this page (PlayerLayout),
+  // so they stay on screen while a player loads.
   return (
-    <main id="main" className="view-main has-compare-bar">
-      {/* Top row: back to all players (left) + jump straight to another player (right). (A cut of
-          the sticky bar carried the back button instead, leaving the search floating alone up here —
-          it looked stranded, and the player's name can't share the row with it on a phone.) */}
-      <div className="view-header">
-        <button className="btn btn-ghost" style={{ gap: "var(--space-2)" }} onClick={onGoHome}>
-          <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
-            <path d="M19 12H5M12 19l-7-7 7-7" />
-          </svg>
-          <span>All players</span>
-        </button>
-        <PlayerSearch variant="compact" players={players} listError={listError} onPick={onPick} />
-      </div>
-
+    <>
       <div
         style={{
           display: "flex",
@@ -114,6 +93,6 @@ export function PlayerView({
         mode={mode}
         onStatChange={onStatChange}
       />
-    </main>
+    </>
   );
 }

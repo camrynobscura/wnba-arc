@@ -320,11 +320,15 @@ figcaption {
   color: var(--color-text);
   padding-inline: var(--space-1);
 }
-.btn-ghost:hover {
-  background: color-mix(in srgb, var(--color-neutral-900) 8%, transparent);
-}
-.btn-ghost:active {
-  background: color-mix(in srgb, var(--color-neutral-900) 14%, transparent);
+/* Hover underlines the words in the text color — the site's link look — instead of a tinted box,
+   which sat tight around them (user, 2026-09-26). Only where hovering exists: on a touch screen
+   :hover sticks after a tap. The keyboard focus ring is the global :focus-visible outline. */
+@media (hover: hover) {
+  .btn-ghost:hover {
+    text-decoration: underline;
+    text-decoration-color: currentColor;
+    text-underline-offset: 3px;
+  }
 }
 .btn-block {
   width: 100%;
@@ -530,7 +534,8 @@ select.select-reset {
   }
 }
 
-/* — footer — About, the theme switch and the freshness chip, as a row of 34px hairline chips — */
+/* — footer — the freshness chip (a 34px hairline chip) on the left, About + the theme switch (bare
+   icons) on the right — */
 .foot {
   width: 100%;
   max-width: var(--app-width);
@@ -595,29 +600,35 @@ select.select-reset {
   color: var(--color-neutral-600);
 }
 
-/* Light/dark switch — square hairline button, of a piece with the blueprint frame. Also the
-   footer's About link (an <a>, hence the text-decoration reset). */
+/* Light/dark switch — a bare icon in a 28 × 34px hit area (no border: the user, 2026-09-26 — a box
+   around a lone icon looked odd; 28 wide to pull the pair closer, still over the 24px minimum target
+   of WCAG 2.5.8; 34 tall to sit level with the freshness chip). Also the footer's About link (an <a>, hence the text-decoration
+   reset). The keyboard focus ring is the global :focus-visible outline. */
 .theme-toggle {
   text-decoration: none;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 34px;
+  width: 28px;
   height: 34px;
   padding: 0;
   flex: none;
   color: var(--color-text);
   background: transparent;
-  border: 1px solid var(--color-divider);
+  border: 0;
   border-radius: 0;
   cursor: pointer;
 }
-.theme-toggle:hover {
-  border-color: var(--color-neutral-900);
-  color: var(--color-text);
-}
 .theme-toggle svg {
   display: block;
+}
+/* Hover dims the icon slightly (user, 2026-09-26) to the mid grey — measured 5.87:1 light / 6.91:1
+   dark on the page (14.79 / 13.45 at rest), well over the 3:1 an icon needs. Hover devices only: a tapped toggle on a phone would
+   otherwise stay dimmed and read as disabled. */
+@media (hover: hover) {
+  .theme-toggle:hover {
+    color: var(--color-neutral-700);
+  }
 }
 
 /* — player photo / avatar (see components/PlayerPhoto.tsx) —

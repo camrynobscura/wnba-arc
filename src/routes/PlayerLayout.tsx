@@ -1,11 +1,12 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Outlet, useNavigate, useParams } from "react-router-dom";
 import { getPlayer, type PlayerDetail } from "../data/api";
 import type { League, PositionLookup } from "../lib/deviation";
 import { useAppData } from "../appData";
 import { Footer } from "../components/Footer";
-import { Notice } from "../components/Notice";
-import { espnForSlug } from "../lib/routes";
+import { Notice, NoticeBody } from "../components/Notice";
+import { PlayerTopBar } from "../components/PlayerTopBar";
+import { espnForSlug, playerPath } from "../lib/routes";
 
 /** What the player subtree (summary + stat routes) reads from the layout via <Outlet>. By the
  *  time a child renders, detail + league are guaranteed present (the gate below waits for them). */
@@ -48,24 +49,40 @@ export function PlayerLayout() {
   }, [espn, players]);
 
   const backHome = () => navigate("/");
+  // Picking a new player is a fresh navigation — reset to the default mode + stat (no query).
+  const pick = (espn: string) => navigate(playerPath(players?.find((p) => p.espn === espn)?.name ?? "", espn, players));
+
+  // The page frame: <main> + the top row, around the loading state and the loaded page alike. Always
+  // the first child of the same fragment, so React keeps it mounted from "Loading…" to the page —
+  // the row doesn't blink, and a search typed during the load survives (user, 2026-09-26: keep the
+  // top row while loading). The errors below keep their own screen and back button.
+  const frame = (content: ReactNode, loaded: boolean) => (
+    <>
+      <main id="main" className="view-main has-compare-bar">
+        <PlayerTopBar players={players} listError={loadError} onGoHome={backHome} onPick={pick} />
+        {content}
+      </main>
+      {loaded && <Footer meta={meta} />}
+    </>
+  );
+  const loading = (
+    <div style={{ textAlign: "center", paddingTop: "var(--space-8)" }}>
+      <NoticeBody title="Loading…" />
+    </div>
+  );
 
   // Order matters. A name-slug can't resolve until the roster is in, so "loading roster" must win
   // over "not found" — otherwise a valid deep link flashes not-found on a cold load. And surfacing
   // a real not-found/error (vs. the old App's infinite spinner) is the point. No Footer on any of
   // these near-empty screens — the freshness chip there reads as a glitch.
   if (loadError) return <Notice title="Couldn't load players" detail={loadError} onBack={backHome} />;
-  if (players == null || league == null) return <Notice title="Loading…" />;
+  if (players == null || league == null) return frame(loading, false);
   if (espn == null || players.find((p) => p.espn === espn) == null)
     return <Notice title="Player not found" detail="No current player matches this link." onBack={backHome} />;
   if (detailError) return <Notice title="Couldn't load this player" detail={detailError} onBack={backHome} />;
   // Same title as the roster/league gate above so a hard refresh shows one steady
   // "Loading…" instead of switching text between the two sequential load phases.
-  if (detail == null) return <Notice title="Loading…" />;
+  if (detail == null) return frame(loading, false);
 
-  return (
-    <>
-      <Outlet context={{ detail, league, positions } satisfies PlayerOutletCtx} />
-      <Footer meta={meta} />
-    </>
-  );
+  return frame(<Outlet context={{ detail, league, positions } satisfies PlayerOutletCtx} />, true);
 }

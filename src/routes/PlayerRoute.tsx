@@ -19,7 +19,7 @@ const DEFAULT_STAT: StatKey = "pts";
  */
 export function PlayerRoute() {
   const { detail, league, positions } = useOutletContext<PlayerOutletCtx>();
-  const { players, loadError } = useAppData();
+  const { players } = useAppData();
   const { stat: statParam } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -67,8 +67,6 @@ export function PlayerRoute() {
     document.getElementById("drilldown")?.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
     document.getElementById("drilldown-title")?.focus({ preventScroll: true });
   };
-  // Picking a new player is a fresh navigation — reset to the default mode + stat (no query).
-  const pick = (espn: string) => navigate(playerPath(players?.find((p) => p.espn === espn)?.name ?? "", espn, players));
 
   // Unknown stat segment (or nothing to render) → back to this player's bare page.
   if (statKey == null || statDef == null || statDetail == null) {
@@ -86,13 +84,9 @@ export function PlayerRoute() {
       statKey={statKey}
       statDesc={statDef.desc}
       statDetail={statDetail}
-      players={players}
-      listError={loadError}
       onModeChange={setMode}
       onStatChange={selectStat}
       onDrill={drill}
-      onGoHome={() => navigate("/")}
-      onPick={pick}
     />
   );
 }
