@@ -66,8 +66,9 @@ export function Footer({ meta, showAbout = true }: FooterProps) {
         </span>
       )}
       {/* margin-left: auto keeps the icons on the right when the chip is hidden (no /meta yet). No
-          gap: each icon's hit area is 28px wide (theme.css .theme-toggle), so the two glyphs sit
-          11px apart — a pair (user, 2026-09-26: no boxes, closer; 25px → 17 → 11). */}
+          gap: each icon's hit area is 32px wide (theme.css .theme-toggle), so the two glyphs sit
+          15px apart — a pair (user, 2026-09-26: no boxes; 25px → 17 → 11 → 15, a bigger target for a
+          phone). */}
       <div style={{ display: "flex", alignItems: "center", marginLeft: "auto" }}>
         {/* The same info icon the old top bar had (user's call over an "About ARC" text chip), the
             same size and hit area as the theme switch so the two read as a pair. */}

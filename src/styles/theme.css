@@ -600,16 +600,17 @@ select.select-reset {
   color: var(--color-neutral-600);
 }
 
-/* Light/dark switch — a bare icon in a 28 × 34px hit area (no border: the user, 2026-09-26 — a box
-   around a lone icon looked odd; 28 wide to pull the pair closer, still over the 24px minimum target
-   of WCAG 2.5.8; 34 tall to sit level with the freshness chip). Also the footer's About link (an <a>, hence the text-decoration
+/* Light/dark switch — a bare icon in a 32 × 34px hit area (no border: the user, 2026-09-26 — a box
+   around a lone icon looked odd; 32 wide: 28 put the glyphs 11px apart and read as easy to mis-tap on
+   a phone, so 15px now; over the 24px minimum target of WCAG 2.5.8; 34 tall to sit level with the
+   freshness chip). Also the footer's About link (an <a>, hence the text-decoration
    reset). The keyboard focus ring is the global :focus-visible outline. */
 .theme-toggle {
   text-decoration: none;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
+  width: 32px;
   height: 34px;
   padding: 0;
   flex: none;

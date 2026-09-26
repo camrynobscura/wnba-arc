@@ -57,18 +57,11 @@ const RANK_FLOOR: Record<RateKey, { att: number; made?: number }> = {
 };
 
 /** Shooting-percentage stats that are a make/attempt ratio, mapped to where the raw pair lives
-    on a season (ownStatAverage pools it; the drill-down names it when a trend is too thin). TS% is a rate too but not
-    a single made/attempt pair — rateAttempts and ownStatAverage handle it from points, FGA and FTA. */
-const RATE_STAT_ATTEMPTS: Partial<
-  Record<
-    StatKey,
-    // `adj` is the attributive form for "…enough three-point attempts" (plural + "attempts" would
-    // be ungrammatical).
-    { made: keyof SeasonPlayed; att: keyof SeasonPlayed; adj: string }
-  >
-> = {
-  fgp: { made: "fgMade", att: "fgAtt", adj: "field-goal" },
-  tpp: { made: "fg3Made", att: "fg3Att", adj: "three-point" },
+    on a season (rateAttempts and ownStatAverage read it). TS% is a rate too but not a single
+    made/attempt pair — rateAttempts and ownStatAverage handle it from points, FGA and FTA. */
+const RATE_STAT_ATTEMPTS: Partial<Record<StatKey, { made: keyof SeasonPlayed; att: keyof SeasonPlayed }>> = {
+  fgp: { made: "fgMade", att: "fgAtt" },
+  tpp: { made: "fg3Made", att: "fg3Att" },
 };
 
 export type StatKey = StatDef["key"];
@@ -751,7 +744,6 @@ export function buildStatDetail(
   const key = stat.key;
   const allPlayed = playedSeasons(player);
   const small = (s: SeasonPlayed) => isStatSmallSample(s, league, key);
-  const componentPair = RATE_STAT_ATTEMPTS[key];
 
   // The chart shows only trustworthy seasons: played, with a value for this stat, and NOT a small
   // sample (too few games, or too few attempts for a shooting %). Noise never reaches the plot;
@@ -802,15 +794,12 @@ export function buildStatDetail(
     };
   });
 
-  // Fewer than 2 trustworthy seasons → no meaningful trend to draw (e.g. a player who almost
-  // never shoots threes). The view shows this line instead of the plot; the table still lists
-  // every season with its makes/attempts, so the record stays complete.
-  const chartFallback =
-    chartable.length < 2
-      ? componentPair
-        ? `Too few seasons with enough ${componentPair.adj} attempts to chart a trend.`
-        : "Not enough seasons to chart a trend."
-      : null;
+  // Fewer than 2 trustworthy seasons → no meaningful trend to draw (a one-season player, two
+  // seasons that are both too short, a player who almost never shoots threes). The view shows this
+  // line instead of the plot; the table still lists every season. One line for every stat and
+  // every cause (user, 2026-09-26): "Not enough seasons" read wrong for a player with two hollow
+  // seasons, and the cause is on the hollow cells' tips.
+  const chartFallback = chartable.length < 2 ? "Not enough data to chart a trend." : null;
 
   const tableRows: StatTableRow[] = player.seasons.map((x) => {
     if (!x.played) {

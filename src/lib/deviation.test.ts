@@ -713,7 +713,7 @@ describe("buildStatDetail — chart drops thin seasons; table keeps the full rec
     ]);
     const detail = buildStatDetail(p, tppStat, "league", L, POS, "F");
     expect(detail.bars.every((b) => b.kind === "small")).toBe(true);
-    expect(detail.chartFallback).toMatch(/enough three-point attempts/i);
+    expect(detail.chartFallback).toBe("Not enough data to chart a trend.");
     expect(detail.summary).toBeNull();
   });
 });
