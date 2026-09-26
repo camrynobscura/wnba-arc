@@ -1,9 +1,11 @@
+import { Link } from "react-router-dom";
 import { photoUrl } from "../data/stats";
 import type { PlayerSummary } from "../data/api";
 import type { FeaturedPlayer } from "../data/featured";
 import { PlayerPhoto } from "./PlayerPhoto";
 import { teamTintByName } from "../data/teams";
 import { PlayerSearch } from "./PlayerSearch";
+import { playerPath } from "../lib/routes";
 
 interface SelectViewProps {
   /** Hand-curated players shown instantly from static data (no API wait). */
@@ -12,6 +14,7 @@ interface SelectViewProps {
   players: PlayerSummary[] | null;
   /** Set if the roster fetch failed; search is then unavailable but featured still show. */
   listError: string | null;
+  /** A search result was chosen (the featured list is plain links). */
   onPick: (espn: string) => void;
 }
 
@@ -45,8 +48,12 @@ export function SelectView({ featured, players, listError, onPick }: SelectViewP
         >
           {featured.map((f) => (
             <li key={f.espn}>
-              <button
-                className="btn-reset row-hover"
+              {/* A link, not a button: it goes to a page, so it opens in a new tab, copies as a link and
+                  is announced as one (craftsmanship review 1.1, 2026-09-26). The path needs no roster —
+                  the roster only adds an id on a name collision, and none of the featured collide. */}
+              <Link
+                to={playerPath(f.name, f.espn, players)}
+                className="row-hover"
                 style={{
                   textAlign: "left",
                   width: "100%",
@@ -55,8 +62,8 @@ export function SelectView({ featured, players, listError, onPick }: SelectViewP
                   gap: "var(--space-4)",
                   padding: "var(--space-4) var(--space-4)",
                   borderBottom: "1px solid var(--color-divider)",
+                  textDecoration: "none",
                 }}
-                onClick={() => onPick(f.espn)}
               >
                 <PlayerPhoto src={photoUrl(f.espn)} name={f.name} size={40} tint={teamTintByName(f.team)} />
                 <div style={{ flex: 1, minWidth: 0 }}>
@@ -68,7 +75,7 @@ export function SelectView({ featured, players, listError, onPick }: SelectViewP
                 <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--color-neutral-600)" strokeWidth="1.75">
                   <path d="M9 18l6-6-6-6" />
                 </svg>
-              </button>
+              </Link>
             </li>
           ))}
         </ul>

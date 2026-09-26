@@ -62,11 +62,14 @@ export function PlayerView({
         }}
       >
         <PlayerPhoto src={photoUrl(player.espn)} name={player.name} size={54} tint={teamTint(player.teamAbbr)} />
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div className="card-kicker" style={{ marginBottom: "var(--space-1)" }}>
+        {/* The name comes first in the markup and the team line second, so a screen reader that jumps
+            to the heading reads on into "Las Vegas Aces · C · #22"; `order: -1` draws the line above
+            the name, as before (craftsmanship review 1.6, 2026-09-26). */}
+        <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
+          <h1 style={{ fontSize: "var(--fs-2xl)", margin: 0, lineHeight: 1 }}>{player.name}</h1>
+          <div className="card-kicker" style={{ marginBottom: "var(--space-1)", order: -1 }}>
             {playerMeta(player, true)}
           </div>
-          <h1 style={{ fontSize: "var(--fs-2xl)", margin: 0, lineHeight: 1 }}>{player.name}</h1>
         </div>
       </div>
 

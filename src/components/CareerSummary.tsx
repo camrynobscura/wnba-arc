@@ -29,38 +29,44 @@ export function CareerSummary({ summary: s, unit, unitShort, rankAmong }: Career
   if (s.bestRank) plates.push({ k: "Best rank", v: ordinal(s.bestRank.rank), q: `of ${s.bestRank.pool}`, n: `${rankAmong} ${s.bestRank.year}` });
 
   return (
-    <dl className="cs" aria-label="Career summary">
-      {plates.map((p) => (
-        <div className="cs-plate" key={p.k}>
-          <dt className="cs-k">{p.k}</dt>
-          {/* The word after a number ("points", "of 158") is one treatment, whichever kind it is. Explicit
-              spaces so a screen reader says "14.3 points" / "1st of 158", not one run-on token. */}
-          <dd className="cs-v">
-            {p.v}
-            {p.u && (
-              <>
-                {/* "35%" has no space before its sign; "1.9 STL" has a word space. */}
-                {p.u === "%" ? "" : " "}
-                {unitShort === p.u ? (
-                  <span className="cs-q">{p.u}</span>
-                ) : (
-                  <>
-                    <span className="cs-q" aria-hidden="true">{unitShort}</span>
-                    <span className="sr-only">{p.u}</span>
-                  </>
-                )}
-              </>
-            )}
-            {p.q && (
-              <>
-                {" "}
-                <span className="cs-q">{p.q}</span>
-              </>
-            )}
-          </dd>
-          <dd className="cs-n">{p.n}</dd>
-        </div>
-      ))}
-    </dl>
+    <>
+      {/* Names the plates for screen readers: a heading they can jump to (a native element — the
+          aria-label this list used to carry is ignored on a <dl>, which has no role that takes a
+          name). Hidden: on screen the plates speak for themselves. */}
+      <h3 className="sr-only">Career summary</h3>
+      <dl className="cs">
+        {plates.map((p) => (
+          <div className="cs-plate" key={p.k}>
+            <dt className="cs-k">{p.k}</dt>
+            {/* The word after a number ("points", "of 158") is one treatment, whichever kind it is. Explicit
+                spaces so a screen reader says "14.3 points" / "1st of 158", not one run-on token. */}
+            <dd className="cs-v">
+              {p.v}
+              {p.u && (
+                <>
+                  {/* "35%" has no space before its sign; "1.9 STL" has a word space. */}
+                  {p.u === "%" ? "" : " "}
+                  {unitShort === p.u ? (
+                    <span className="cs-q">{p.u}</span>
+                  ) : (
+                    <>
+                      <span className="cs-q" aria-hidden="true">{unitShort}</span>
+                      <span className="sr-only">{p.u}</span>
+                    </>
+                  )}
+                </>
+              )}
+              {p.q && (
+                <>
+                  {" "}
+                  <span className="cs-q">{p.q}</span>
+                </>
+              )}
+            </dd>
+            <dd className="cs-n">{p.n}</dd>
+          </div>
+        ))}
+      </dl>
+    </>
   );
 }

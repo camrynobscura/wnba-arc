@@ -53,7 +53,6 @@ export function PlayerLayout() {
     };
   }, [id]);
 
-  const backHome = () => navigate("/");
   // Picking a new player is a fresh navigation — reset to the default mode + stat (no query).
   const pick = (espn: string) => navigate(playerPath(players?.find((p) => p.espn === espn)?.name ?? "", espn, players));
 
@@ -65,7 +64,7 @@ export function PlayerLayout() {
   const frame = (content: ReactNode, loaded: boolean) => (
     <>
       <main id="main" className="view-main has-compare-bar">
-        <PlayerTopBar players={players} listError={loadError} onGoHome={backHome} onPick={pick} />
+        <PlayerTopBar players={players} listError={loadError} onPick={pick} />
         {content}
       </main>
       {loaded && <Footer meta={meta} />}

@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import type { PlayerSummary } from "../data/api";
 import { PlayerSearch } from "./PlayerSearch";
 
@@ -5,7 +6,6 @@ interface PlayerTopBarProps {
   /** Full roster + its load error, for the "search more players" box (null while it loads). */
   players: PlayerSummary[] | null;
   listError: string | null;
-  onGoHome: () => void;
   onPick: (espn: string) => void;
 }
 
@@ -17,15 +17,17 @@ interface PlayerTopBarProps {
  * search floating alone up here — it looked stranded, and the player's name can't share the row
  * with it on a phone.)
  */
-export function PlayerTopBar({ players, listError, onGoHome, onPick }: PlayerTopBarProps) {
+export function PlayerTopBar({ players, listError, onPick }: PlayerTopBarProps) {
   return (
     <div className="view-header">
-      <button className="btn btn-ghost" style={{ gap: "var(--space-2)" }} onClick={onGoHome}>
+      {/* A link to the landing page, drawn as the ghost button (`.btn` resets the underline): it goes
+          to a page, so it opens in a new tab and is announced as a link (craftsmanship review 1.1). */}
+      <Link to="/" className="btn btn-ghost" style={{ gap: "var(--space-2)" }}>
         <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
           <path d="M19 12H5M12 19l-7-7 7-7" />
         </svg>
         <span>All players</span>
-      </button>
+      </Link>
       <PlayerSearch variant="compact" players={players} listError={listError} onPick={onPick} />
     </div>
   );

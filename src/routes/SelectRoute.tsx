@@ -10,10 +10,10 @@ export function SelectRoute() {
   const { players, loadError, meta } = useAppData();
   const navigate = useNavigate();
 
-  // Resolve the picked espn id to a name for the pretty slug — from the roster if loaded,
-  // else the static featured list (a featured card can be clicked before the roster arrives).
+  // A search result → the player's page. Results come from the roster, so it has the name for the
+  // slug. (The featured list is links — they carry their own paths.)
   const pick = (espn: string) => {
-    const name = players?.find((p) => p.espn === espn)?.name ?? FEATURED.find((f) => f.espn === espn)?.name ?? "";
+    const name = players?.find((p) => p.espn === espn)?.name ?? "";
     navigate(playerPath(name, espn, players));
   };
 

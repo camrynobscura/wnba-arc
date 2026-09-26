@@ -694,8 +694,9 @@ select.select-reset {
    column headers, so a label reads the same everywhere (user, 2026-09-26). The "table style": 11px
    bold body caps, tracked. (Tried and set aside the same night: the heatmap's 13px condensed face on
    both — harder to read; this face at 13px — "RANK" 37.8px in a 35px column of the then 8-column
-   3P% table at 320px.) */
-.table th,
+   3P% table at 320px.) The table's column headers only (thead): its row headers, the years, look like
+   body cells (below). */
+.table thead th,
 .hm-colhead,
 .hm-rowhead {
   font-family: var(--font-body);
@@ -705,14 +706,22 @@ select.select-reset {
   text-transform: uppercase;
   color: color-mix(in srgb, var(--color-text) 72%, transparent);
 }
-.table th {
+.table thead th {
   text-align: left;
   padding: var(--space-2);
   border-bottom: 1px solid var(--color-divider);
 }
-.table td {
+.table td,
+.table tbody th {
   padding: var(--space-2);
   border-bottom: 1px solid color-mix(in srgb, var(--color-text) 8%, transparent);
+}
+/* A row header (the year, <th scope="row"> — so a screen reader names the season as it moves down a
+   column) is drawn exactly like the body cells beside it: the browser's own th look (bold, centered)
+   undone. The selected row's bold year is below. */
+.table tbody th {
+  font-weight: inherit;
+  text-align: left;
 }
 /* Every column but the first (the Season label) holds a number → right-aligned.
    :not(:first-child) outweighs the base `.table th`'s left-align, so order-independent. */
@@ -728,7 +737,8 @@ select.select-reset {
    bottom: as a translucent border it crossed the (translucent) row rules and every intersection
    stacked into a darker dot — and the user wants the row and header rules exactly as they were.
    The line never touches the row rules, so nothing stacks. (User's idea, 2026-09-24.) */
-.table td:not(:last-child) {
+.table td:not(:last-child),
+.table tbody th:not(:last-child) {
   background-image: linear-gradient(color-mix(in srgb, var(--color-text) 5%, transparent), color-mix(in srgb, var(--color-text) 5%, transparent));
   background-repeat: no-repeat;
   background-size: 1px calc(100% - 2px);
@@ -750,7 +760,7 @@ select.select-reset {
 .table tbody tr.is-selected {
   background: color-mix(in srgb, var(--color-neutral-900) 10%, transparent);
 }
-.table tbody tr.is-selected td:first-child {
+.table tbody tr.is-selected th {
   font-weight: 700;
 }
 

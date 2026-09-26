@@ -89,7 +89,9 @@ export function StatDrilldownView({ player, stat, statKey, desc, mode, onStatCha
 
   const renderRow = (r: StatTableRow) => (
     <tr key={r.year} className={r.year === selectedYear ? "is-selected" : undefined}>
-      <td>
+      {/* The year is the row's header, so a screen reader moving down a column says which season each
+          number belongs to ("2024, 1st of 123"). Styled exactly like the other body cells (theme.css). */}
+      <th scope="row">
         {r.year}
         {/* A missed season is a row of dashes on screen; say why for a screen reader, which
             doesn't see the heatmap's gap. (The page no longer carries a separate note.) */}
@@ -99,7 +101,7 @@ export function StatDrilldownView({ player, stat, statKey, desc, mode, onStatCha
             every season is hollow has none) and so the rank cell can skip saying it twice. */}
         {r.note && !r.missed && <span className="sr-only">, {lowerFirst(r.note)}</span>}
         {r.partial && !r.missed && <span className="sr-only">, partial season</span>}
-      </td>
+      </th>
       {/* The stat's own value, first after the year. A shooting % used to add made/attempted
           columns here (3PM/3PA, FGM/FGA); cut 2026-09-26 (user): they crowded a phone's table into
           overlapping cells, and a thin season's count is in its rank dash's tip now. */}
@@ -180,8 +182,9 @@ export function StatDrilldownView({ player, stat, statKey, desc, mode, onStatCha
           with no bucket either: those cells' popover says "No forward avg that season", the chart
           draws a neutral dot, the table a "—". */}
 
-      {/* Legend for the chart. */}
-      <div style={{ margin: "var(--space-5) 0 var(--space-3)" }}>
+      {/* Legend for the chart — hidden from assistive tech with the chart it explains (below): a
+          screen reader gets every number from the table, so the legend was a key to nothing. */}
+      <div aria-hidden="true" style={{ margin: "var(--space-5) 0 var(--space-3)" }}>
         <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-2) var(--space-4)", fontSize: "var(--fs-xs)" }}>
           <span style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
             <span aria-hidden="true" className="legend-dot" style={{ background: "var(--hm-above)" }} />
@@ -349,7 +352,11 @@ export function StatDrilldownView({ player, stat, statKey, desc, mode, onStatCha
           2026-09-26 — a fixed layout let "42.0%" spill into its neighbor at 390px). Missed seasons
           show as "—" rows (the reason is in the season cell for screen readers). */}
       <div className="table-scroll" style={{ marginTop: "var(--space-6)" }}>
-        <table ref={tableRef} className="table" aria-label="Season stats">
+        {/* Named by the section's hidden heading ("Points, year by year"), so a screen reader landing on
+            the table hears which stat it holds — it was aria-label="Season stats" for every stat. Not a
+            <caption>, the native way: WebKit repaints the header rule lighter under every column but the
+            first when the table has a visually hidden caption (measured 2026-09-26; the user saw it in Safari). */}
+        <table ref={tableRef} className="table" aria-labelledby="drilldown-title">
           <colgroup>
             {Array.from({ length: colCount }, (_, i) => (
               <col key={i} style={{ width: `${100 / colCount}%` }} />
