@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Outlet, useNavigate, useParams } from "react-router-dom";
-import { getPlayer, type PlayerDetail } from "../data/api";
+import { cachedPlayer, getPlayer, type PlayerDetail } from "../data/api";
 import type { League, PositionLookup } from "../lib/deviation";
 import { useAppData } from "../appData";
 import { Footer } from "../components/Footer";
@@ -28,25 +28,30 @@ export function PlayerLayout() {
   // tell those apart (loading vs. not-found) so a name-slug never flashes a false "not found".
   const espn = useMemo(() => espnForSlug(slug, players), [slug, players]);
 
-  const [detail, setDetail] = useState<PlayerDetail | null>(null);
-  const [detailError, setDetailError] = useState<string | null>(null);
+  // The player's DB id, once the espn resolves and the roster (which maps espn → DB id) is in. Null
+  // for a bad slug, a roster still loading, or no such player — the gates below tell those apart.
+  const id = useMemo(() => (espn == null || players == null ? null : (players.find((p) => p.espn === espn)?.id ?? null)), [espn, players]);
 
-  // Fetch the full history once the espn resolves and the roster (which maps espn → DB id) is in.
-  // Re-runs on slug change (navigating to a different player) and when the roster finally loads.
+  // The player on screen. One fetched earlier this visit is read from memory during the FIRST
+  // render (`cachedPlayer`), so coming back — About's Back, the browser's Back/Forward, a search —
+  // shows the page at once, with no "Loading…" frame (user, 2026-09-26). A fresh player is fetched
+  // below. Both are keyed by id, so switching players can never show the previous one for a frame.
+  const [fetched, setFetched] = useState<{ id: string; detail: PlayerDetail } | null>(null);
+  const [failed, setFailed] = useState<{ id: string; error: string } | null>(null);
+  const detail = id == null ? null : (cachedPlayer(id) ?? (fetched?.id === id ? fetched.detail : null));
+  const detailError = detail == null && id != null && failed?.id === id ? failed.error : null;
+
   useEffect(() => {
-    setDetail(null);
-    setDetailError(null);
-    if (espn == null || players == null) return; // bad slug / roster still loading — handled below
-    const id = players.find((p) => p.espn === espn)?.id;
-    if (id == null) return; // roster loaded but no such player — not-found handled below
+    if (id == null || cachedPlayer(id) != null) return;
+    setFailed((f) => (f?.id === id ? null : f)); // a retry shows "Loading…", not the last error
     let cancelled = false;
     getPlayer(id)
-      .then((d) => !cancelled && setDetail(d))
-      .catch((e) => !cancelled && setDetailError(String(e)));
+      .then((d) => !cancelled && setFetched({ id, detail: d }))
+      .catch((e) => !cancelled && setFailed({ id, error: String(e) }));
     return () => {
       cancelled = true;
     };
-  }, [espn, players]);
+  }, [id]);
 
   const backHome = () => navigate("/");
   // Picking a new player is a fresh navigation — reset to the default mode + stat (no query).

@@ -184,9 +184,34 @@ export function getPlayers(): Promise<PlayerSummary[]> {
   return fetchJson<PlayerSummary[]>("/players?scope=all");
 }
 
-/** One player with full history. */
+// Players already fetched this visit, by DB id: coming back to one — About's Back, the browser's
+// Back/Forward, a search — renders at once instead of refetching behind "Loading…" (user,
+// 2026-09-26). Kept for the whole visit, like the roster and league data App loads once: the stats
+// change at most nightly. An in-flight request is shared, so a double effect (StrictMode) or a
+// quick back-and-forth fetches once; a failure isn't remembered, so the next visit retries.
+const playerCache = new Map<string, PlayerDetail>();
+const playerRequests = new Map<string, Promise<PlayerDetail>>();
+
+/** A player fetched earlier this visit, or null. Synchronous, so a return renders in one pass. */
+export function cachedPlayer(id: string): PlayerDetail | null {
+  return playerCache.get(id) ?? null;
+}
+
+/** One player with full history — from memory when already fetched this visit. */
 export function getPlayer(id: string): Promise<PlayerDetail> {
-  return fetchJson<PlayerDetail>(`/players/${id}`);
+  const hit = playerCache.get(id);
+  if (hit) return Promise.resolve(hit);
+  let request = playerRequests.get(id);
+  if (!request) {
+    request = fetchJson<PlayerDetail>(`/players/${id}`)
+      .then((detail) => {
+        playerCache.set(id, detail);
+        return detail;
+      })
+      .finally(() => playerRequests.delete(id));
+    playerRequests.set(id, request);
+  }
+  return request;
 }
 
 /** Per-year league averages + slate length. */

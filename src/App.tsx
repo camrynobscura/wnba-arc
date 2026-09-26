@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { Navigate, Route, Routes, useLocation } from "react-router-dom";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { Navigate, Route, Routes, useLocation, useNavigationType } from "react-router-dom";
 import { getLeague, getMeta, getPlayers, getPositions, type LeagueSeason, type Meta, type PlayerSummary, type PositionSeason } from "./data/api";
 import { makeLeague, makePositionLookup } from "./lib/deviation";
 import { AppDataContext, type AppData } from "./appData";
@@ -59,7 +59,7 @@ export default function App() {
       </a>
       {/* No app-wide top bar: the landing page is home, the player page's sticky CompareBar is the
           way back, and About + the theme switch live in the footer of every page. */}
-      <ScrollToTop />
+      <ScrollManager />
       <AppDataContext.Provider value={appData}>
         <Routes>
           <Route path="/" element={<SelectRoute />} />
@@ -82,18 +82,53 @@ export default function App() {
 /** The "/player/<slug>" prefix of a pathname, or null off the player page. */
 const playerBase = (p: string): string | null => p.match(/^\/player\/[^/]+/)?.[0] ?? null;
 
-/** Reset scroll to the top on a real navigation (pathname change) — but NOT on a query-param
- *  change (re-baselining a season), and NOT when only the drill-down stat changed for the same
- *  player ("/player/x" → "/player/x/blk"): that's a view modifier on one page, and jumping to
- *  the top would fight the "See … history" scroll into the section. */
-function ScrollToTop() {
-  const { pathname } = useLocation();
-  const prev = useRef<string | null>(null);
+/** How far down each history entry was scrolled, by location key — in memory (a reload starts at
+ *  the top anyway). */
+const scrollByKey = new Map<string, number>();
+
+/** Scroll on navigation (user, 2026-09-26): **Back/Forward returns you to where you were** on that
+ *  page — About's "← Back" is a history back too; **opening a new page starts at the top**; and a
+ *  change that stays on the same player (the drill-down stat, the compare mode — history *replace*s)
+ *  doesn't move the page, which would fight the "See … history" scroll into the section.
+ *
+ *  Restoring works because a page you come back to renders in the same pass: the player page reads
+ *  the player from memory (`cachedPlayer`), the rest is static. The browser's own restoration is
+ *  switched off — it restores before a client-rendered route has painted, and fights this. A layout
+ *  effect, so the position is set before paint and the entry key flips before any scroll event
+ *  (e.g. the browser clamping to a shorter page) can be recorded against the wrong entry. */
+function ScrollManager() {
+  const location = useLocation();
+  const navType = useNavigationType();
+  const keyRef = useRef(location.key);
+  const prevPath = useRef<string | null>(null);
+
   useEffect(() => {
-    const base = playerBase(pathname);
-    const samePlayer = base != null && prev.current != null && playerBase(prev.current) === base;
-    prev.current = pathname;
-    if (!samePlayer) window.scrollTo(0, 0);
-  }, [pathname]);
+    if ("scrollRestoration" in history) history.scrollRestoration = "manual";
+  }, []);
+
+  // Record the current entry's position as the reader scrolls (once per frame).
+  useEffect(() => {
+    let frame = 0;
+    const onScroll = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => scrollByKey.set(keyRef.current, window.scrollY));
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      cancelAnimationFrame(frame);
+    };
+  }, []);
+
+  useLayoutEffect(() => {
+    keyRef.current = location.key;
+    const base = playerBase(location.pathname);
+    const samePlayer = base != null && prevPath.current != null && playerBase(prevPath.current) === base;
+    prevPath.current = location.pathname;
+    if (navType === "POP") window.scrollTo(0, scrollByKey.get(location.key) ?? 0);
+    else if (!samePlayer) window.scrollTo(0, 0);
+    // Record the landing position too: a replace (a stat change) makes a new entry without a scroll.
+    scrollByKey.set(location.key, window.scrollY);
+  }, [location.key, location.pathname, navType]);
   return null;
 }
