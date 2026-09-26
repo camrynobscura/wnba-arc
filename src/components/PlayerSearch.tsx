@@ -206,7 +206,10 @@ export function PlayerSearch({ players, listError, onPick, variant = "hero" }: P
           className="search-underline"
           // Font size lives in .search-underline (theme.css) so the touch-device rule there can win.
           style={{ width: "100%", height: 30, paddingLeft: "var(--space-6)", color: "var(--color-text)", fontFamily: "var(--font-body)" }}
-          placeholder={listError ? "Search unavailable" : players ? "Search players…" : "Loading roster…"}
+          // No "Loading roster…" placeholder while the list loads (~0.2–0.7s, measured 2026-09-26): it
+          // flashed by too fast to read and read as confusing (user). Someone who types before it
+          // arrives still gets the dropdown's "Loading roster…".
+          placeholder={listError ? "Search unavailable" : "Search players…"}
           disabled={listError != null}
         />
         {/* Fixed width (not min/max content-sizing) so the box doesn't shrink as you type and
@@ -228,7 +231,9 @@ export function PlayerSearch({ players, listError, onPick, variant = "hero" }: P
           {...comboProps}
           className="input"
           style={{ paddingLeft: "var(--space-10)", height: 48, fontSize: "var(--fs-base)" }}
-          placeholder={players ? "Search a player or team…" : "Loading roster for search…"}
+          // Same as the compact box: no loading placeholder; "Search unavailable" if the list failed
+          // (it used to stay "Loading roster for search…" forever on a failure).
+          placeholder={listError ? "Search unavailable" : "Search a player or team…"}
         />
         {listbox({ left: 0, right: 0, top: 54, maxHeight: 360 })}
       </div>
