@@ -50,20 +50,46 @@ export interface SeasonPlayed {
   fgAtt: number;
   fg3Made: number;
   fg3Att: number;
+  /** Free throws and the season's total points — TS% pools from these (points ÷ 2·(FGA + 0.44·FTA))
+      and its tint floor counts "shooting possessions", FGA + 0.44·FTA. */
+  ftMade: number;
+  ftAtt: number;
+  ptsTotal: number;
   // Advanced (added to the displayed set). A decimal like the other percentage stats.
   tsPct: number | null; // true shooting %
   /** Qualified player-seasons in that year's league pool (the same set the averages and ladders come
-      from); null if the year has no league row. Denominator for `rank` ("3rd of 141"). The pool is
-      the players in the database: complete for the roster window, only still-active players before. */
+      from — everyone over the games gate); null if the year has no league row. Denominator for a
+      counting stat's `rank` ("3rd of 141"). */
   pool: number | null;
-  /** This season's place in that pool per counting stat, 1 = best, ties share a rank; null when the
-      season didn't qualify (small sample) or there's no pool. */
-  rank: { pts: number; reb: number; ast: number; stl: number; blk: number } | null;
-  /** The same two among the player's own POSITION that year — the crowd the /positions averages
+  /** This season's place per stat, 1 = best, ties share a rank; null when the season didn't qualify
+      (too few games) or there's no pool. Inside a non-null `rank` the counting keys are always set; a
+      shooting % is null when the season is under that stat's rank floor (see `ratePool`). */
+  rank: SeasonRanks | null;
+  /** The pool a shooting % ranks in: the qualified seasons that also cleared the API's rank floor
+      for that stat (attempts OR makes per 44 games, scaled to the year's schedule: 3P% 60 att or 20
+      made, FG% 200 att or 85 made, TS% 125 shooting possessions — deviation.ts RANK_FLOOR mirrors the
+      numbers) AND its color floor (so a ranked season is always a colored one). Per stat, because
+      each floor admits a different crowd ("4th of 70" for 3P% beside "16th of 122" for points). */
+  ratePool: { fgp: number; tpp: number; tsPct: number } | null;
+  /** The same among the player's own POSITION that year — the crowd the /positions averages
       describe, gated the same way (a bucket needs 8 qualified players): where /positions has no
-      (year, position) row, both are null. */
+      (year, position) row, all are null. A shooting %'s position pool is null (and its rank with it)
+      when fewer than 8 of the position cleared the floor that year. */
   posPool: number | null;
-  posRank: { pts: number; reb: number; ast: number; stl: number; blk: number } | null;
+  posRank: SeasonRanks | null;
+  posRatePool: { fgp: number | null; tpp: number | null; tsPct: number | null } | null;
+}
+
+/** A season's place per stat, 1 = best. Mirrors the API's SeasonRanks. */
+export interface SeasonRanks {
+  pts: number;
+  reb: number;
+  ast: number;
+  stl: number;
+  blk: number;
+  fgp: number | null;
+  tpp: number | null;
+  tsPct: number | null;
 }
 
 export interface SeasonMissed {

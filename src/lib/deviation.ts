@@ -6,11 +6,23 @@ import type { LeagueSeason, PlayerDetail, PositionSeason, SeasonPlayed } from ".
 // year). The drill-down used to have its own target type and a picked "subject" season; both went
 // when it moved under the heatmap (the cell popover carries per-season detail). See DECISIONS.
 
-/** A season below this fraction of its year's scheduled games is "small sample" (D6).
-    25% ≈ 11 of a 44-game season — a ~10–13 game year counts, a handful of games doesn't.
-    Must stay equal to wnba-data's SMALL_SAMPLE_FRACTION (scripts/compute-league.ts), which
-    uses the same bar to pick which players qualify for the league averages. Keep them paired. */
-const SMALL_SAMPLE_FRACTION = 0.25;
+/** The "played enough to count" bar (D6, re-set 2026-09-25 — DECISIONS): a season qualifies at
+    QUALIFYING_GAMES of a FULL_SCHEDULE_GAMES-game schedule, scaled to that year's slate — 20 of 44
+    today, 13 of 28 in 1997, 10 of the 2020 bubble's 22. That is Basketball-Reference's WNBA
+    per-game requirement (20 games), scaled so a short season isn't judged by a long one's bar. It
+    replaced 25% (11 of 44), which let a handful of games count as a year. Compared in integers
+    (gp × FULL < QUALIFYING × slate), never a float fraction. Must stay equal to wnba-data's pair
+    (src/db/computeLeague.ts), which uses the same bar to pick who qualifies for the league averages,
+    spreads and ranks — one crowd. Keep them paired. */
+export const QUALIFYING_GAMES = 20;
+export const FULL_SCHEDULE_GAMES = 44;
+/** The lower games bar — enough games to COLOR a row (2026-09-25, the user: "no tint ruins the
+    heatmap", a 17-game Kelsey Plum season is still worth a color). A quarter of the schedule: 11 of
+    44, 7 of 28, 6 of 22. Under it the row is grey and not compared; from here to the rank bar above
+    it is a "partial season" — tinted and counted in career averages, marked with the asterisk, and
+    NOT ranked (the crowd and the ranks stay at QUALIFYING_GAMES, so a partial season is measured
+    against the full-season crowd without being in it, like a shooting % under its rank floor). */
+export const COLOR_GAMES_FRACTION = 0.25;
 /** A full-length deviation bar = the stat is this fraction above/below baseline (S1). Used for
     the shooting-% bars (relative change) and as the fallback for a counting stat when its
     comparison group has no spread on the wire (data older than migration 004). */
@@ -22,21 +34,31 @@ const FULL_STEPS = 3;
 /** Fallback slate length for a year the league data doesn't list (shouldn't happen). */
 const DEFAULT_SCHEDULED_GAMES = 40;
 
-/** Minimum attempts for a shooting-percentage stat to count as a meaningful sample. A % on a
-    handful of shots is noise — A'ja Wilson went 1-for-1 (100%) from three in 2021, which both
-    inflated her career-3P baseline and dominated the Career Trend color scale. Measured against
-    our data: extreme 0%/100% seasons are almost entirely a 1–9-attempt phenomenon, and a
-    threshold of 10 catches 75 of 77 such 3P seasons while suppressing only ~12% of shooting
-    seasons (and just 1 FG% season — everyone who plays takes 50+ field goals). This gate is
-    ORTHOGONAL to the games-played gate: a full-games season can still be attempt-thin. */
-const MIN_RATE_ATTEMPTS = 10;
+/** Enough shots to COLOR a shooting-% cell — the "tint floor" (2026-09-25, DECISIONS): field-goal
+    attempts for FG%, three-point attempts for 3P%, shooting possessions (FGA + 0.44 × FTA, the TS%
+    denominator) for TS%. Fixed counts, not scaled to the schedule: 40 threes are 40 threes in any
+    era — the question is whether the number is stable, and at these floors one make moves it by
+    2.5 points (3P%) or 1 point (FG%, TS%). Measured on every qualified season since 1997: the old
+    10-attempt floor tinted a 4-of-10 (Aliyah Boston 2023, 40%) as a hot cell and passed 99% of FG%
+    seasons; these keep 44% / 69% / 72% of cells tinted, and every featured guard's row whole. This
+    gate is ORTHOGONAL to the games gate: a full-games season can still be attempt-thin. */
+const TINT_FLOOR: Record<RateKey, number> = { fgp: 100, tpp: 40, tsPct: 100 };
+/** Enough shots to RANK a shooting % — the API's floor (wnba-data queries.ts RATE_RANK_FLOOR), per
+    44-game season and scaled to the year's slate: ATTEMPTS OR MAKES (user, 2026-09-25) — 3P% 60
+    attempts or 20 made, FG% 200 attempts or 85 made, TS% 125 shooting possessions. Mirrored here ONLY
+    to word the note on a colored cell that falls short ("Needs 55 attempts from three or 19 made to
+    rank"); the rank itself always comes from the API, whose pool also requires TINT_FLOOR (so a
+    ranked season is always a colored one — wnba-data RATE_TINT_FLOOR mirrors TINT_FLOOR). Keep all
+    three paired. */
+const RANK_FLOOR: Record<RateKey, { att: number; made?: number }> = {
+  fgp: { att: 200, made: 85 },
+  tpp: { att: 60, made: 20 },
+  tsPct: { att: 125 },
+};
 
 /** Shooting-percentage stats that are a make/attempt ratio, mapped to where the raw pair lives
-    on a season. These get (1) the attempt-count small-sample gate above and (2) a baseline
-    POOLED from summed makes/attempts rather than a mean of season percentages — so one
-    low-attempt season can neither swing the baseline nor show a misleading solo value. TS% is
-    intentionally excluded: its denominator mixes shot types (needs free-throw attempts, not on
-    the wire) and it's barely affected in practice. */
+    on a season (the table shows the pair, and ownStatAverage pools it). TS% is a rate too but not
+    a single made/attempt pair — rateAttempts and ownStatAverage handle it from points, FGA and FTA. */
 const RATE_STAT_ATTEMPTS: Partial<
   Record<
     StatKey,
@@ -50,6 +72,12 @@ const RATE_STAT_ATTEMPTS: Partial<
 };
 
 export type StatKey = StatDef["key"];
+/** The three shooting percentages: they carry the tint floor, rank in their own pool, and pool their
+    career average from totals. */
+export type RateKey = Extract<StatKey, "fgp" | "tpp" | "tsPct">;
+export function isRateStat(key: StatKey): key is RateKey {
+  return key === "fgp" || key === "tpp" || key === "tsPct";
+}
 
 /** The five counting stats whose bars measure in "steps" and carry a spread + percentile. The
     shooting %s (fgp/tpp/tsPct) are absent — they keep the relative-% bar and have neither. */
@@ -155,18 +183,105 @@ export function playedSeasons(player: PlayerDetail): SeasonPlayed[] {
   return player.seasons.filter((x): x is SeasonPlayed => x.played);
 }
 
-/** True when a season's games played fall below the small-sample threshold for its year. */
-export function isSmallSample(season: SeasonPlayed, league: League): boolean {
-  return season.gp < SMALL_SAMPLE_FRACTION * league.scheduled(season.year);
+/** Which of the three games tiers a season falls in for its year: "small" (under a quarter of the
+    schedule — grey, not compared), "partial" (up to the rank bar — tinted, marked, not ranked), or
+    "full". Both bars scale with the slate; both compare in exact arithmetic. */
+export function gamesTier(season: SeasonPlayed, league: League): "small" | "partial" | "full" {
+  const sched = league.scheduled(season.year);
+  if (season.gp < COLOR_GAMES_FRACTION * sched) return "small";
+  if (season.gp * FULL_SCHEDULE_GAMES < QUALIFYING_GAMES * sched) return "partial";
+  return "full";
 }
 
-/** Attempts a season took for a shooting-% stat, or null if the stat isn't a make/attempt
-    rate (a counting stat, or TS%) — used by the attempt gate and the pooled average. */
+/** True when a season's games played fall below the color bar for its year — greyed, not compared. */
+export function isSmallSample(season: SeasonPlayed, league: League): boolean {
+  return gamesTier(season, league) === "small";
+}
+
+/** True for a season between the two games bars: tinted and counted, marked, not ranked. */
+export function isPartialSeason(season: SeasonPlayed, league: League): boolean {
+  return gamesTier(season, league) === "partial";
+}
+
+/** Games a season needed that year to be ranked (and to be in the crowd): ceil(20 × slate ÷ 44). */
+export function gamesToRank(year: number, league: League): number {
+  return Math.ceil((QUALIFYING_GAMES * league.scheduled(year)) / FULL_SCHEDULE_GAMES);
+}
+
+/** The plain-words caveat on a not-normal (asterisked) cell, with the count behind it — the user
+    (2026-09-25): say how many games or shots it was, not just "small sample". Null for a full,
+    fully-sampled season. Games first (a games-small season is grey for every stat), then the
+    stat's shot floor, then the partial tier. A small sample's second sentence names what the grey
+    means IN THIS MODE (user: one line per mode, no "the"): self — the season is left out of the
+    career average the cells are measured against; league / position — it isn't compared with
+    that crowd's average. Both are true everywhere; each mode says the one the reader can see. */
+export function sampleNote(season: SeasonPlayed, league: League, statKey: StatKey, mode: HeatmapMode, playerPosition: string | null): string | null {
+  const sched = league.scheduled(season.year);
+  const tier = gamesTier(season, league);
+  const tail = mode === "self" ? "Left out of career average." : `Not compared with ${mode === "league" ? "league" : positionSingular(playerPosition)} average.`;
+  if (tier === "small") return `Small sample: ${season.gp} of ${sched} game${sched === 1 ? "" : "s"}. ${tail}`;
+  if (isRateStat(statKey)) {
+    const att = rateAttempts(season, statKey);
+    if (att != null && att < TINT_FLOOR[statKey]) {
+      // Round DOWN: only TS possessions are fractional (FGA + 0.44·FTA), and rounding to nearest showed
+      // 99.7 as "100 TS possessions" beside a floor of 100 (Teonni Key 2026). Whole counts are unchanged.
+      const n = Math.floor(att);
+      const s = n === 1 ? "" : "s";
+      // Short forms (user, 2026-09-25 — keep the footnote tight). Threes read "attempts from three",
+      // not "3-point attempts": "1 3-point attempt" read as "13-point attempt" (user) — a digit, a
+      // space, a digit.
+      const what = statKey === "tpp" ? `attempt${s} from three` : statKey === "fgp" ? `FG attempt${s}` : `TS possession${s}`;
+      return `Small sample: ${n} ${what}. ${tail}`;
+    }
+  }
+  if (tier === "partial") return `Partial season: ${season.gp} of ${sched} games`;
+  return null;
+}
+
+/** The seasons a career average is computed over: those over the COLOR bar (partial seasons count —
+    tinted means counted), or every played season when fewer than two are (a one-season career still
+    gets a number). Games only — a shooting % pools makes over attempts, so an attempt-thin season
+    can't distort it and stays in (a 2-of-5 adds two makes to a 500-attempt pool). */
+export function careerBasis(played: SeasonPlayed[], league: League): SeasonPlayed[] {
+  const full = played.filter((s) => !isSmallSample(s, league));
+  return full.length >= 2 ? full : played;
+}
+
+/** The sample behind a shooting % that season: attempts for FG%/3P%, shooting possessions
+    (FGA + 0.44 × FTA) for TS%; null for a counting stat. What the tint floor is measured on. */
 function rateAttempts(season: SeasonPlayed, statKey: StatKey): number | null {
+  if (statKey === "tsPct") return season.fgAtt + 0.44 * season.ftAtt;
   const pair = RATE_STAT_ATTEMPTS[statKey];
   if (!pair) return null;
   const att = season[pair.att];
   return typeof att === "number" ? att : null;
+}
+
+/** Why a compared (tinted) shooting-% season shows no rank, in the reader's words — or null when it
+    has one, or when the blank has the same reason a counting stat's would (no position bucket that
+    year, or the season is under the games gate). League and self modes: the season is under the
+    rank floor. Position mode: the same, or fewer than eight of the position cleared it. */
+export function rankNote(s: SeasonPlayed, key: StatKey, mode: HeatmapMode, league: League, playerPosition: string | null): string | null {
+  if (isSmallSample(s, league)) return null;
+  // A partial season is compared but not in the crowd, so it has no rank for ANY stat; say how many
+  // games the year needed. (No note when the mode's crowd doesn't exist for that year either.)
+  if (isPartialSeason(s, league)) {
+    return (mode === "position" ? s.posPool : s.pool) == null ? null : `Needs ${gamesToRank(s.year, league)} games to rank`;
+  }
+  if (!isRateStat(key)) return null;
+  if (mode === "position") {
+    if (s.posPool == null) return null;
+    if (s.posRatePool?.[key] == null) return `Fewer than 8 ${positionNoun(playerPosition)} made enough to rank`;
+    if (s.posRank?.[key] != null) return null;
+  } else {
+    if (s.ratePool == null || s.rank?.[key] != null) return null;
+  }
+  // The API's floor for this year: count × 44 >= floor × slate, i.e. at least ceil(floor × slate / 44).
+  const need = (n: number) => Math.ceil((n * league.scheduled(s.year)) / FULL_SCHEDULE_GAMES);
+  const floor = RANK_FLOOR[key];
+  const made = floor.made != null ? ` or ${need(floor.made)} made` : "";
+  const att = key === "tpp" ? "attempts from three" : key === "fgp" ? "FG attempts" : "TS possessions";
+  return `Needs ${need(floor.att)} ${att}${made} to rank`;
 }
 
 /** Whether a season is too thin a sample to trust FOR A GIVEN STAT — either too few games
@@ -175,8 +290,9 @@ function rateAttempts(season: SeasonPlayed, statKey: StatKey): number | null {
     games-only isSmallSample everywhere a single (season, stat) value is shown or selected. */
 export function isStatSmallSample(season: SeasonPlayed, league: League, statKey: StatKey): boolean {
   if (isSmallSample(season, league)) return true;
+  if (!isRateStat(statKey)) return false;
   const att = rateAttempts(season, statKey);
-  return att != null && att < MIN_RATE_ATTEMPTS;
+  return att != null && att < TINT_FLOOR[statKey];
 }
 
 /** Mean of the non-null values; null when there are none to average. */
@@ -193,6 +309,16 @@ function average(vals: (number | null)[]): number | null {
     league/position rates, so a player's own baseline and the external ones now agree in method.
     Null when there's no data (no attempts, or no values). */
 export function ownStatAverage(statKey: StatKey, seasons: SeasonPlayed[]): number | null {
+  if (statKey === "tsPct") {
+    // Pooled like the league's: total points over 2 × total shooting possessions.
+    let pts = 0;
+    let poss = 0;
+    for (const s of seasons) {
+      pts += s.ptsTotal;
+      poss += s.fgAtt + 0.44 * s.ftAtt;
+    }
+    return poss > 0 ? pts / (2 * poss) : null;
+  }
   const pair = RATE_STAT_ATTEMPTS[statKey];
   if (pair) {
     let made = 0;
@@ -280,6 +406,11 @@ export interface HeatmapCell {
   up: boolean;
   /** Too thin a sample for this stat that season → greyed, not heat-colored, not clickable. */
   smallSample: boolean;
+  /** Between the games bars: tinted and counted, but asterisked and not ranked. */
+  partial: boolean;
+  /** The caveat the asterisk points to ("Partial season: 17 of 44 games"; "Small sample: 29
+      attempts from three. Not compared with league average."), null for a normal cell. See sampleNote. */
+  note: string | null;
   /** A comparable cell — a played, full-sample season with a value (the ones that get a gap and
       a color). Not an interaction flag: every cell reveals its details, and history is per-stat. */
   selectable: boolean;
@@ -318,9 +449,12 @@ export function buildHeatmapGrid(
   const selfAgg = new Map<StatKey, { avg: number | null; maxDev: number }>();
   if (mode === "self") {
     for (const st of STATS) {
+      // The average pools every season over the GAMES gate (careerBasis); the own-range ruler uses
+      // only the seasons the cells color (the tint floor too), so one attempt-thin season's wild %
+      // can't stretch the scale.
+      const avg = ownStatAverage(st.key, careerBasis(played, league));
       const comparable = played.filter((s) => !isStatSmallSample(s, league, st.key));
       const basis = comparable.length >= 2 ? comparable : played;
-      const avg = ownStatAverage(st.key, basis);
       const vals = basis.map((s) => s[st.key]).filter((v): v is number => v != null);
       const ownMaxDev = avg != null && vals.length ? Math.max(...vals.map((v) => Math.abs(v - avg)), 1e-9) : 1;
       const leagueStep = league.stdev(floorYear, st.key);
@@ -333,7 +467,7 @@ export function buildHeatmapGrid(
     STATS.map((st): HeatmapCell => {
       const shell = { year: s.year, statKey: st.key, pct: st.pct } as const;
       if (!s.played) {
-        return { ...shell, played: false, value: null, valueFmt: "—", cellFmt: "—", refValue: null, refFmt: "—", delta: null, deltaFmt: "—", colorT: null, up: false, smallSample: false, selectable: false };
+        return { ...shell, played: false, value: null, valueFmt: "—", cellFmt: "—", refValue: null, refFmt: "—", delta: null, deltaFmt: "—", colorT: null, up: false, smallSample: false, partial: false, note: null, selectable: false };
       }
       const value = s[st.key];
       const small = isStatSmallSample(s, league, st.key);
@@ -372,6 +506,8 @@ export function buildHeatmapGrid(
         colorT,
         up: (delta ?? 0) >= 0,
         smallSample: small,
+        partial: isPartialSeason(s, league),
+        note: sampleNote(s, league, st.key, mode, playerPosition),
         selectable: value != null && !small,
       };
     }),
@@ -433,13 +569,19 @@ export interface StatTableRow {
   att: number | null;
   deltaFmt: string;
   deltaColor: string;
-  /** Rank that season (1 = best) and the qualified pool it's among — from the API. Counting stats
-      only, and only for a season that qualified. The MODE's crowd: among the player's position in
-      position mode, otherwise the league (self mode has no population, so it shows the league rank). */
+  /** Rank that season (1 = best) and the pool it's among — from the API, only for a season that
+      qualified. The MODE's crowd: among the player's position in position mode, otherwise the league
+      (self mode has no population, so it shows the league rank). A shooting %'s pool is the seasons
+      over the rank floor, so it differs from a counting stat's. */
   rank: number | null;
   pool: number | null;
+  /** For a compared shooting-% season with no rank: why, in words ("Needs 55 attempts from three or 19 made to rank").
+      Null when ranked, or when the blank has a counting stat's reason (no position bucket). */
+  unranked: string | null;
   missed: boolean;
   smallSample: boolean;
+  /** A partial season (between the games bars): compared, counted, not ranked. */
+  partial: boolean;
   reason?: string;
 }
 
@@ -453,7 +595,7 @@ export interface CareerSummary {
   /** Best league rank across full seasons, shown as a rank ("27th of 106") but CHOSEN by the rank's
       share of its pool (27/106 beats 18/65): the league keeps growing, so a bare rank number means
       something different every year. Equal shares go to the larger pool, then the later year.
-      Null for shooting %s (no rank) or when no season qualified. */
+      Null when no season qualified (for a shooting %, none over the rank floor). */
   bestRank: { rank: number; pool: number; year: number } | null;
 }
 
@@ -600,17 +742,15 @@ export function buildStatDetail(
   const allPlayed = playedSeasons(player);
   const small = (s: SeasonPlayed) => isStatSmallSample(s, league, key);
   const componentPair = RATE_STAT_ATTEMPTS[key];
-  const ck: CountingKey | null = isCountingStat(key) ? key : null;
 
   // The chart shows only trustworthy seasons: played, with a value for this stat, and NOT a small
   // sample (too few games, or too few attempts for a shooting %). Noise never reaches the plot;
   // the table below keeps the full record.
   const chartable = allPlayed.filter((s) => s[key] != null && !small(s));
 
-  // Career average on the SAME basis the heatmap's self mode uses (full seasons; every played
-  // season if fewer than two are full), so the plate and the self-mode cells agree.
-  const comparable = allPlayed.filter((s) => !small(s));
-  const careerAvg = ownStatAverage(key, comparable.length >= 2 ? comparable : allPlayed);
+  // Career average on the SAME basis the heatmap's self mode uses (seasons over the games gate;
+  // every played season if fewer than two are), so the plate and the self-mode cells agree.
+  const careerAvg = ownStatAverage(key, careerBasis(allPlayed, league));
 
   const posOk = playerPosition != null && positions != null;
   const refFor = (year: number): number | null =>
@@ -618,9 +758,10 @@ export function buildStatDetail(
   // The rank and its pool for the MODE's crowd: the player's position in position mode, otherwise
   // the league (self mode compares to the player's own career — no population — so it keeps the
   // league rank, as the table did all along).
-  const rankOf = (s: SeasonPlayed): number | null =>
-    ck == null ? null : mode === "position" ? (s.posRank?.[ck] ?? null) : (s.rank?.[ck] ?? null);
-  const poolOf = (s: SeasonPlayed): number | null => (mode === "position" ? s.posPool : s.pool) ?? null;
+  // A shooting % ranks in its own, smaller pool (the seasons over the rank floor).
+  const rankOf = (s: SeasonPlayed): number | null => (mode === "position" ? s.posRank?.[key] : s.rank?.[key]) ?? null;
+  const poolOf = (s: SeasonPlayed): number | null =>
+    (isRateStat(key) ? (mode === "position" ? s.posRatePool?.[key] : s.ratePool?.[key]) : mode === "position" ? s.posPool : s.pool) ?? null;
 
   // Scale spans everything the plot draws — the charted values and their references — so nothing
   // clips. A counting stat runs from ZERO to 1.2× the top (headroom); a shooting % gets a fitted
@@ -663,7 +804,7 @@ export function buildStatDetail(
 
   const tableRows: StatTableRow[] = player.seasons.map((x) => {
     if (!x.played) {
-      return { year: x.year, min: null, valFmt: "—", gp: null, made: null, att: null, deltaFmt: "—", deltaColor: "var(--color-neutral-700)", rank: null, pool: null, missed: true, smallSample: false, reason: x.reason };
+      return { year: x.year, min: null, valFmt: "—", gp: null, made: null, att: null, deltaFmt: "—", deltaColor: "var(--color-neutral-700)", rank: null, pool: null, unranked: null, missed: true, smallSample: false, partial: false, reason: x.reason };
     }
     const v = x[key];
     const b = refFor(x.year);
@@ -683,8 +824,10 @@ export function buildStatDetail(
       deltaColor: hasDelta && v - b >= 0 ? "var(--hm-above-text)" : "var(--hm-below-text)",
       rank: sm ? null : rankOf(x),
       pool: poolOf(x),
+      unranked: sm ? null : rankNote(x, key, mode, league, playerPosition),
       missed: false,
       smallSample: sm,
+      partial: isPartialSeason(x, league),
     };
   });
 

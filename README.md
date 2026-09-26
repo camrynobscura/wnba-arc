@@ -37,7 +37,8 @@ and the color says how unusual it is. Same grid, three different questions.
   happened), a per-season dumbbell chart (the season's value against its reference, hollow when it
   can't be compared, a hatched column for a missed year; click a column to highlight its row), and the
   full yearly table with games, minutes, rank, and the difference. For shooting percentages the table
-  also shows makes and attempts, so a small sample explains itself.
+  also shows makes and attempts, so a small sample explains itself, and a season too thin to rank
+  says how many shots it needed.
 - **Everyone since 1997** — every player who has appeared in a WNBA regular season, past players
   included (1,217 today), so a 2004 season is measured against 2004's whole league. A player who isn't
   on a roster gets her career span under her name ("1997–2003 · G"). Not the word "retired": the
@@ -45,12 +46,12 @@ and the color says how unusual it is. Same grid, three different questions.
 - **Search** by player or team, accent- and punctuation-insensitive ("aja" finds A'ja Wilson), ranked:
   each typed word is its own check, in any order ("ionescu sab" works); names that start with your
   words come first, then team matches, then letters buried inside a name; players from the latest
-  season ahead of past ones. Keyboard-navigable results list.
+  season ahead of past ones, and first-name matches ("sab" → Sabrina) ahead of last-name ones. Keyboard-navigable results list.
 - **Linkable** — player, stat, and reference all live in the URL (`/player/aja-wilson/blk?vs=league`),
   so back/forward and sharing work.
 - **Light and dark themes** that follow the OS until you choose; headshots carry a quarter-strength
   wash of the player's team color.
-- **Honest about the data** — small-sample seasons are greyed and kept out of every average, stats
+- **Honest about the data** — small-sample seasons are shown as uncolored outlined cells and kept out of every average, stats
   that can't be sourced reliably are left out, and the footer says which game the stats run through.
 
 ## How the comparison works
@@ -80,16 +81,39 @@ itself as dramatic. It needs at least two seasons.
 
 **Ranks** come from the data service: a season's place among the qualified players that year (or among
 the player's position, in position mode), 1 = best, from the same pool the averages are computed on.
-The "best rank" plate picks the season by its **share** of the pool, not the raw place — the league
-keeps adding teams, so 27th of 106 beats 18th of 65.
+A shooting percentage ranks in a smaller pool — the qualified seasons that also cleared a made-shot
+floor (below) — so "4th of 65" for 3P% sits beside "16th of 122" for points with different, honest
+denominators. The "best rank" plate picks the season by its **share** of the pool, not the raw place —
+the league keeps adding teams, so 27th of 106 beats 18th of 65.
 
-**Small samples** are gated two independent ways: a season under **25%** of that year's schedule
-(`SMALL_SAMPLE_FRACTION`, kept equal to the data service's) and a shooting percentage on fewer than
-**10 attempts** (`MIN_RATE_ATTEMPTS`). A gated season is greyed in the heatmap, drawn hollow on the
-chart, shows no difference in the table, and is excluded from the career average — so a 1-for-1 "100%"
-three-point year can't distort anything. Career shooting averages **pool** makes and attempts
-(`SUM(made) / SUM(att)`) rather than averaging season percentages, the same way the service computes
-the league's.
+**Enough games.** Two bars, both scaled to the year's schedule. Under **a quarter of the schedule**
+(`COLOR_GAMES_FRACTION`, 11 of 44) a season is hollow in the heatmap (no fill, a faint outline), drawn hollow on the chart, shows
+no difference or rank in the table, and is excluded from the career averages. From there up to
+**20 games of 44** (`QUALIFYING_GAMES` / `FULL_SCHEDULE_GAMES`, compared in integers and kept equal to
+the data service's: 13 of 28 in 1997, 10 of the 2020 bubble's 22 — Basketball-Reference's WNBA per-game
+bar, scaled) it is a **partial season**: colored and counted in the career averages, but not ranked, and
+marked with an asterisk. Only seasons over the 20-game bar form the crowd behind the averages, spreads,
+and ranks, so a partial season is measured against that crowd without being in it. Every asterisked cell
+names its caveat with the count in the popover and in its accessible name ("Partial season: 17 of 44
+games", "Small sample: 29 attempts from three. Not compared with league average." — the second sentence
+follows the mode: "Left out of career average." in self mode, the position's average in position mode) as an
+italic asterisk footnote; there is
+no key under the grid on purpose.
+
+**Enough shots.** The three shooting percentages carry two more floors. To be **colored** (and drawn on
+the chart), a season needs **40 three-point attempts** for 3P%, **100 field-goal attempts** for FG%, or
+**100 shooting possessions** (FGA + 0.44 × FTA) for TS% (`TINT_FLOOR`, fixed counts — 40 threes are 40
+threes in any era). To be **ranked**, it needs enough attempts OR enough makes, per 44 games and scaled
+to the year: **60 three-point attempts or 20 made, 200 field-goal attempts or 85 made, or 125 shooting
+possessions** (`RATE_RANK_FLOOR` in the data service, mirrored as `RANK_FLOOR` here only to word the
+note). The made counts are Basketball-Reference's; the attempt counts are the same bar at the league's
+all-time average, so a high-volume shooter who misses a lot is still ranked and an efficient low-volume
+one isn't dropped. The rank pool also requires the color floor, so a ranked season is always a colored
+one. A colored cell under the rank floor says why ("Needs 55 attempts from three or 19 made to rank")
+instead of leaving a blank. Career shooting averages **pool** makes
+and attempts over every counted season (`SUM(made) / SUM(att)`; TS% from total points and shooting
+possessions), never a mean of season percentages, so a 2-of-5 season adds two makes to the pool rather
+than a 40% year.
 
 **Position averages** start in 2012 (ESPN has no position on record for most players before then) and
 need at least 8 qualified players in the (year, position) bucket; where there is no bucket, the cell is

@@ -84,6 +84,9 @@ export function PlayerSearch({ players, listError, onPick, variant = "hero" }: P
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Escape") {
+      // A type="search" field clears itself on Escape in some browsers; here Escape only closes the
+      // results, as it always has, so the typed text survives.
+      e.preventDefault();
       setOpen(false);
       return;
     }
@@ -109,6 +112,16 @@ export function PlayerSearch({ players, listError, onPick, variant = "hero" }: P
 
   // Shared ARIA + handlers for the input, spread into either variant's <input>.
   const comboProps = {
+    // Keep Safari's contact AutoFill off this box (user, 2026-09-25: Safari offered saved names over
+    // our results, and a click meant for a player picked Apple's suggestion instead). Safari doesn't
+    // offer contacts in a search field; autocomplete off stops past-entry suggestions too; and a
+    // phone keyboard shouldn't "correct" or capitalize a name mid-search. The native search styling
+    // this brings (the clear "x", rounded chrome) is reset in theme.css.
+    type: "search" as const,
+    autoComplete: "off",
+    autoCorrect: "off",
+    autoCapitalize: "off",
+    spellCheck: false,
     role: "combobox" as const,
     "aria-expanded": showDrop,
     "aria-controls": listId,

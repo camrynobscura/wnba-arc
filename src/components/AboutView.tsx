@@ -62,8 +62,8 @@ export function AboutView({ onBack }: AboutViewProps) {
           stat (a tenth of a block) small, while a genuinely rare number — leading the league in rebounds — fills the
           bar. A full bar is about as far from normal as anyone gets, so the handful of all-time seasons past that point
           simply max out. Click into any stat for its full year-by-year history and where each season ranked — "6th of
-          146" among everyone who played that year, or among the chosen position. Shooting percentages are the
-          exception — they're shown as a plain gap from the average.
+          122" among everyone who played enough that year, or among the chosen position. Shooting percentages are
+          shown as a plain gap from the average, and rank among the players who shot enough (below).
         </p>
       </section>
 
@@ -79,8 +79,9 @@ export function AboutView({ onBack }: AboutViewProps) {
         </p>
         <p style={{ marginBottom: "var(--space-3)" }}>
           <strong>Measured against the whole league.</strong> The averages and ranks a season is compared with include
-          everyone who played that year — so a 2004 season is measured against 2004's whole league, not just the
-          players still around today.
+          everyone who played enough of that year (below) — so a 2004 season is measured against 2004's whole league,
+          not just the players still around today. That crowd is wider than the WNBA's own leaderboard, which
+          requires about 70% of the schedule, so "6th of 122" here is not the same count as "6th of 105" there.
         </p>
         <p style={{ marginBottom: "var(--space-3)" }}>
           <strong>Positions start in 2012.</strong> ESPN has no position on record for most players before then, so
@@ -88,8 +89,24 @@ export function AboutView({ onBack }: AboutViewProps) {
           year. A player's position is her current one, applied across her whole career.
         </p>
         <p style={{ marginBottom: "var(--space-3)" }}>
-          <strong>Small samples.</strong> A season where the player appeared in less than 25% of the schedule is left
-          out of the averages, so a handful of games can't skew the math.
+          <strong>Enough games.</strong> Two bars, both scaled to the year's schedule. Under a quarter of the schedule
+          (11 games of 44) a season is still listed, as an uncolored outlined cell, but not compared and left out of the averages, so a
+          handful of games can't count as a year. From there up to 20 games of 44 (13 of 28 in 1997, 10 of the
+          2020 bubble's 22 — Basketball-Reference's bar for its WNBA leaders) it is a <em>partial season</em>: colored
+          and counted, but not ranked, and marked with an asterisk. Only seasons over the 20-game bar make up the
+          crowd behind the averages and ranks. Every asterisked cell says what the mark is about when you tap or hover
+          it — "Partial season: 17 of 44 games", "Small sample: 29 attempts from three".
+        </p>
+        <p style={{ marginBottom: "var(--space-3)" }}>
+          <strong>Enough shots.</strong> A shooting percentage is only as good as the number of shots behind it, so
+          the three percentages have two more bars. To get a color, a season needs 40 three-point attempts (3P%),
+          100 field-goal attempts (FG%), or 100 shooting possessions (TS% — field-goal attempts plus 0.44 × free-throw
+          attempts). To get a rank, it needs enough attempts or enough makes, per 44 games and scaled to the year:
+          60 three-point attempts or 20 made, 200 field-goal attempts or 85 made, or 125 shooting possessions. The
+          made counts are Basketball-Reference's; the attempts route means a player who shoots a lot and misses a lot
+          is still ranked. A colored cell that falls short says so ("Needs 55 attempts from three or 19 made to
+          rank"), and ranks among the players who cleared it — so a 4-of-10 can't lead the league at 40%. Career percentages pool every counted season's makes and attempts, so a thin season adds its
+          few shots to the total rather than a whole season's worth of noise.
         </p>
         <p style={{ marginBottom: "var(--space-3)" }}>
           <strong>What's missing.</strong> A few stats need data ESPN doesn't share (rebound percentages, and all-in-one

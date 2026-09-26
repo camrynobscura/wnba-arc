@@ -64,9 +64,10 @@ export function StatDrilldownView({ player, stat, statKey, desc, mode, onStatCha
     row.scrollIntoView({ block: "center", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
   }, [selectedYear]);
   const colX = (i: number) => ((i + 0.5) / n) * 100; // column center, % from left
-  // The rank column shows whenever the API sent a rank (counting stats). No percentile column: it
-  // sat beside Rank as a second ordinal running the other way, and the cell popover has it.
-  const showRank = stat.tableRows.some((r) => r.rank != null);
+  // The rank column shows whenever the API sent a rank, or a shooting % has a season to explain
+  // ("Needs 55 attempts from three or 19 made to rank"). No percentile column: it sat beside Rank as a second ordinal
+  // running the other way, and the cell popover has it.
+  const showRank = stat.tableRows.some((r) => r.rank != null || r.unranked != null);
   // The crowd a rank is among: the player's position in position mode, otherwise the league.
   const rankNoun = mode === "position" ? positionNoun(player.pos) : "players";
   const rankAmong = mode === "position" ? rankNoun.charAt(0).toUpperCase() + rankNoun.slice(1) : "WNBA";
@@ -92,6 +93,7 @@ export function StatDrilldownView({ player, stat, statKey, desc, mode, onStatCha
             "Not charted: … (small sample)" line already say it. Kept for a screen reader, which
             hears the row without those. */}
         {r.smallSample && !r.missed && <span className="sr-only">, small sample</span>}
+        {r.partial && !r.missed && <span className="sr-only">, partial season</span>}
       </td>
       {/* The stat's own value is always the first column after the year — for a shooting % too,
           with its makes/attempts AFTER it (they explain the %, they don't lead it). */}
@@ -115,6 +117,13 @@ export function StatDrilldownView({ player, stat, statKey, desc, mode, onStatCha
             <>
               <InfoTip label={ordinal(r.rank)} tip={`of ${r.pool} ${rankNoun}`} />
               <span className="sr-only"> of {r.pool}</span>
+            </>
+          ) : r.unranked ? (
+            // Compared but under the rank floor: the dash carries the reason the same way a
+            // rank carries its pool, and says it outright for a screen reader.
+            <>
+              <InfoTip label="—" tip={r.unranked} />
+              <span className="sr-only"> {r.unranked}</span>
             </>
           ) : (
             <span className="text-muted">—</span>
@@ -361,7 +370,7 @@ export function StatDrilldownView({ player, stat, statKey, desc, mode, onStatCha
                 <th scope="col">
                   <InfoTip
                     label="Rank"
-                    tip={`${mode === "position" ? `Rank among the qualified ${rankNoun}` : "League rank among the qualified players"} in this dataset that season (1st = best). How many there are changes by year — hover or tap a rank to see.`}
+                    tip={`${mode === "position" ? `Rank among the qualified ${rankNoun}` : "League rank among the qualified players"} in this dataset that season (1st = best). How many there are changes by year — hover or tap a rank to see.${stat.pct ? " A shooting % ranks only seasons with enough shots; a dash says how many it needed." : ""}`}
                   />
                 </th>
               )}

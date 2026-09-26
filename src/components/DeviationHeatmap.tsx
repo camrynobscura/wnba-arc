@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { PlayerDetail, SeasonPlayed } from "../data/api";
 import { STATS } from "../data/stats";
-import { buildHeatmapGrid, compareSentence, firstName, isCountingStat, type HeatmapCell, type HeatmapMode, type League, ordinal, type PositionLookup, positionNoun, scaleNoun, selfModeAvailable, type StatKey } from "../lib/deviation";
+import { buildHeatmapGrid, compareSentence, firstName, isCountingStat, isRateStat, type HeatmapCell, type HeatmapMode, type League, ordinal, type PositionLookup, positionNoun, rankNote, scaleNoun, selfModeAvailable, type StatKey } from "../lib/deviation";
 import { InfoTip } from "./InfoTip";
 import { ScaleKey } from "./ScaleKey";
 
@@ -163,18 +163,26 @@ export function DeviationHeatmap({
   const noun = scaleNoun(effMode, playerPosition);
   const refPhrase = referencePhrase(effMode, playerPosition);
   // The rank a cell's season holds among the MODE's crowd — the player's position in position mode,
-  // otherwise the league — with the pool it's among ("34th of 187 players", "9th of 66 forwards").
-  // Null for a shooting % (no rank), a missed / small-sample cell, or a position-year with no bucket.
+  // otherwise the league — with the pool it's among ("34th of 187 players", "9th of 66 forwards"; a
+  // shooting % ranks in its own pool, the seasons over the rank floor: "4th of 65 players").
+  // Null for a missed / small-sample cell or a position-year with no bucket. A tinted shooting-% cell
+  // under the floor gets a NOTE instead ("Needs 55 attempts from three or 19 made to rank") so the blank says why.
   // The same numbers the drill-down's table and plates show, so the page never disagrees with itself.
   const seasonByYear = new Map(player.seasons.filter((s): s is SeasonPlayed => s.played).map((s) => [s.year, s]));
   const rankNoun = effMode === "position" ? positionNoun(playerPosition) : "players";
   const cellRank = (cell: HeatmapCell): { rank: number; pool: number } | null => {
-    if (!cell.played || cell.smallSample || !isCountingStat(cell.statKey)) return null;
+    if (!cell.played || cell.smallSample) return null;
     const s = seasonByYear.get(cell.year);
     if (!s) return null;
-    const rank = effMode === "position" ? s.posRank?.[cell.statKey] : s.rank?.[cell.statKey];
-    const pool = effMode === "position" ? s.posPool : s.pool;
+    const k = cell.statKey;
+    const rank = effMode === "position" ? s.posRank?.[k] : s.rank?.[k];
+    const pool = isRateStat(k) ? (effMode === "position" ? s.posRatePool?.[k] : s.ratePool?.[k]) : effMode === "position" ? s.posPool : s.pool;
     return rank != null && pool != null ? { rank, pool } : null;
+  };
+  const cellRankNote = (cell: HeatmapCell): string | null => {
+    if (!cell.played || cell.smallSample) return null;
+    const s = seasonByYear.get(cell.year);
+    return s ? rankNote(s, cell.statKey, effMode, league, playerPosition) : null;
   };
 
   return (
@@ -242,6 +250,7 @@ export function DeviationHeatmap({
                   key={`${cell.year}-${cell.statKey}`}
                   cell={cell}
                   rank={cellRank(cell)}
+                  rankNote={cellRankNote(cell)}
                   rankNoun={rankNoun}
                   noun={noun}
                   refPhrase={refPhrase}
@@ -291,6 +300,7 @@ export function DeviationHeatmap({
           anchor={cellRefs.current.get(`${openCoord.r}-${openCoord.c}`) ?? null}
           noun={noun}
           rank={cellRank(openCell)}
+          rankNote={cellRankNote(openCell)}
           rankNoun={rankNoun}
           pinned={pinned != null}
           popoverRef={popoverRef}
@@ -308,9 +318,9 @@ export function DeviationHeatmap({
         />
       )}
 
-      {/* No key for small-sample cells: they are greyed with a corner dot (.hm-ss), and the popover
-          (hover/tap/arrow) and the cell's spoken label both say "small sample — not compared". A key
-          under the grid repeated that. */}
+      {/* No key for the asterisk: the popover's footnote line explains it (a one-line key under the
+          grid was added and cut on 2026-09-25 — clutter; "if you want to know what the asterisk
+          means, you can click on it"). */}
     </section>
   );
 }
@@ -322,6 +332,8 @@ interface CellPopoverProps {
   rank: { rank: number; pool: number } | null;
   /** "players" / "forwards" — the crowd the rank is among ("34th of 187 players"). */
   rankNoun: string;
+  /** Why a tinted shooting-% cell has no rank, when it doesn't ("Needs 55 attempts from three or 19 made to rank"). */
+  rankNote: string | null;
   pinned: boolean;
   popoverRef: React.RefObject<HTMLDivElement | null>;
   onPointerEnter: () => void;
@@ -338,7 +350,7 @@ const VIEWPORT_PAD = 8; // px the popover keeps from the viewport edges
  * clamped inside the viewport. Re-measured on scroll/resize (either axis, including the grid's
  * own horizontal scroll on phones) so it tracks the cell.
  */
-function CellPopover({ cell, anchor, noun, rank, rankNoun, pinned, popoverRef, onPointerEnter, onPointerLeave, onDrill }: CellPopoverProps) {
+function CellPopover({ cell, anchor, noun, rank, rankNote, rankNoun, pinned, popoverRef, onPointerEnter, onPointerLeave, onDrill }: CellPopoverProps) {
   const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
 
   useLayoutEffect(() => {
@@ -399,7 +411,9 @@ function CellPopover({ cell, anchor, noun, rank, rankNoun, pinned, popoverRef, o
       <div className="text-heading hm-popover-stat">{stat}</div>
       <dl className="hm-popover-rows">
         <dt>{cell.year}</dt>
-        <dd style={cell.smallSample ? { color: "var(--color-neutral-500)" } : undefined}>{cell.valueFmt}</dd>
+        {/* Never dimmed for a small sample (dropped 2026-09-25: the mid grey measured 2.4:1 / 2.2:1,
+            an AA failure on main; the grey cell and the "* Small sample …" footnote already say it). */}
+        <dd>{cell.valueFmt}</dd>
         {cell.refValue != null && (
           <>
             <dt>{noun.charAt(0).toUpperCase() + noun.slice(1)}</dt>
@@ -424,9 +438,25 @@ function CellPopover({ cell, anchor, noun, rank, rankNoun, pinned, popoverRef, o
             </dd>
           </>
         )}
+        {!rank && rankNote && (
+          <>
+            <dt>Rank</dt>
+            {/* Compared but not ranked: a shooting % under the API's rank floor. Say why rather
+                than leave the row off — a blank next to a red cell reads as "not good enough". */}
+            <dd className="text-muted">{rankNote}</dd>
+          </>
+        )}
       </dl>
       {!cell.played && <div className="text-muted hm-popover-note">Did not play</div>}
-      {cell.played && cell.smallSample && <div className="text-muted hm-popover-note">Small sample — not compared</div>}
+      {/* The asterisk's footnote (user, 2026-09-25): the cell's mark points here — the same asterisk,
+          in italics, under the rows every cell has. Grey and partial cells alike; the count is in
+          sampleNote. The only explanation of the mark on the page — a key under the grid was tried
+          and cut the same night as clutter. */}
+      {cell.played && cell.note && (
+        <div className="text-muted hm-popover-note">
+          <em>* {cell.note}</em>
+        </div>
+      )}
       {cell.played && !cell.smallSample && cell.delta == null && <div className="text-muted hm-popover-note">No {noun} that season</div>}
       <button type="button" className="btn btn-ghost hm-popover-link" onClick={onDrill}>
         See {stat.toLowerCase()} history ↓
@@ -439,6 +469,8 @@ interface CellProps {
   cell: HeatmapCell;
   rank: { rank: number; pool: number } | null;
   rankNoun: string;
+  /** Why a tinted shooting-% cell has no rank, when it doesn't ("Needs 55 attempts from three or 19 made to rank"). */
+  rankNote: string | null;
   noun: string;
   refPhrase: string;
   tabbable: boolean;
@@ -451,7 +483,7 @@ interface CellProps {
   onTap: () => void;
 }
 
-function Cell({ cell, rank, rankNoun, noun, refPhrase, tabbable, expanded, setRef, onFocus, onHover, onPress, onTap }: CellProps) {
+function Cell({ cell, rank, rankNote, rankNoun, noun, refPhrase, tabbable, expanded, setRef, onFocus, onHover, onPress, onTap }: CellProps) {
   // Background: diverging color for a scored cell; the neutral base for a played cell with no
   // reference; class-driven grey for small-sample; empty for a missed season.
   const bg =
@@ -461,7 +493,8 @@ function Cell({ cell, rank, rankNoun, noun, refPhrase, tabbable, expanded, setRe
         ? "var(--hm-base)"
         : `color-mix(in srgb, ${cell.colorT >= 0 ? "var(--hm-above)" : "var(--hm-below)"} ${Math.abs(cell.colorT) * MAX_INTENSITY}%, var(--hm-base))`;
 
-  const cls = "hm-cell" + (!cell.played ? " hm-empty" : "") + (cell.smallSample ? " hm-muted hm-ss" : "");
+  // Grey for a small sample; the asterisk (.hm-ss) for any cell with a caveat — small OR partial.
+  const cls = "hm-cell" + (!cell.played ? " hm-empty" : "") + (cell.smallSample ? " hm-muted" : "") + (cell.smallSample || cell.partial ? " hm-ss" : "");
 
   // Accessible name: the full line (a grid doesn't auto-associate its headers like a table), the
   // same detail the popover shows — including the rank — so a screen-reader user gets everything on
@@ -470,11 +503,12 @@ function Cell({ cell, rank, rankNoun, noun, refPhrase, tabbable, expanded, setRe
   const detail = !cell.played
     ? `${stat} ${cell.year}: did not play`
     : cell.smallSample
-      ? `${stat} ${cell.year}: ${cell.valueFmt}, small sample — not compared`
+      ? `${stat} ${cell.year}: ${cell.valueFmt}, ${lower(cell.note ?? "small sample — not compared")}`
       : cell.delta == null
         ? `${stat} ${cell.year}: ${cell.valueFmt}, no ${noun} that season`
         : `${stat} ${cell.year}: ${cell.valueFmt}, ${cell.deltaFmt}${isCountingStat(cell.statKey) ? "" : " percentage points"} vs ${refPhrase}` +
-          (rank ? `, ranked ${ordinal(rank.rank)} of ${rank.pool} ${rankNoun}` : "");
+          (cell.note ? `, ${lower(cell.note)}` : "") +
+          (rank ? `, ranked ${ordinal(rank.rank)} of ${rank.pool} ${rankNoun}` : rankNote ? `, not ranked: ${lower(rankNote)}` : "");
 
   return (
     <button
@@ -495,6 +529,11 @@ function Cell({ cell, rank, rankNoun, noun, refPhrase, tabbable, expanded, setRe
       {cell.cellFmt}
     </button>
   );
+}
+
+/** First letter lowered, for a note joined into a spoken sentence ("…, partial season: 17 of 44 games"). */
+function lower(s: string): string {
+  return s.charAt(0).toLowerCase() + s.slice(1);
 }
 
 function statName(key: StatKey): string {

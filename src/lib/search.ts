@@ -61,22 +61,31 @@ export function matchTier(p: Pick<PlayerSummary, "name" | "team">, queryWords: s
   return worst;
 }
 
+/** True when a typed word starts the player's FIRST name ("sab" → Sabrina Ionescu, not Nyara Sabally). */
+function firstNameHit(p: Pick<PlayerSummary, "name">, queryWords: string[]): boolean {
+  const first = foldWords(p.name)[0];
+  return first != null && queryWords.some((w) => first.startsWith(w));
+}
+
 /**
  * Filter + rank the roster for a query. Tier first; within a tier, players who played in the
  * most recent season on record ("current" — the latest `lastYear` in the roster, so it rolls
  * forward each season and a player waived mid-season still counts) before everyone else; then
- * the roster's own order (alphabetical). Empty query → no results (the dropdown shows nothing).
+ * first-name matches before other matches (user, 2026-09-25: most people search by first name —
+ * "sab" puts Sabrina Ionescu above Nyara Sabally; current still outranks it, so a 2004 Sabrina
+ * stays under both current Saballys); then the roster's own order (alphabetical). Empty query →
+ * no results (the dropdown shows nothing).
  */
 export function rankPlayers(players: readonly PlayerSummary[], query: string): PlayerSummary[] {
   const words = foldWords(query);
   if (words.length === 0) return [];
   const latest = players.reduce((m, p) => (p.lastYear != null && p.lastYear > m ? p.lastYear : m), -Infinity);
-  const scored: { p: PlayerSummary; tier: number; past: number; i: number }[] = [];
+  const scored: { p: PlayerSummary; tier: number; past: number; notFirst: number; i: number }[] = [];
   players.forEach((p, i) => {
     const tier = matchTier(p, words);
     if (tier == null) return;
-    scored.push({ p, tier, past: p.lastYear === latest ? 0 : 1, i });
+    scored.push({ p, tier, past: p.lastYear === latest ? 0 : 1, notFirst: firstNameHit(p, words) ? 0 : 1, i });
   });
-  scored.sort((a, b) => a.tier - b.tier || a.past - b.past || a.i - b.i);
+  scored.sort((a, b) => a.tier - b.tier || a.past - b.past || a.notFirst - b.notFirst || a.i - b.i);
   return scored.map((s) => s.p);
 }

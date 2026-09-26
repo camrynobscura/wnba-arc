@@ -25,9 +25,13 @@ const roster: PlayerSummary[] = [
   mk("Nyara Sabally", { team: "New York Liberty" }),
   mk("Sabrina Ionescu", { team: "New York Liberty" }),
   mk("Sabrina Palie", { lastYear: 2004 }),
+  mk("Satou Sabally", { team: "Dallas Wings" }),
   mk("Sun Ling", { lastYear: 1999 }),
   mk("Tina Charles", { team: "Connecticut Sun" }),
 ];
+
+/** A roster player by name — so a test doesn't depend on where she sits in the list. */
+const byName = (n: string): PlayerSummary => roster.find((p) => p.name === n)!;
 
 describe("fold / foldWords", () => {
   it("strips accents, apostrophes and punctuation, keeps the words", () => {
@@ -46,8 +50,8 @@ describe("matchTier", () => {
     expect(matchTier(roster[0], ["aja"])).toBe(0); // the apostrophe case is a word start now
   });
   it("1 when a word matches only via the team", () => {
-    expect(matchTier(roster[8], ["sun"])).toBe(1);
-    expect(matchTier(roster[8], ["tina", "sun"])).toBe(1);
+    expect(matchTier(byName("Tina Charles"), ["sun"])).toBe(1);
+    expect(matchTier(byName("Tina Charles"), ["tina", "sun"])).toBe(1);
   });
   it("2 when a word matches only inside a name word or across a boundary", () => {
     expect(matchTier(roster[1], ["sab"])).toBe(2); // ali-SAB-urras
@@ -62,11 +66,12 @@ describe("matchTier", () => {
 describe("rankPlayers", () => {
   const names = (q: string) => rankPlayers(roster, q).map((p) => p.name);
 
-  it("puts word-start matches first, current players before past ones, then alphabetical", () => {
+  it("puts word-start matches first, current before past, first-name matches next, then alphabetical", () => {
     expect(names("sab")).toEqual([
-      "Nyara Sabally", // tier 0, current
-      "Sabrina Ionescu", // tier 0, current
-      "Sabrina Palie", // tier 0, past (2004)
+      "Sabrina Ionescu", // tier 0, current, first name
+      "Nyara Sabally", // tier 0, current, last name
+      "Satou Sabally", // tier 0, current, last name
+      "Sabrina Palie", // tier 0, past (2004) — a first-name match, but current outranks it
       "Isabelle Harrison", // tier 2, current
       "Alisa Burras", // tier 2, past
       "Elisabeth Cebrian", // tier 2, past

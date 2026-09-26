@@ -576,6 +576,21 @@ select.select-reset {
   outline: none;
   border-bottom-color: var(--color-neutral-900);
 }
+/* The player search boxes are type="search" (to keep Safari's contact AutoFill away — see
+   PlayerSearch.tsx). Drop the native search chrome so both look exactly as they did as plain text
+   inputs: no rounded WebKit field, no built-in clear "x", no decoration. */
+.search-underline,
+.input[type="search"] {
+  -webkit-appearance: none;
+  appearance: none;
+}
+.search-underline::-webkit-search-cancel-button,
+.search-underline::-webkit-search-decoration,
+.input[type="search"]::-webkit-search-cancel-button,
+.input[type="search"]::-webkit-search-decoration {
+  -webkit-appearance: none;
+  display: none;
+}
 .search-underline::placeholder {
   color: var(--color-neutral-600);
 }
@@ -789,6 +804,15 @@ select.select-reset {
      contrast ratio untouched. */
   font-weight: 500;
   font-variant-numeric: tabular-nums;
+  /* The caveat marks — a hollow cell's outline and the asterisk — share this hue (user, 2026-09-25:
+     outline 25%, the asterisk a touch stronger below). Defined here, not on :root, so it resolves
+     against the theme's --color-text wherever the cell is. 1.68:1 light / 2.01:1 dark against the page:
+     under the 3:1 non-text bar on purpose — the user chose quieter marks (50% passed but read too
+     strong); the same caveat is in every cell's spoken name and popover. */
+  --hm-mark: color-mix(in srgb, var(--color-text) 25%, transparent);
+  /* The asterisk's glyph, a touch stronger (user, 2026-09-25): at the outline's strength its thin strokes
+     read lighter than the outline does. 2.40:1 light / 3.20:1 dark. */
+  --hm-mark-glyph: color-mix(in srgb, var(--color-text) 40%, transparent);
   cursor: pointer;
   appearance: none;
   -webkit-appearance: none;
@@ -869,24 +893,30 @@ select.select-reset {
   color: var(--color-neutral-600);
   font-weight: 400;
 }
-/* Small-sample season: shown (with its value) but greyed, never heat-colored. neutral-700
-   (not -600) keeps the value at ≥4.5:1 AA in both themes — the cell still reads a real number
-   (a11y audit 2026-08-27: -600 was 3.39:1 light / 4.22:1 dark). */
+/* Small-sample season: shown (with its value) but HOLLOW — no fill, a hairline outline — never
+   heat-colored. Hollow is the chart's word for the same thing (a shown-but-not-compared season is
+   a hollow dot), and it is categorical: a 6% grey wash (until 2026-09-25) read as "a shade below
+   average" beside the scale's near-white midpoint. neutral-700 (not -600) keeps the value at
+   ≥4.5:1 AA in both themes (a11y audit 2026-08-27: -600 was 3.39:1 light / 4.22:1 dark). */
 .hm-muted {
-  background: color-mix(in srgb, var(--color-text) 6%, transparent);
+  background: transparent;
+  box-shadow: inset 0 0 0 1.5px var(--hm-mark);
   color: var(--color-neutral-700);
   font-weight: 400;
 }
+/* The "there's a note" mark on a not-normal cell: an asterisk in the top-right corner (was a 5px
+   dot until 2026-09-25 — the user: an asterisk says "more information on hover" where a dot reads
+   as a status light). Same hue as the hollow outline, a little stronger (--hm-mark-glyph) so the
+   thin strokes read at the same weight; kept light because a partial-season row carries one per cell. */
 .hm-ss::after {
-  content: '';
+  content: '*';
   position: absolute;
-  top: 3px;
-  right: 3px;
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: currentColor;
-  opacity: 0.7;
+  top: 2px;
+  right: 5px;
+  font-size: 16px;
+  line-height: 1;
+  font-weight: 400;
+  color: var(--hm-mark-glyph);
 }
 /* Diverging scale key — shared by the Career Trend heatmap and the Season Breakdown bars
    (see components/ScaleKey.tsx). End labels + arrows are the non-color cue for the
