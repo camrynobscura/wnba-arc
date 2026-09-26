@@ -666,7 +666,7 @@ describe("buildStatDetail — chart drops thin seasons; table keeps the full rec
   const tppStat = STATS.find((s) => s.key === "tpp")!;
   const ptsStat = STATS.find((s) => s.key === "pts")!;
 
-  it("charts only trustworthy seasons but lists every season (with makes/attempts) in the table", () => {
+  it("charts only trustworthy seasons but lists every season in the table", () => {
     const L = league([2019, 2020, 2021, 2022]);
     const seasons: Season[] = [
       { year: 2019, played: false, reason: "did not play" },
@@ -681,8 +681,6 @@ describe("buildStatDetail — chart drops thin seasons; table keeps the full rec
     expect(detail.tableRows.map((r) => r.year)).toEqual([2022, 2021, 2020, 2019]);
     const thin = detail.tableRows.find((r) => r.year === 2021)!;
     expect(thin.smallSample).toBe(true);
-    expect(thin.made).toBe(1);
-    expect(thin.att).toBe(1);
     expect(thin.deltaFmt).toBe("—"); // delta suppressed for a noise season
     expect(thin.unranked).toBeNull();
     expect(thin.note).toBe("Small sample: 1 attempt from three"); // the rank dash's tip
@@ -690,19 +688,16 @@ describe("buildStatDetail — chart drops thin seasons; table keeps the full rec
     expect(detail.tableRows.find((r) => r.year === 2019)!.note).toBeNull(); // a missed season
     // The table's Diff prints the bare number — the unit is in the header tooltip.
     expect(detail.tableRows.find((r) => r.year === 2022)!.deltaFmt).toMatch(/^[+−]\d+\.\d$/);
-    expect(detail.component).toEqual({ madeShort: "3PM", attShort: "3PA", noun: "three-pointers" });
     expect(detail.unit).toBe("%"); // the sign is the word after a whole-percent plate number
     expect(detail.unitShort).toBe("%");
   });
 
-  it("counting stats have no makes/attempts columns; the rank column reads the API's rank + pool", () => {
+  it("the rank column reads the API's rank + pool", () => {
     const L = league([2021, 2022]);
     const p = player([playedSeason(2021, 40), playedSeason(2022, 40, { rank: ranks({ pts: 9 }), pool: 186 })]);
     const detail = buildStatDetail(p, ptsStat, "league", L, POS, "F");
-    expect(detail.component).toBeNull();
     expect(detail.unit).toBe("points"); // what a screen reader hears after the plate number
     expect(detail.unitShort).toBe("PTS"); // what the plate prints: "14.3 PTS" — ESPN's column code
-    expect(detail.tableRows.every((r) => r.made === null && r.att === null)).toBe(true);
     const r22 = detail.tableRows.find((r) => r.year === 2022)!;
     expect(r22.rank).toBe(9);
     expect(r22.pool).toBe(186);

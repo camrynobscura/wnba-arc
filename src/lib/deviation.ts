@@ -57,18 +57,18 @@ const RANK_FLOOR: Record<RateKey, { att: number; made?: number }> = {
 };
 
 /** Shooting-percentage stats that are a make/attempt ratio, mapped to where the raw pair lives
-    on a season (the table shows the pair, and ownStatAverage pools it). TS% is a rate too but not
+    on a season (ownStatAverage pools it; the drill-down names it when a trend is too thin). TS% is a rate too but not
     a single made/attempt pair — rateAttempts and ownStatAverage handle it from points, FGA and FTA. */
 const RATE_STAT_ATTEMPTS: Partial<
   Record<
     StatKey,
-    // `noun` is the plural for tooltips ("three-pointers made"); `adj` is the attributive form
-    // for "…enough three-point attempts" (plural + "attempts" would be ungrammatical).
-    { made: keyof SeasonPlayed; att: keyof SeasonPlayed; madeShort: string; attShort: string; noun: string; adj: string }
+    // `adj` is the attributive form for "…enough three-point attempts" (plural + "attempts" would
+    // be ungrammatical).
+    { made: keyof SeasonPlayed; att: keyof SeasonPlayed; adj: string }
   >
 > = {
-  fgp: { made: "fgMade", att: "fgAtt", madeShort: "FGM", attShort: "FGA", noun: "field goals", adj: "field-goal" },
-  tpp: { made: "fg3Made", att: "fg3Att", madeShort: "3PM", attShort: "3PA", noun: "three-pointers", adj: "three-point" },
+  fgp: { made: "fgMade", att: "fgAtt", adj: "field-goal" },
+  tpp: { made: "fg3Made", att: "fg3Att", adj: "three-point" },
 };
 
 export type StatKey = StatDef["key"];
@@ -576,10 +576,6 @@ export interface StatTableRow {
   min: number | null; // per-game minutes; null ~10% of seasons
   valFmt: string;
   gp: number | null;
-  /** Makes/attempts behind a rate stat (e.g. 3PM/3PA), so the table shows WHY a season is a
-      small sample. Null for counting stats and missed seasons — those columns aren't shown. */
-  made: number | null;
-  att: number | null;
   deltaFmt: string;
   deltaColor: string;
   /** Rank that season (1 = best) and the pool it's among — from the API, only for a season that
@@ -630,9 +626,6 @@ export interface StatDetail {
       labels (PTS/REB/AST/STL/BLK), codes rather than words, so they carry no singular/plural; in
       lower case they read as words and looked inconsistent ("pts" vs "reb"). "%" for a shooting %. */
   unitShort: string;
-  /** For a rate stat, the makes/attempts column labels the table should add (e.g. 3PM/3PA);
-      null for a counting stat, where those columns don't apply. */
-  component: { madeShort: string; attShort: string; noun: string } | null;
   summary: CareerSummary | null;
   /** When the chart can't show a meaningful trend (fewer than 2 trustworthy seasons), this is
       the line the view renders in place of the plot. Null when the chart renders normally. */
@@ -821,7 +814,7 @@ export function buildStatDetail(
 
   const tableRows: StatTableRow[] = player.seasons.map((x) => {
     if (!x.played) {
-      return { year: x.year, min: null, valFmt: "—", gp: null, made: null, att: null, deltaFmt: "—", deltaColor: "var(--color-neutral-700)", rank: null, pool: null, unranked: null, missed: true, smallSample: false, note: null, partial: false, reason: x.reason };
+      return { year: x.year, min: null, valFmt: "—", gp: null, deltaFmt: "—", deltaColor: "var(--color-neutral-700)", rank: null, pool: null, unranked: null, missed: true, smallSample: false, note: null, partial: false, reason: x.reason };
     }
     const v = x[key];
     const b = refFor(x.year);
@@ -835,8 +828,6 @@ export function buildStatDetail(
       min: x.min,
       valFmt: fmtV(v, stat.pct),
       gp: x.gp,
-      made: componentPair ? (x[componentPair.made] as number) : null,
-      att: componentPair ? (x[componentPair.att] as number) : null,
       deltaFmt: hasDelta ? fmtRaw(v - b, stat.pct) : "—",
       deltaColor: hasDelta && v - b >= 0 ? "var(--hm-above-text)" : "var(--hm-below-text)",
       rank: sm ? null : rankOf(x),
@@ -885,7 +876,6 @@ export function buildStatDetail(
     pct: stat.pct,
     unit: stat.pct ? "%" : stat.label.toLowerCase(),
     unitShort: stat.pct ? "%" : stat.short,
-    component: componentPair ? { madeShort: componentPair.madeShort, attShort: componentPair.attShort, noun: componentPair.noun } : null,
     summary,
     chartFallback,
     bars,

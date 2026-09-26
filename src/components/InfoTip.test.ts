@@ -1,5 +1,15 @@
 import { describe, expect, it } from "vitest";
-import { placeBubble } from "./InfoTip";
+import { asSentence, placeBubble } from "./InfoTip";
+
+describe("asSentence — every tooltip ends with a period", () => {
+  it("adds one to a phrase, never doubles one, and leaves other end marks", () => {
+    expect(asSentence("Games played that season")).toBe("Games played that season.");
+    expect(asSentence("Small sample: 9 of 44 games")).toBe("Small sample: 9 of 44 games.");
+    expect(asSentence("of 136 players")).toBe("of 136 players."); // lowercase kept: it finishes "32nd"
+    expect(asSentence("Already a sentence.")).toBe("Already a sentence.");
+    expect(asSentence("Really?")).toBe("Really?");
+  });
+});
 
 // A 200 × 43 bubble (the CSS max-width and a two-line tip) on a 390px phone.
 const bubble = { width: 200, height: 43 };

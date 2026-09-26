@@ -1,5 +1,6 @@
 import { useId, useState } from "react";
 import { type CompareSegment, firstName, type HeatmapMode } from "../lib/deviation";
+import { asSentence } from "./InfoTip";
 
 interface CompareBarProps {
   /** The player's full name; the bar shows the first name ("A'ja vs …"). */
@@ -72,7 +73,7 @@ function Segment({ segment, pressed, onSelect }: { segment: CompareSegment; pres
       {segment.label}
       {disabled && (
         <span role="tooltip" id={tipId} className={"infotip-bubble seg-tip" + (tipOpen ? " is-open" : "")}>
-          {segment.reason}
+          {segment.reason && asSentence(segment.reason)}
         </span>
       )}
     </button>

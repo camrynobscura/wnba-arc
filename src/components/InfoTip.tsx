@@ -26,6 +26,14 @@ function setOpenTip(id: string | null) {
   subscribers.forEach((notify) => notify());
 }
 
+/** A tooltip's text as a sentence: a closing period added when it has no end mark. Every tooltip in
+    the app ends with one (user, 2026-09-26). Added HERE rather than in each string because some
+    texts are shared with places where a period would be wrong — the rank-dash reasons are also the
+    popover's Rank line and part of each cell's spoken name. Callers pass the phrase. */
+export function asSentence(tip: string): string {
+  return /[.!?]$/.test(tip) ? tip : `${tip}.`;
+}
+
 /** Gap between the trigger and the bubble, px. */
 const GAP = 6;
 /** The bubble never comes closer than this to a viewport edge. */
@@ -164,7 +172,7 @@ export function InfoTip({ label, tip, focusable = true }: InfoTipProps) {
       onMouseEnter={cancelClose}
       onMouseLeave={closeSoon}
     >
-      {tip}
+      {asSentence(tip)}
     </span>
   );
 

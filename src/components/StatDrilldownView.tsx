@@ -71,6 +71,8 @@ export function StatDrilldownView({ player, stat, statKey, desc, mode, onStatCha
   // was (user, 2026-09-25). No percentile column: it sat beside Rank as a second ordinal running the
   // other way, and the cell popover has it.
   const showRank = stat.tableRows.some((r) => r.rank != null || r.unranked != null);
+  // Year · value · GP · Min · [Rank] · Diff — for the equal-width <col>s.
+  const colCount = 5 + (showRank ? 1 : 0);
   // The crowd a rank is among: the player's position in position mode, otherwise the league.
   const rankNoun = mode === "position" ? positionNoun(player.pos) : "players";
   const rankAmong = mode === "position" ? rankNoun.charAt(0).toUpperCase() + rankNoun.slice(1) : "WNBA";
@@ -98,15 +100,10 @@ export function StatDrilldownView({ player, stat, statKey, desc, mode, onStatCha
         {r.note && !r.missed && <span className="sr-only">, {lowerFirst(r.note)}</span>}
         {r.partial && !r.missed && <span className="sr-only">, partial season</span>}
       </td>
-      {/* The stat's own value is always the first column after the year — for a shooting % too,
-          with its makes/attempts AFTER it (they explain the %, they don't lead it). */}
+      {/* The stat's own value, first after the year. A shooting % used to add made/attempted
+          columns here (3PM/3PA, FGM/FGA); cut 2026-09-26 (user): they crowded a phone's table into
+          overlapping cells, and a thin season's count is in its rank dash's tip now. */}
       <td className={r.missed ? "text-muted" : undefined}>{r.valFmt}</td>
-      {stat.component && (
-        <>
-          <td className="text-muted">{r.missed || r.made == null ? "—" : r.made}</td>
-          <td className="text-muted">{r.missed || r.att == null ? "—" : r.att}</td>
-        </>
-      )}
       <td className="text-muted">{r.gp ?? "—"}</td>
       <td className="text-muted">{r.min != null ? r.min.toFixed(1) : "—"}</td>
       {showRank && (
@@ -346,27 +343,28 @@ export function StatDrilldownView({ player, stat, statKey, desc, mode, onStatCha
         )}
       </div>
 
-      {/* Yearly table — one full-width table, zebra-striped. table-layout: fixed gives evenly
-          distributed columns and makes the table fit its container at any width. Missed seasons
+      {/* Yearly table — one full-width table, zebra-striped, in equal columns (the <col>s) while they
+          fit. A column never shrinks below its widest cell: when the columns can't fit, the table
+          scrolls sideways in its own box instead of letting text run into the next column (user,
+          2026-09-26 — a fixed layout let "42.0%" spill into its neighbor at 390px). Missed seasons
           show as "—" rows (the reason is in the season cell for screen readers). */}
-      <div style={{ marginTop: "var(--space-6)" }}>
+      <div className="table-scroll" style={{ marginTop: "var(--space-6)" }}>
         <table ref={tableRef} className="table" aria-label="Season stats">
+          <colgroup>
+            {Array.from({ length: colCount }, (_, i) => (
+              <col key={i} style={{ width: `${100 / colCount}%` }} />
+            ))}
+          </colgroup>
           <thead>
             <tr>
               {/* "Year", not "Season": at 46px the longer word overran its 40px phone column and
                   touched the next header. The cells are years, so nothing is lost. */}
               <th scope="col">Year</th>
-              <th scope="col">{stat.short}</th>
-              {stat.component && (
-                <>
-                  <th scope="col">
-                    <InfoTip label={stat.component.madeShort} tip={`${stat.component.noun} made that season`} />
-                  </th>
-                  <th scope="col">
-                    <InfoTip label={stat.component.attShort} tip={`${stat.component.noun} attempted that season`} />
-                  </th>
-                </>
-              )}
+              {/* The heatmap column header's tip, word for word (STATS[].desc), so every header in
+                  the table explains itself the same way (user, 2026-09-26). */}
+              <th scope="col">
+                <InfoTip label={stat.short} tip={desc} />
+              </th>
               <th scope="col">
                 <InfoTip label="GP" tip="Games played that season" />
               </th>
@@ -377,7 +375,7 @@ export function StatDrilldownView({ player, stat, statKey, desc, mode, onStatCha
                 <th scope="col">
                   <InfoTip
                     label="Rank"
-                    tip={`${mode === "position" ? `Rank among the qualified ${rankNoun}` : "League rank among the qualified players"} in this dataset that season (1st = best). How many there are changes by year — hover or tap a rank to see.${stat.pct ? " A shooting % ranks only seasons with enough shots; a dash says how many it needed." : ""}`}
+                    tip={`${mode === "position" ? `Rank among the qualified ${rankNoun}` : "League rank among the qualified players"} in this dataset that season (1st = best)`}
                   />
                 </th>
               )}

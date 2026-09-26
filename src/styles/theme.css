@@ -675,14 +675,37 @@ select.select-reset {
   width: 100%;
   border-collapse: collapse;
   font-size: var(--fs-md);
-  table-layout: fixed;
+  /* auto, not fixed: a fixed layout keeps its column widths even when a cell's text is wider, and
+     the text runs into the next column. Auto never makes a column narrower than its widest cell;
+     the <col> widths keep the columns equal while they fit (StatDrilldownView). */
+  table-layout: auto;
 }
-.table th {
-  text-align: left;
+.table th,
+.table td {
+  white-space: nowrap; /* a cell never wraps to squeeze in — the table scrolls instead */
+}
+/* The table's own sideways scroller: only engages when the columns can't fit (a narrow phone, a
+   rare wide value), so the page itself never scrolls sideways. */
+.table-scroll {
+  overflow-x: auto;
+}
+/* Headers — ONE face for the heatmap's stat headers and year labels and the drill-down table's
+   column headers, so a label reads the same everywhere (user, 2026-09-26). The "table style": 11px
+   bold body caps, tracked. (Tried and set aside the same night: the heatmap's 13px condensed face on
+   both — harder to read; this face at 13px — "RANK" 37.8px in a 35px column of the then 8-column
+   3P% table at 320px.) */
+.table th,
+.hm-colhead,
+.hm-rowhead {
+  font-family: var(--font-body);
+  font-weight: 700;
   font-size: var(--fs-2xs);
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: color-mix(in srgb, var(--color-text) 72%, transparent);
+}
+.table th {
+  text-align: left;
   padding: var(--space-2);
   border-bottom: 1px solid var(--color-divider);
 }
@@ -773,25 +796,19 @@ select.select-reset {
     --hm-cellmin: 36px;
   }
 }
-/* Column headers = the 7 stats (short label, full name in a tooltip). */
+/* Column headers = the 8 stats (short label, full name in a tooltip). Type: the shared header rule.
+   The label's text sits as far above the cells as the drill-down table's header text sits above its
+   rule (user, 2026-09-26): measured 9.55px there, so 5.5px here (+ the grid's own spacing = 9.55px). */
 .hm-colhead {
-  font-family: var(--font-heading);
-  font-weight: 600;
-  font-size: var(--fs-sm);
-  color: var(--color-neutral-700);
   text-align: center;
-  padding-bottom: 4px;
+  padding-bottom: 5.5px;
 }
 /* Row headers = seasons, down the left edge — left-aligned so they line up with the
-   section heading above (not indented by a right-aligned label column). */
+   section heading above (not indented by a right-aligned label column). Type: the shared header rule. */
 .hm-rowhead {
   display: flex;
   align-items: center;
   justify-content: flex-start;
-  font-family: var(--font-heading);
-  font-weight: 600;
-  font-size: var(--fs-sm);
-  color: var(--color-neutral-700);
 }
 /* Cells are <button>s (a roving-tabindex grid) — reset the native chrome, keep the tile look.
    One number per cell (the value); the gap/rank live in the reveal strip below. Every cell is
