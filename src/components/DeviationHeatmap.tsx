@@ -41,7 +41,7 @@ const HINT_ID = "hm-grid-hint";
  * **switchable reference** — their own career, their position peers, or the league (that year).
  * Warm above / cool below. Each cell shows only the value; the *detail* (the reference average, the
  * gap, the rank) lives in a **popover anchored to the cell**: hover previews it, tap or
- * click pins it, arrow-key focus opens it, Esc / click-outside closes it. It carries a link to
+ * click pins it, arrow-key focus opens it, Esc / click-outside / focus moving on closes it. It carries a link to
  * that stat's full history. Cells never navigate — so a tap on a phone gets the same detail as a
  * mouse, right where the finger is (not in a strip that may be a screen below on a long career).
  *
@@ -90,6 +90,19 @@ export function DeviationHeatmap({
   const pressWasPinned = useRef(false);
   // Esc returns focus to the cell; that programmatic focus must not re-open the popover.
   const suppressFocusOpen = useRef(false);
+  // Where the pointer rested when Esc closed a popover. WebKit sends mouseenter to the cell a closing
+  // popover uncovers, with the pointer never moving, so that cell's preview opened at once and Esc
+  // looked like it did nothing (measured in Safari's engine, 2026-09-27). A cell's hover arriving at
+  // this very spot is ignored; any real move clears it.
+  const lastPointer = useRef<{ x: number; y: number } | null>(null);
+  const escapedAt = useRef<{ x: number; y: number } | null>(null);
+  useEffect(() => {
+    const onMove = (e: PointerEvent) => {
+      lastPointer.current = { x: e.clientX, y: e.clientY };
+    };
+    document.addEventListener("pointermove", onMove, { passive: true });
+    return () => document.removeEventListener("pointermove", onMove);
+  }, []);
   const nRows = grid.years.length;
   const nCols = STATS.length;
 
@@ -108,11 +121,26 @@ export function DeviationHeatmap({
   const close = () => {
     setPinned(null);
     setHovered(null);
+    // The popover can close under the pointer (Escape, its own link), and WebKit and Firefox send no
+    // pointerleave for a removed element — the flag stayed set, and the next hover preview never
+    // closed when the pointer left the grid (measured 2026-09-27).
+    overPopover.current = false;
+  };
+  // Esc's close: also holds hover-opening at the pointer's current spot (see `escapedAt`).
+  const dismiss = () => {
+    close();
+    escapedAt.current = lastPointer.current;
+  };
+  const onCellHover = (here: Coord, x: number, y: number) => {
+    const held = escapedAt.current;
+    if (held && Math.abs(held.x - x) < 1 && Math.abs(held.y - y) < 1) return;
+    escapedAt.current = null;
+    setHovered(here);
   };
 
   const onGridKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Escape") {
-      close();
+      dismiss();
       return;
     }
     if (e.key === "Enter") {
@@ -133,10 +161,15 @@ export function DeviationHeatmap({
     focusAt(next); // onFocus opens the new cell's popover / the header's explanation + syncs `active`
   };
 
-  // Dismiss on a click/tap outside the grid + popover, and on Esc anywhere (e.g. with the link focused).
+  // Dismiss: Esc anywhere closes the popover, a hover preview too — with the pointer still resting on
+  // the cell and focus elsewhere (WCAG 1.4.13: dismissible without moving the pointer; until
+  // 2026-09-27 Esc reached only a pinned popover). A click / tap outside the grid + popover closes a
+  // pinned one (a preview closes when the pointer leaves).
+  const isOpen = openCoord != null;
   useEffect(() => {
-    if (!pinned) return;
+    if (!isOpen) return;
     const onPointerDown = (e: PointerEvent) => {
+      if (!pinned) return;
       const t = e.target as Node;
       if (popoverRef.current?.contains(t)) return;
       if ((t as Element).closest?.(".hm-cell")) return; // a cell handles its own tap
@@ -144,7 +177,8 @@ export function DeviationHeatmap({
     };
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== "Escape") return;
-      close();
+      dismiss();
+      if (!pinned) return; // a hover preview: focus was never the popover's to move
       // Return focus to the cell it came from (e.g. from the popover's link) — but only when
       // focus actually has to move: `focus()` on the already-focused cell fires no event, and a
       // suppression flag set for it would go stale and swallow the next arrow-key open.
@@ -160,7 +194,7 @@ export function DeviationHeatmap({
       document.removeEventListener("pointerdown", onPointerDown);
       document.removeEventListener("keydown", onKey);
     };
-  }, [pinned]);
+  }, [isOpen, pinned]);
 
   const noun = scaleNoun(effMode, playerPosition);
   const refPhrase = referencePhrase(effMode, playerPosition);
@@ -187,8 +221,20 @@ export function DeviationHeatmap({
     return s ? rankNote(s, cell.statKey, effMode, playerPosition) : null;
   };
 
+  // Focus moved on to something outside the grid and its popover — Tab past the popover's link,
+  // Shift+Tab to the Compare bar, Enter's jump to the stat's history: a popover pinned by that focus
+  // closes, or it lingers over whatever has focus now (it covered 28 of 32px of the focused Compare
+  // button — a11y review O3, 2026-09-27). Only for a real destination: a click on something that
+  // takes no focus blurs with no relatedTarget (Safari and Firefox on a Mac don't focus a clicked
+  // button), and the outside-click handler owns that case — closing here would unmount the popover
+  // between the press and the click on its own link. A hover preview follows the pointer, not focus.
+  const onSectionBlur = (e: React.FocusEvent<HTMLElement>) => {
+    const to = e.relatedTarget as Node | null;
+    if (to && !e.currentTarget.contains(to)) setPinned(null);
+  };
+
   return (
-    <section aria-labelledby="heatmap-title" style={{ margin: "var(--space-1) 0" }}>
+    <section aria-labelledby="heatmap-title" style={{ margin: "var(--space-1) 0" }} onBlur={onSectionBlur}>
       {/* Visually hidden: the section keeps its accessible name and its place in the heading
           outline, but a sighted reader gets no label — "Season by season" said nothing the grid
           doesn't show, and duplicated the drill-down's "Year by year" (also dropped). First in the
@@ -282,7 +328,7 @@ export function DeviationHeatmap({
                     }
                     setPinned(here);
                   }}
-                  onHover={() => setHovered(here)}
+                  onHover={(x, y) => onCellHover(here, x, y)}
                   onPress={() => {
                     pressWasPinned.current = sameCoord(pinned, here);
                   }}
@@ -496,7 +542,8 @@ interface CellProps {
   expanded: boolean;
   setRef: (el: HTMLButtonElement | null) => void;
   onFocus: () => void;
-  onHover: () => void;
+  /** mouseenter, with the pointer's viewport position. */
+  onHover: (x: number, y: number) => void;
   /** pointerdown — fires before focus + click, so the parent can snapshot the prior pin state. */
   onPress: () => void;
   onTap: () => void;
@@ -543,7 +590,7 @@ function Cell({ cell, rank, rankNote, rankNoun, noun, refPhrase, tabbable, expan
       aria-expanded={expanded}
       aria-controls={expanded ? POPOVER_ID : undefined}
       onFocus={onFocus}
-      onMouseEnter={onHover}
+      onMouseEnter={(e) => onHover(e.clientX, e.clientY)}
       onPointerDown={onPress}
       onClick={onTap}
     >

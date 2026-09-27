@@ -1,4 +1,4 @@
-import { useId, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { type CompareSegment, firstName, type HeatmapMode } from "../lib/deviation";
 import { asSentence } from "./InfoTip";
 
@@ -56,6 +56,17 @@ function Segment({ segment, pressed, onSelect }: { segment: CompareSegment; pres
   const [tipOpen, setTipOpen] = useState(false);
   const disabled = segment.disabled;
 
+  // Escape closes the reason wherever focus is: it may have opened on hover, with focus elsewhere. (The
+  // handler sat on the button alone, so a hovered reason ignored Escape — a11y review P2, 2026-09-27.)
+  useEffect(() => {
+    if (!tipOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setTipOpen(false);
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [tipOpen]);
+
   // The reason bubble sits BESIDE the button, in a shared wrapper, not inside it (craftsmanship review
   // 3.1, 2026-09-26). Inside, it became part of the button's name whenever it opened ("Position No
   // position on record.", read again as the description), and it was drawn at the disabled button's
@@ -76,7 +87,6 @@ function Segment({ segment, pressed, onSelect }: { segment: CompareSegment; pres
         onClick={() => (disabled ? setTipOpen(true) : onSelect())}
         onFocus={disabled ? () => setTipOpen(true) : undefined}
         onBlur={disabled ? () => setTipOpen(false) : undefined}
-        onKeyDown={disabled ? (e) => { if (e.key === "Escape") setTipOpen(false); } : undefined}
       >
         {segment.label}
       </button>

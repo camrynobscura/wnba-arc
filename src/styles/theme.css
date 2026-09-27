@@ -431,6 +431,11 @@ select.select-reset {
 .has-compare-bar * {
   scroll-margin-top: calc(var(--compare-bar-h) + var(--space-3));
 }
+/* …but not the bar's own contents: the bar is stuck in view, and the clearance made focusing one of its
+   buttons scroll the page 58px (a11y review O4, 2026-09-27). Same specificity, so it wins by coming after. */
+.compare-bar * {
+  scroll-margin-top: 0;
+}
 .seg-wrap {
   display: flex;
   align-items: center;
