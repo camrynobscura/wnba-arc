@@ -139,48 +139,53 @@ export function PlayerSearch({ players, listError, onPick, variant = "hero" }: P
   };
 
   // The results listbox (or a loading / no-match message), positioned by the caller.
-  const listbox = (posStyle: React.CSSProperties) =>
-    (showDrop || searchPending || noMatches) && (
-      <div
-        id={listId}
-        role="listbox"
-        aria-label="Player results"
-        className="elev-md"
-        style={{ position: "absolute", zIndex: 20, background: "var(--color-surface)", border: "1px solid var(--color-divider)", overflowY: "auto", ...posStyle }}
-      >
-        {searchPending ? (
-          <div className="text-muted" style={{ padding: "var(--space-3) var(--space-4)", fontSize: "var(--fs-sm)", display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
-            <Spinner small /> Loading roster…
-          </div>
-        ) : noMatches ? (
-          <div className="text-muted" style={{ padding: "var(--space-3) var(--space-4)", fontSize: "var(--fs-sm)" }}>No players match “{query}”.</div>
-        ) : (
-          filtered.map((p, i) => (
-            <div
-              key={p.espn}
-              id={optionId(i)}
-              role="option"
-              aria-selected={i === highlight}
-              className="search-option"
-              // Keep focus on the input (so typing continues) while still registering the click.
-              onMouseDown={(e) => e.preventDefault()}
-              onMouseEnter={() => setHighlight(i)}
-              onClick={() => pick(p.espn)}
-            >
-              {/* Name never wraps (flexShrink 0 + nowrap); if the row is still tight, the
-                  secondary team/pos text truncates with an ellipsis instead. */}
-              <span className="text-heading" style={{ fontSize: "var(--fs-base)", whiteSpace: "nowrap", flexShrink: 0 }}>{p.name}</span>
-              <span
-                className="text-muted"
-                style={{ fontFamily: "var(--font-body)", fontSize: "var(--fs-xs)", marginLeft: "auto", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", minWidth: 0 }}
-              >
-                {playerMeta(p)}
-              </span>
+  const listbox = (posStyle: React.CSSProperties) => {
+    if (!(showDrop || searchPending || noMatches)) return null;
+    const boxStyle: React.CSSProperties = { position: "absolute", zIndex: 20, background: "var(--color-surface)", border: "1px solid var(--color-divider)", overflowY: "auto", ...posStyle };
+    // A message isn't a list: "Loading roster…" / "No players match" is drawn in the same box but not as
+    // a listbox — one with no options is an ARIA error (axe aria-required-children; a11y review R1,
+    // 2026-09-27). The status line below announces it.
+    if (!showDrop) {
+      return (
+        <div className="elev-md" style={boxStyle}>
+          {searchPending ? (
+            <div className="text-muted" style={{ padding: "var(--space-3) var(--space-4)", fontSize: "var(--fs-sm)", display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
+              <Spinner small /> Loading roster…
             </div>
-          ))
-        )}
+          ) : (
+            <div className="text-muted" style={{ padding: "var(--space-3) var(--space-4)", fontSize: "var(--fs-sm)" }}>No players match “{query}”.</div>
+          )}
+        </div>
+      );
+    }
+    return (
+      <div id={listId} role="listbox" aria-label="Player results" className="elev-md" style={boxStyle}>
+        {filtered.map((p, i) => (
+          <div
+            key={p.espn}
+            id={optionId(i)}
+            role="option"
+            aria-selected={i === highlight}
+            className="search-option"
+            // Keep focus on the input (so typing continues) while still registering the click.
+            onMouseDown={(e) => e.preventDefault()}
+            onMouseEnter={() => setHighlight(i)}
+            onClick={() => pick(p.espn)}
+          >
+            {/* Name never wraps (flexShrink 0 + nowrap); if the row is still tight, the
+                secondary team/pos text truncates with an ellipsis instead. */}
+            <span className="text-heading" style={{ fontSize: "var(--fs-base)", whiteSpace: "nowrap", flexShrink: 0 }}>{p.name}</span>
+            <span
+              className="text-muted"
+              style={{ fontFamily: "var(--font-body)", fontSize: "var(--fs-xs)", marginLeft: "auto", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", minWidth: 0 }}
+            >
+              {playerMeta(p)}
+            </span>
+          </div>
+        ))}
       </div>
     );
+  };
 
   const srStatus = <p role="status" aria-live="polite" className="sr-only">{searchStatus}</p>;
 
