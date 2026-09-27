@@ -278,6 +278,20 @@ img {
   margin: 0 auto;
   padding: var(--space-5) var(--space-5) var(--space-4);
 }
+/* The player page's top row is its own <header> in the page column, ahead of <main> (so "Skip to main
+   content" skips it — a11y review O5, 2026-09-27): the column's padding is split between the two
+   boxes, which draws the page exactly as it was with the row inside <main>. */
+.view-top {
+  padding-bottom: 0;
+}
+.view-top + .view-main {
+  padding-top: 0;
+}
+/* A page's main heading takes focus when the page arrives (src/pageArrival.ts) — only to mark where
+   reading and the next Tab start: it isn't a control, so no ring (user, 2026-09-27). */
+.page-heading:focus-visible {
+  outline: none;
+}
 /* The player page's top row: "All players" on the left, the player search on the right. */
 .view-header {
   display: flex;
@@ -1170,11 +1184,14 @@ select.select-reset {
   left: 0;
 }
 
-/* Skip-to-content link: off-screen until focused (WCAG 2.4.1). */
+/* Skip-to-content link: off-screen until focused (WCAG 2.4.1) — moved up by its own height (+ its 8px
+   offset and a spare pixel), so it stays hidden at any text size: a fixed -48px let a box sized in rem
+   peek in at 150% text (a11y review O5, 2026-09-27). Focused, it sits 8px from the top, as before. */
 .skip-link {
   position: absolute;
   left: 8px;
-  top: -48px;
+  top: 8px;
+  transform: translateY(calc(-100% - 9px));
   z-index: 100;
   background: var(--color-surface);
   color: var(--color-text);
@@ -1186,7 +1203,7 @@ select.select-reset {
   text-decoration: none;
 }
 .skip-link:focus {
-  top: 8px;
+  transform: none;
 }
 
 /* ══════════════════════════════════════════════════════════════════════════

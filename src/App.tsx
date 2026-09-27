@@ -3,6 +3,7 @@ import { Navigate, Route, Routes, useLocation, useNavigationType } from "react-r
 import { getLeague, getMeta, getPlayers, getPositions, type LeagueSeason, type Meta, type PlayerSummary, type PositionSeason } from "./data/api";
 import { makeLeague, makePositionLookup } from "./lib/deviation";
 import { AppDataContext, type AppData } from "./appData";
+import { markPageChange } from "./pageArrival";
 import { SelectRoute } from "./routes/SelectRoute";
 import { AboutRoute } from "./routes/AboutRoute";
 import { PlayerLayout } from "./routes/PlayerLayout";
@@ -54,11 +55,9 @@ export default function App() {
 
   return (
     <div style={{ minHeight: "100%", display: "flex", flexDirection: "column" }}>
-      <a href="#main" className="skip-link">
-        Skip to main content
-      </a>
       {/* No app-wide top bar: the landing page is home, the player page's sticky CompareBar is the
-          way back, and About + the theme switch live in the footer of every page. */}
+          way back, and About + the theme switch live in the footer of every page. The skip link is the
+          player page's (PlayerLayout) — the only page with something ahead of its main content. */}
       <ScrollManager />
       <AppDataContext.Provider value={appData}>
         <Routes>
@@ -101,6 +100,9 @@ function ScrollManager() {
   const navType = useNavigationType();
   const keyRef = useRef(location.key);
   const prevPath = useRef<string | null>(null);
+  // The entry the last page change was marked for: StrictMode runs this effect twice on mount, and the
+  // second run must not count as a change.
+  const markedKey = useRef<string | null>(null);
 
   useEffect(() => {
     if ("scrollRestoration" in history) history.scrollRestoration = "manual";
@@ -124,11 +126,16 @@ function ScrollManager() {
     keyRef.current = location.key;
     const base = playerBase(location.pathname);
     const samePlayer = base != null && prevPath.current != null && playerBase(prevPath.current) === base;
+    const firstPage = prevPath.current == null;
     prevPath.current = location.pathname;
     if (navType === "POP") window.scrollTo(0, scrollByKey.get(location.key) ?? 0);
     else if (!samePlayer) window.scrollTo(0, 0);
     // Record the landing position too: a replace (a stat change) makes a new entry without a scroll.
     scrollByKey.set(location.key, window.scrollY);
+    // A new page — not the one the visit opened on, not a stat / comparison change on the same player:
+    // its heading takes focus (pageArrival.ts).
+    if (!firstPage && !samePlayer && markedKey.current !== location.key) markPageChange();
+    markedKey.current = location.key;
   }, [location.key, location.pathname, navType]);
   return null;
 }

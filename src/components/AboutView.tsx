@@ -1,3 +1,6 @@
+import { useRef } from "react";
+import { useArrivalFocus } from "../pageArrival";
+
 interface AboutViewProps {
   onBack: () => void;
 }
@@ -23,6 +26,9 @@ const h2Style: React.CSSProperties = {
  * reader to where they came from (history back — AboutRoute; the landing page for a cold link).
  */
 export function AboutView({ onBack }: AboutViewProps) {
+  // The heading takes focus when the page arrives by a page change (pageArrival.ts).
+  const headingRef = useRef<HTMLHeadingElement>(null);
+  useArrivalFocus(headingRef);
   return (
     <main id="main" className="view-main" style={{ padding: "var(--space-10) var(--space-5) var(--space-12)" }}>
       <button className="btn btn-ghost" style={{ marginBottom: "var(--space-5)", paddingInline: 0 }} onClick={onBack}>
@@ -33,7 +39,9 @@ export function AboutView({ onBack }: AboutViewProps) {
         </span>
       </button>
 
-      <h1 style={{ fontSize: "var(--fs-4xl)", marginBottom: "var(--space-1)" }}>About ARC</h1>
+      <h1 ref={headingRef} tabIndex={-1} className="page-heading" style={{ fontSize: "var(--fs-4xl)", marginBottom: "var(--space-1)" }}>
+        About ARC
+      </h1>
 
       <section style={{ marginTop: "var(--space-6)" }}>
         <h2 style={h2Style}>What ARC shows</h2>

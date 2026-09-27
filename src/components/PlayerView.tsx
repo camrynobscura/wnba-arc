@@ -1,4 +1,6 @@
+import { useRef } from "react";
 import { photoUrl } from "../data/stats";
+import { useArrivalFocus } from "../pageArrival";
 import type { PlayerDetail } from "../data/api";
 import type { CompareSegment, HeatmapMode, League, PositionLookup, StatDetail, StatKey } from "../lib/deviation";
 import { CompareBar } from "./CompareBar";
@@ -50,6 +52,9 @@ export function PlayerView({
 }: PlayerViewProps) {
   // No <main> and no top row here: the player layout draws both around this page (PlayerLayout),
   // so they stay on screen while a player loads.
+  // The name takes focus when the page arrives by a page change — a new player, Back from About (pageArrival.ts).
+  const headingRef = useRef<HTMLHeadingElement>(null);
+  useArrivalFocus(headingRef);
   return (
     <>
       <div
@@ -66,7 +71,9 @@ export function PlayerView({
             to the heading reads on into "Las Vegas Aces · C · #22"; `order: -1` draws the line above
             the name, as before (craftsmanship review 1.6, 2026-09-26). */}
         <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
-          <h1 style={{ fontSize: "var(--fs-2xl)", margin: 0, lineHeight: 1 }}>{player.name}</h1>
+          <h1 ref={headingRef} tabIndex={-1} className="page-heading" style={{ fontSize: "var(--fs-2xl)", margin: 0, lineHeight: 1 }}>
+            {player.name}
+          </h1>
           <div className="kicker" style={{ marginBottom: "var(--space-1)", order: -1 }}>
             {playerMeta(player, true)}
           </div>

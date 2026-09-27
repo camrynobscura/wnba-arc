@@ -1,4 +1,6 @@
+import { useRef } from "react";
 import { Link } from "react-router-dom";
+import { useArrivalFocus } from "../pageArrival";
 import { photoUrl } from "../data/stats";
 import type { PlayerSummary } from "../data/api";
 import type { FeaturedPlayer } from "../data/featured";
@@ -19,9 +21,14 @@ interface SelectViewProps {
 }
 
 export function SelectView({ featured, players, listError, onPick }: SelectViewProps) {
+  // The heading takes focus when the landing page arrives by a page change (pageArrival.ts).
+  const headingRef = useRef<HTMLHeadingElement>(null);
+  useArrivalFocus(headingRef);
   return (
     <main id="main" className="view-main" style={{ padding: "var(--space-10) var(--space-5)" }}>
-      <h1 style={{ fontSize: "var(--fs-3xl)", marginBottom: "var(--space-3)" }}>How far from normal is this season?</h1>
+      <h1 ref={headingRef} tabIndex={-1} className="page-heading" style={{ fontSize: "var(--fs-3xl)", marginBottom: "var(--space-3)" }}>
+        How far from normal is this season?
+      </h1>
       <p className="text-muted" style={{ fontSize: "var(--fs-base)", marginBottom: "var(--space-6)" }}>
         Pick a WNBA player. See how any season compares to the rest of their own career, and to the league that year.
       </p>

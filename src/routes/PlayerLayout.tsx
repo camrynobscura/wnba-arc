@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Outlet, useNavigate, useParams } from "react-router-dom";
 import { cachedPlayer, getPlayer, type PlayerDetail } from "../data/api";
 import type { League, PositionLookup } from "../lib/deviation";
 import { useAppData } from "../appData";
+import { pageTitle, SITE_NAME, usePageTitle } from "../pageArrival";
 import { Footer } from "../components/Footer";
 import { Notice } from "../components/Notice";
 import { PlayerTopBar } from "../components/PlayerTopBar";
@@ -56,33 +57,52 @@ export function PlayerLayout() {
   // Picking a new player is a fresh navigation — reset to the default mode + stat (no query).
   const pick = (espn: string) => navigate(playerPath(players?.find((p) => p.espn === espn)?.name ?? "", espn, players));
 
-  // The page frame: <main> + the top row, around every state — loading, error, not-found and the
-  // loaded page (user, 2026-09-26: keep the top row). Always the first child of the same fragment, so
-  // React keeps it mounted from "Loading…" to the page — the row doesn't blink, and a search typed
-  // during the load survives. Its "All players" is the way back from an error, so a Notice has no
-  // button of its own.
-  const frame = (content: ReactNode, loaded: boolean) => (
+  // Which screen this is. Order matters. A name-slug can't resolve until the roster is in, so "loading
+  // roster" must win over "not found" — otherwise a valid deep link flashes not-found on a cold load. And
+  // surfacing a real not-found/error (vs. the old App's infinite spinner) is the point.
+  const notice: { title: string; detail?: string; error?: boolean } | null = loadError
+    ? { title: "Couldn't load players", detail: loadError, error: true }
+    : players == null || league == null
+      ? { title: "Loading…" }
+      : espn == null || players.find((p) => p.espn === espn) == null
+        ? { title: "Player not found", detail: "No player matches this link.", error: true }
+        : detailError
+          ? { title: "Couldn't load this player", detail: detailError, error: true }
+          : // Same title as the roster/league gate above so a hard refresh shows one steady
+            // "Loading…" instead of switching text between the two sequential load phases.
+            detail == null
+            ? { title: "Loading…" }
+            : null;
+  // The loaded page's data — there exactly when there's no notice.
+  const loaded = notice == null && detail != null && league != null ? { detail, league } : null;
+
+  // The tab: the player's name, the error, or the site's name alone while loading.
+  usePageTitle(loaded ? pageTitle(loaded.detail.name) : notice?.error ? pageTitle(notice.title) : SITE_NAME);
+
+  // The page frame around every state — loading, error, not-found and the loaded page (user,
+  // 2026-09-26: keep the top row). The top row is its own <header>, ahead of <main>, so "Skip to main
+  // content" skips it (a11y review O5, 2026-09-27); the column's padding is split between the two boxes
+  // (theme.css .view-top), so the page looks as it did with the row inside <main>. Every state renders
+  // the same elements in the same places, so React keeps the row mounted from "Loading…" to the page —
+  // it doesn't blink, and a search typed during the load survives. Its "All players" is the way back
+  // from an error, so a Notice has no button of its own. No Footer on the near-empty notice screens —
+  // the freshness chip there reads as a glitch.
+  return (
     <>
-      <main id="main" className="view-main has-compare-bar">
+      <a href="#main" className="skip-link">
+        Skip to main content
+      </a>
+      <header className="view-main view-top">
         <PlayerTopBar players={players} listError={loadError} onPick={pick} />
-        {content}
+      </header>
+      <main id="main" className="view-main has-compare-bar">
+        {loaded ? (
+          <Outlet context={{ detail: loaded.detail, league: loaded.league, positions } satisfies PlayerOutletCtx} />
+        ) : (
+          notice && <Notice title={notice.title} detail={notice.detail} error={notice.error} />
+        )}
       </main>
       {loaded && <Footer meta={meta} />}
     </>
   );
-
-  // Order matters. A name-slug can't resolve until the roster is in, so "loading roster" must win
-  // over "not found" — otherwise a valid deep link flashes not-found on a cold load. And surfacing
-  // a real not-found/error (vs. the old App's infinite spinner) is the point. No Footer on any of
-  // these near-empty screens — the freshness chip there reads as a glitch.
-  if (loadError) return frame(<Notice title="Couldn't load players" detail={loadError} error />, false);
-  if (players == null || league == null) return frame(<Notice title="Loading…" />, false);
-  if (espn == null || players.find((p) => p.espn === espn) == null)
-    return frame(<Notice title="Player not found" detail="No player matches this link." error />, false);
-  if (detailError) return frame(<Notice title="Couldn't load this player" detail={detailError} error />, false);
-  // Same title as the roster/league gate above so a hard refresh shows one steady
-  // "Loading…" instead of switching text between the two sequential load phases.
-  if (detail == null) return frame(<Notice title="Loading…" />, false);
-
-  return frame(<Outlet context={{ detail, league, positions } satisfies PlayerOutletCtx} />, true);
 }

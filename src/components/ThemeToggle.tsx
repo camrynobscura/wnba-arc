@@ -30,14 +30,9 @@ export function ThemeToggle() {
   };
 
   const next = theme === "dark" ? "light" : "dark";
+  // Named by its `title` alone (the hover tooltip): an equal aria-label was read twice (a11y review R3).
   return (
-    <button
-      type="button"
-      className="icon-btn"
-      onClick={toggle}
-      aria-label={`Switch to ${next} mode`}
-      title={`Switch to ${next} mode`}
-    >
+    <button type="button" className="icon-btn" onClick={toggle} title={`Switch to ${next} mode`}>
       {theme === "dark" ? <SunIcon /> : <MoonIcon />}
     </button>
   );
