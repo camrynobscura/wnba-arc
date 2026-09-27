@@ -474,7 +474,13 @@ select.select-reset {
   border-radius: 0;
   cursor: pointer;
 }
-.seg-btn:last-child {
+/* One segment: its button + (when unavailable) the reason bubble beside it — the bubble's anchor. A
+   flex box, so the button sits in it with no line box around it (the bar keeps its 32px height). */
+.seg-item {
+  position: relative;
+  display: flex;
+}
+.seg-item:last-child > .seg-btn {
   border-right: 0;
 }
 .seg-btn:hover {
@@ -500,16 +506,15 @@ select.select-reset {
 }
 /* The reason bubble opens DOWNWARD: the bar is stuck to the viewport's top edge, so "above" (the
    InfoTip default) would be off-screen. Anchored to the segment's right edge so it stays inside
-   the column on a phone. */
-.seg-btn > .infotip-bubble.seg-tip {
+   the column on a phone. A sibling of the dimmed button, so it is drawn at full strength (inside
+   it, it inherited the 45% opacity — no child can undo a parent's). */
+.seg-item > .infotip-bubble.seg-tip {
   /* Three classes deep so it outranks `.infotip-bubble` wherever that rule lands in the cascade. */
   top: calc(100% + 8px);
   bottom: auto;
   left: auto;
   right: 0;
   transform: none;
-  opacity: 1; /* not dimmed with its disabled parent's text: it must stay readable */
-  font-weight: 400;
 }
 @media (forced-colors: active) {
   .seg-btn[aria-pressed="true"] {
@@ -1083,6 +1088,22 @@ select.select-reset {
    no workaround found, 2026-09-24). Absolute flow content is ignored by Safari's sampler, is clipped
    by nothing, and scrolls with the page. */
 .infotip {
+  /* A <button> drawn as the plain term it labels (it was a focusable span — craftsmanship review 3.3):
+     the button's own look undone, and the type of the text around it inherited — a button doesn't
+     inherit font, tracking or capitals by default. `line-height: normal` after `font: inherit` keeps
+     the box — and so the keyboard focus ring — the text's height, as the span's was, not the whole
+     line's (a button is an inline-block). */
+  appearance: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  line-height: normal;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  text-align: inherit;
+  color: inherit;
   position: relative;
   cursor: help;
   text-decoration: underline dotted;

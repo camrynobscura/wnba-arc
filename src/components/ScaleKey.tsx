@@ -13,9 +13,11 @@ export function ScaleKey({ noun }: ScaleKeyProps) {
   return (
     <div>
       <div className="scale-grad" aria-hidden="true" />
+      {/* The arrows point along the gradient — decoration for the eye, hidden from screen readers
+          (they'd be read out as "left arrow" / "right arrow"). */}
       <div className="scale-ends text-muted">
-        <span>&larr; <b>below</b> {noun}</span>
-        <span><b>above</b> {noun} &rarr;</span>
+        <span><span aria-hidden="true">&larr;</span> <b>below</b> {noun}</span>
+        <span><b>above</b> {noun} <span aria-hidden="true">&rarr;</span></span>
       </div>
     </div>
   );

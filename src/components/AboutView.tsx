@@ -26,7 +26,11 @@ export function AboutView({ onBack }: AboutViewProps) {
   return (
     <main id="main" className="view-main" style={{ padding: "var(--space-10) var(--space-5) var(--space-12)" }}>
       <button className="btn btn-ghost" style={{ marginBottom: "var(--space-5)", paddingInline: 0 }} onClick={onBack}>
-        ← Back
+        {/* The arrow is decoration — hidden, or it's read out ("left arrow Back"). One wrapping span:
+            `.btn` is a flex box, and the arrow as its own flex item would sit a 6px gap away, not a space. */}
+        <span>
+          <span aria-hidden="true">←</span> Back
+        </span>
       </button>
 
       <h1 style={{ fontSize: "var(--fs-4xl)", marginBottom: "var(--space-1)" }}>About ARC</h1>

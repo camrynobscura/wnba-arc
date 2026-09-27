@@ -147,6 +147,15 @@ export function fmtCell(v: number | null | undefined, pct: boolean): string {
   return pct ? Math.round(v * 100) + "%" : v.toFixed(1);
 }
 
+/** A cell's value as its accessible name says it: what the cell SHOWS first — a spoken name must
+    contain the visible label (WCAG 2.5.3; voice-control users say what they see, "click 53%") —
+    then the exact value when it says more ("53%, exactly 52.7%"). "31%" for 31.0%, not "31%,
+    exactly 31.0%" (craftsmanship review 3.5, 2026-09-26). */
+export function spokenValue(cellFmt: string, valueFmt: string): string {
+  if (cellFmt === valueFmt || parseFloat(cellFmt) === parseFloat(valueFmt)) return cellFmt;
+  return `${cellFmt}, exactly ${valueFmt}`;
+}
+
 /** First token of a full name — used to personalize the on-page descriptions ("Paige's
     career average" rather than "the player's"). Falls back to the whole string. */
 export function firstName(fullName: string): string {
@@ -393,7 +402,8 @@ export interface HeatmapCell {
   played: boolean;
   /** The raw stat value that season (null: missed, or no value for this stat). */
   value: number | null;
-  /** Exact, one decimal ("51.9%", "26.9") — the popover and the cell's accessible name. */
+  /** Exact, one decimal ("51.9%", "26.9") — the popover, and the accessible name after the shown
+      value when it differs (`spokenValue`). */
   valueFmt: string;
   /** The glance form drawn in the cell: whole percent for shooting %s ("52%"), else = valueFmt. */
   cellFmt: string;

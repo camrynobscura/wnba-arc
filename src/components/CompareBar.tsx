@@ -56,26 +56,35 @@ function Segment({ segment, pressed, onSelect }: { segment: CompareSegment; pres
   const [tipOpen, setTipOpen] = useState(false);
   const disabled = segment.disabled;
 
+  // The reason bubble sits BESIDE the button, in a shared wrapper, not inside it (craftsmanship review
+  // 3.1, 2026-09-26). Inside, it became part of the button's name whenever it opened ("Position No
+  // position on record.", read again as the description), and it was drawn at the disabled button's
+  // 45% opacity — its text measured 2.63:1 (light) / 3.64:1 (dark). Hover is tracked on the wrapper,
+  // so the pointer can move onto the bubble without closing it.
   return (
-    <button
-      type="button"
-      className="seg-btn"
-      aria-pressed={pressed}
-      aria-disabled={disabled || undefined}
-      aria-describedby={disabled ? tipId : undefined}
-      onClick={() => (disabled ? setTipOpen(true) : onSelect())}
+    <span
+      className="seg-item"
       onMouseEnter={disabled ? () => setTipOpen(true) : undefined}
       onMouseLeave={disabled ? () => setTipOpen(false) : undefined}
-      onFocus={disabled ? () => setTipOpen(true) : undefined}
-      onBlur={disabled ? () => setTipOpen(false) : undefined}
-      onKeyDown={disabled ? (e) => { if (e.key === "Escape") setTipOpen(false); } : undefined}
     >
-      {segment.label}
+      <button
+        type="button"
+        className="seg-btn"
+        aria-pressed={pressed}
+        aria-disabled={disabled || undefined}
+        aria-describedby={disabled ? tipId : undefined}
+        onClick={() => (disabled ? setTipOpen(true) : onSelect())}
+        onFocus={disabled ? () => setTipOpen(true) : undefined}
+        onBlur={disabled ? () => setTipOpen(false) : undefined}
+        onKeyDown={disabled ? (e) => { if (e.key === "Escape") setTipOpen(false); } : undefined}
+      >
+        {segment.label}
+      </button>
       {disabled && (
         <span role="tooltip" id={tipId} className={"infotip-bubble seg-tip" + (tipOpen ? " is-open" : "")}>
           {segment.reason && asSentence(segment.reason)}
         </span>
       )}
-    </button>
+    </span>
   );
 }

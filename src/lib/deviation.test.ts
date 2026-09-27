@@ -6,6 +6,7 @@ import {
   compareSegments,
   compareSentence,
   fmtCell,
+  fmtV,
   gamesTier,
   gamesToRank,
   isPartialSeason,
@@ -20,6 +21,7 @@ import {
   rankNote,
   sampleNote,
   smallSampleReason,
+  spokenValue,
   type HeatmapCell,
   type HeatmapGrid,
   type League,
@@ -380,6 +382,20 @@ describe("fmtCell — the glance form drawn in a heatmap cell", () => {
   it("is a dash for no value", () => {
     expect(fmtCell(null, true)).toBe("—");
     expect(fmtCell(undefined, false)).toBe("—");
+  });
+});
+
+describe("spokenValue — a cell's value in its accessible name", () => {
+  it("says what the cell shows, then the exact value when it differs", () => {
+    expect(spokenValue(fmtCell(0.527, true), fmtV(0.527, true))).toBe("53%, exactly 52.7%");
+    expect(spokenValue(fmtCell(0.317, true), fmtV(0.317, true))).toBe("32%, exactly 31.7%");
+  });
+  it("says it once when the exact value is the shown one", () => {
+    expect(spokenValue(fmtCell(0.31, true), fmtV(0.31, true))).toBe("31%"); // 31.0%
+    expect(spokenValue(fmtCell(1, true), fmtV(1, true))).toBe("100%");
+    expect(spokenValue(fmtCell(0, true), fmtV(0, true))).toBe("0%");
+    expect(spokenValue(fmtCell(26.2, false), fmtV(26.2, false))).toBe("26.2"); // counting stats show the exact value
+    expect(spokenValue(fmtCell(null, true), fmtV(null, true))).toBe("—");
   });
 });
 

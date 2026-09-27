@@ -1,7 +1,8 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { PlayerDetail, SeasonPlayed } from "../data/api";
 import { STATS } from "../data/stats";
-import { buildHeatmapGrid, compareSentence, firstName, isCountingStat, isRateStat, lowerFirst, type HeatmapCell, type HeatmapMode, type League, ordinal, type PositionLookup, positionNoun, rankNote, scaleNoun, selfModeAvailable, type StatKey } from "../lib/deviation";
+import { buildHeatmapGrid, compareSentence, firstName, isCountingStat, isRateStat, lowerFirst, type HeatmapCell, type HeatmapMode, type League, ordinal, type PositionLookup, positionNoun, rankNote, scaleNoun, selfModeAvailable, spokenValue, type StatKey } from "../lib/deviation";
+import { type GridCoord, gridMove, HEADER_ROW } from "../lib/gridNav";
 import { InfoTip } from "./InfoTip";
 import { ScaleKey } from "./ScaleKey";
 
@@ -31,10 +32,11 @@ function referencePhrase(mode: HeatmapMode, pos: string | null): string {
   return `the ${POS_SINGULAR[pos ?? ""] ?? "position"} average`;
 }
 
-type Coord = { r: number; c: number };
+type Coord = GridCoord;
 const sameCoord = (a: Coord | null, b: Coord | null) => a != null && b != null && a.r === b.r && a.c === b.c;
 
 const POPOVER_ID = "hm-popover";
+const HINT_ID = "hm-grid-hint";
 
 /**
  * The player's whole career as one season × stat grid, colored by how far each stat sits from a
@@ -46,11 +48,14 @@ const POPOVER_ID = "hm-popover";
  * mouse, right where the finger is (not in a strip that may be a screen below on a long career).
  *
  * Accessibility: a real ARIA grid with **roving tabindex** — one Tab stop reaches the grid, arrow
- * keys move a single focus around the cells. Each cell's accessible name carries value + gap +
- * reference + rank (so nothing is pointer-only) and Enter drills directly; the open cell is marked
- * aria-expanded and the popover — rendered in DOM order right after the grid, so Tab reaches its
- * link — is positioned `fixed` from the cell's rect, which also lifts it out of the mobile
- * horizontal-scroll container that would otherwise clip it.
+ * keys move a single focus around the cells (lib/gridNav). ArrowUp from the top season reaches the
+ * column headers, whose explanations open on focus; they used to be eight Tab stops in front of the
+ * grid (craftsmanship review 3.2, 2026-09-26). Each cell's accessible name carries value + gap +
+ * reference + rank (so nothing is pointer-only), starting with the value as the cell shows it; the
+ * "Enter opens that stat's history" instruction is said once, as the grid's description, not in
+ * every name (3.5). The open cell is marked aria-expanded and the popover — rendered in DOM order
+ * right after the grid, so Tab reaches its link — is positioned `fixed` from the cell's rect, which
+ * also lifts it out of the mobile horizontal-scroll container that would otherwise clip it.
  */
 export function DeviationHeatmap({
   player,
@@ -70,9 +75,10 @@ export function DeviationHeatmap({
     [player, effMode, league, positions, playerPosition],
   );
 
-  // Roving tabindex: `active` is the focused cell; only it is tabbable. Refs let arrow keys move
-  // real DOM focus and let the popover anchor to a cell's on-screen rect.
+  // Roving tabindex: `active` is the focused cell — or column header (r = HEADER_ROW); only it is
+  // tabbable. Refs let arrow keys move real DOM focus and let the popover anchor to a cell's rect.
   const [active, setActive] = useState<Coord>({ r: 0, c: 0 });
+  const headerRefs = useRef(new Map<number, HTMLButtonElement | null>());
   // Popover state: `pinned` = tapped/clicked (or keyboard-focused) — stays until dismissed;
   // `hovered` = pointer preview — transient. Open = pinned, else hovered.
   const [pinned, setPinned] = useState<Coord | null>(null);
@@ -99,36 +105,34 @@ export function DeviationHeatmap({
     setActive({ r: 0, c: 0 });
   }, [player, effMode]);
 
-  const focusCell = (r: number, c: number) => cellRefs.current.get(`${r}-${c}`)?.focus();
+  const focusAt = ({ r, c }: Coord) =>
+    (r === HEADER_ROW ? headerRefs.current.get(c) : cellRefs.current.get(`${r}-${c}`))?.focus();
   const close = () => {
     setPinned(null);
     setHovered(null);
   };
 
   const onGridKeyDown = (e: React.KeyboardEvent) => {
-    let { r, c } = active;
-    switch (e.key) {
-      case "ArrowRight": c = Math.min(c + 1, nCols - 1); break;
-      case "ArrowLeft": c = Math.max(c - 1, 0); break;
-      case "ArrowDown": r = Math.min(r + 1, nRows - 1); break;
-      case "ArrowUp": r = Math.max(r - 1, 0); break;
-      case "Home": c = 0; break;
-      case "End": c = nCols - 1; break;
-      case "Escape":
-        close();
-        return;
-      case "Enter": {
-        // Enter goes straight to the stat's history. Intercepted so the button's native click
-        // (which now means *pin the popover*) doesn't fire instead.
-        e.preventDefault();
-        onDrill(grid.rows[r][c].statKey);
-        return;
-      }
-      default:
-        return;
+    if (e.key === "Escape") {
+      close();
+      return;
     }
+    if (e.key === "Enter") {
+      // A column header only explains itself (a header that navigates would surprise — DECISIONS
+      // 2026-09-07); its own button handles Enter. On a cell, Enter goes straight to the stat's
+      // history — intercepted so the button's native click (which means *pin the popover*) doesn't.
+      if (active.r === HEADER_ROW) return;
+      e.preventDefault();
+      onDrill(grid.rows[active.r][active.c].statKey);
+      return;
+    }
+    const next = gridMove(active, e.key, nRows, nCols);
+    if (!next) return;
     e.preventDefault();
-    focusCell(r, c); // onFocus opens the popover on the new cell + syncs `active`
+    // Up into the headers: the cell's popover closes, so it and the header's explanation are never
+    // both open.
+    if (next.r === HEADER_ROW) close();
+    focusAt(next); // onFocus opens the new cell's popover / the header's explanation + syncs `active`
   };
 
   // Dismiss on a click/tap outside the grid + popover, and on Esc anywhere (e.g. with the link focused).
@@ -207,6 +211,12 @@ export function DeviationHeatmap({
         <ScaleKey noun={noun} />
       </div>
 
+      {/* The grid's one instruction, said once (as its description) instead of at the end of every
+          cell's name (user, 2026-09-26). Hidden: the visible hint above says it for the pointer. */}
+      <p id={HINT_ID} className="sr-only">
+        Press Enter on a cell to open that stat's history.
+      </p>
+
       {/* Scroll wrapper: on a phone the 8 stat columns can't fit 320px, so the grid scrolls
           horizontally there (a data grid may — WCAG 1.4.10) instead of pushing the page. Scoped to
           mobile via CSS so desktop keeps overflow:visible and its header tooltips. The popover is
@@ -215,6 +225,7 @@ export function DeviationHeatmap({
       <div
         role="grid"
         aria-label={`${firstName(player.name)}'s seasons vs. ${refPhrase}`}
+        aria-describedby={HINT_ID}
         className="heatmap"
         style={{ gridTemplateColumns: `var(--hm-yearcol) repeat(${nCols}, minmax(var(--hm-cellmin), 1fr))` }}
         onKeyDown={onGridKeyDown}
@@ -225,14 +236,20 @@ export function DeviationHeatmap({
         }}
       >
         {/* Header row: corner + stat column labels (short, full name in a tooltip). Headers only
-            explain themselves — they don't select anything (a header that navigates is a surprise). */}
+            explain themselves — they don't select anything (a header that navigates is a surprise).
+            They are part of the grid's arrow-key focus (row HEADER_ROW), not Tab stops of their own. */}
         <div role="row" style={{ display: "contents" }}>
           {/* Corner over the year column — sr-only text (not aria-label) so it isn't an empty
               header (axe empty-table-header wants real content); "Season" won't fit visibly. */}
           <div role="columnheader" className="hm-colhead"><span className="sr-only">Season</span></div>
-          {STATS.map((st) => (
-            <div role="columnheader" key={`h-${st.key}`} className="hm-colhead">
-              <InfoTip label={st.short} tip={st.desc} />
+          {STATS.map((st, c) => (
+            <div role="columnheader" key={`h-${st.key}`} className="hm-colhead" onFocus={() => setActive({ r: HEADER_ROW, c })}>
+              <InfoTip
+                label={st.short}
+                tip={st.desc}
+                tabIndex={active.r === HEADER_ROW && active.c === c ? 0 : -1}
+                triggerRef={(el) => headerRefs.current.set(c, el)}
+              />
             </div>
           ))}
         </div>
@@ -459,7 +476,11 @@ function CellPopover({ cell, anchor, noun, rank, rankNote, rankNoun, pinned, pop
       )}
       {cell.played && !cell.smallSample && cell.delta == null && <div className="text-muted hm-popover-note">No {noun} that season</div>}
       <button type="button" className="btn btn-ghost hm-popover-link" onClick={onDrill}>
-        See {stat.toLowerCase()} history ↓
+        {/* The arrow is decoration — hidden, or it's read out ("down arrow"). One wrapping span: `.btn`
+            is a flex box, and the arrow as its own flex item would sit a 6px gap away, not a space. */}
+        <span>
+          See {stat.toLowerCase()} history <span aria-hidden="true">↓</span>
+        </span>
       </button>
     </div>
   );
@@ -498,15 +519,17 @@ function Cell({ cell, rank, rankNote, rankNoun, noun, refPhrase, tabbable, expan
 
   // Accessible name: the full line (a grid doesn't auto-associate its headers like a table), the
   // same detail the popover shows — including the rank — so a screen-reader user gets everything on
-  // the cell itself, then "Enter for … history" as the action.
+  // the cell itself. The value as the cell shows it, then exact ("53%, exactly 52.7%" — the name
+  // must contain the visible label, WCAG 2.5.3). The Enter instruction is the grid's description.
   const stat = statName(cell.statKey);
+  const shown = spokenValue(cell.cellFmt, cell.valueFmt);
   const detail = !cell.played
     ? `${stat} ${cell.year}: did not play`
     : cell.smallSample
-      ? `${stat} ${cell.year}: ${cell.valueFmt}, ${lowerFirst(cell.note ?? "small sample — not compared")}`
+      ? `${stat} ${cell.year}: ${shown}, ${lowerFirst(cell.note ?? "small sample — not compared")}`
       : cell.delta == null
-        ? `${stat} ${cell.year}: ${cell.valueFmt}, no ${noun} that season`
-        : `${stat} ${cell.year}: ${cell.valueFmt}, ${cell.deltaFmt}${isCountingStat(cell.statKey) ? "" : " percentage points"} vs ${refPhrase}` +
+        ? `${stat} ${cell.year}: ${shown}, no ${noun} that season`
+        : `${stat} ${cell.year}: ${shown}, ${cell.deltaFmt}${isCountingStat(cell.statKey) ? "" : " percentage points"} vs ${refPhrase}` +
           (cell.note ? `, ${lowerFirst(cell.note)}` : "") +
           (rank ? `, ranked ${ordinal(rank.rank)} of ${rank.pool} ${rankNoun}` : rankNote ? `, not ranked: ${lowerFirst(rankNote)}` : "");
 
@@ -518,7 +541,7 @@ function Cell({ cell, rank, rankNote, rankNoun, noun, refPhrase, tabbable, expan
       className={cls}
       style={bg ? { background: bg, color: "var(--color-text)" } : undefined}
       tabIndex={tabbable ? 0 : -1}
-      aria-label={`${detail} — Enter for ${stat.toLowerCase()} history`}
+      aria-label={detail}
       aria-expanded={expanded}
       aria-controls={expanded ? POPOVER_ID : undefined}
       onFocus={onFocus}

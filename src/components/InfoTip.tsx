@@ -6,13 +6,11 @@ interface InfoTipProps {
   label: string;
   /** Plain-language explanation shown on hover/focus. */
   tip: string;
-  /**
-   * Keyboard-focusable (and in the a11y tree via aria-describedby) by default. Pass false
-   * only when the InfoTip lives inside an `aria-hidden` visual: a focusable element inside
-   * aria-hidden is an axe `aria-hidden-focus` failure. Sighted mouse users still get the hover
-   * tooltip; keyboard/AT users simply don't reach the hidden visual.
-   */
-  focusable?: boolean;
+  /** Tab order: 0 (the default) is its own Tab stop; −1 when a composite widget moves focus to it
+      itself — the heatmap's column headers, reached with the arrow keys (roving tabindex). */
+  tabIndex?: 0 | -1;
+  /** The trigger button, for a parent that moves focus to it (the heatmap's arrow keys). */
+  triggerRef?: (el: HTMLButtonElement | null) => void;
 }
 
 // Only ONE tooltip is open at a time. A module-level registry holds the open tip's id;
@@ -57,9 +55,11 @@ export function placeBubble(trigger: Box, bubble: { width: number; height: numbe
 }
 
 /**
- * A term with a hover/focus tooltip explaining it. Keyboard-focusable and linked via
- * aria-describedby so screen-reader and keyboard users get the explanation too, not just
- * mouse users. Tap opens it on a phone; tap-outside, Escape, blur and pointer-leave close it.
+ * A term with a hover/focus tooltip explaining it. The term is a real `<button>` (a "toggletip":
+ * it acts — it opens the explanation), drawn as plain dotted-underlined text; a focusable span with
+ * no role was announced inconsistently (craftsmanship review 3.3, 2026-09-26). Linked via
+ * aria-describedby so screen-reader and keyboard users get the explanation too ("PTS, button,
+ * Points — how many…"). Tap opens it on a phone; tap-outside, Escape, blur and pointer-leave close it.
  *
  * WHERE THE BUBBLE LIVES, and why (2026-09-24): it is rendered through a portal at the end of
  * the page's `<main>` (so it stays inside the landmark — axe's `region` rule flagged it at the end
@@ -76,10 +76,10 @@ export function placeBubble(trigger: Box, bubble: { width: number; height: numbe
  * The bubble is a React child of the trigger (events bubble in the React tree) but not a DOM
  * child, so "outside" means outside both.
  */
-export function InfoTip({ label, tip, focusable = true }: InfoTipProps) {
+export function InfoTip({ label, tip, tabIndex = 0, triggerRef: exposeTrigger }: InfoTipProps) {
   const id = useId();
   const [, rerender] = useState(0);
-  const triggerRef = useRef<HTMLSpanElement | null>(null);
+  const triggerRef = useRef<HTMLButtonElement | null>(null);
   const bubbleRef = useRef<HTMLSpanElement | null>(null);
   const closeTimer = useRef<number | null>(null);
 
@@ -177,21 +177,25 @@ export function InfoTip({ label, tip, focusable = true }: InfoTipProps) {
   );
 
   return (
-    <span
-      ref={triggerRef}
+    <button
+      type="button"
+      ref={(el) => {
+        triggerRef.current = el;
+        exposeTrigger?.(el);
+      }}
       className="infotip"
-      // Focus affordances only when focusable: inside an aria-hidden visual they'd be an
-      // aria-hidden-focus violation, so there we keep mouse-hover only.
-      tabIndex={focusable ? 0 : undefined}
-      aria-describedby={focusable ? id : undefined}
+      tabIndex={tabIndex}
+      aria-describedby={id}
       onMouseEnter={show}
       onMouseLeave={closeSoon}
       onClick={show} // a tap on a phone (no hover); on desktop a click on a hovered term is a no-op
-      onFocus={focusable ? show : undefined}
-      onBlur={focusable ? close : undefined}
+      onFocus={show}
+      onBlur={close}
     >
       {label}
+      {/* A portal, so the bubble is NOT inside the button in the DOM (only in the React tree):
+          it lands at the end of <main> — see "WHERE THE BUBBLE LIVES" above. */}
       {typeof document !== "undefined" ? createPortal(bubble, document.getElementById("main") ?? document.body) : bubble}
-    </span>
+    </button>
   );
 }
