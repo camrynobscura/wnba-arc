@@ -113,27 +113,31 @@ export function StatDrilldownView({ player, stat, statKey, desc, mode, onStatCha
       <td className="text-muted">{r.min != null ? r.min.toFixed(1) : "—"}</td>
       {showRank && (
         <td>
+          {/* The rank column's tips are NOT Tab stops (tabIndex −1; user, 2026-09-27 — a11y review O7):
+              one per season made the table most of the page's stops (14 of 25 on A'ja's). Nothing is
+              lost: hover and tap still open them, a screen reader gets the text in the cell, and the
+              keyboard reaches the same rank + pool / reason in the heatmap cell's popover. */}
           {r.rank != null && r.pool != null ? (
             // The place alone, so the column skims as one number per row; the pool ("of 187") is in
-            // the tooltip — hover, tap or focus. "34th of 187" on every row right-aligned on the
+            // the tooltip — hover or tap. "34th of 187" on every row right-aligned on the
             // pool and left the ranks ragged. The visually hidden copy keeps the pool in the cell's
             // own text for a screen reader moving through the table cell by cell, where a tooltip
             // description isn't reliably spoken.
             <>
-              <InfoTip label={ordinal(r.rank)} tip={`of ${r.pool} ${rankNoun}`} />
+              <InfoTip label={ordinal(r.rank)} tip={`of ${r.pool} ${rankNoun}`} tabIndex={-1} />
               <span className="sr-only"> of {r.pool}</span>
             </>
           ) : r.unranked ? (
             // Compared but under the rank floor: the dash carries the reason the same way a
             // rank carries its pool, and says it outright for a screen reader.
             <>
-              <InfoTip label="—" tip={r.unranked} />
+              <InfoTip label="—" tip={r.unranked} tabIndex={-1} />
               <span className="sr-only"> {r.unranked}</span>
             </>
           ) : r.note ? (
             // A small sample (hollow cell): the dash carries the heatmap footnote's first sentence
             // ("Small sample: 9 of 44 games"). The year cell already spoke it.
-            <InfoTip label="—" tip={r.note} />
+            <InfoTip label="—" tip={r.note} tabIndex={-1} />
           ) : (
             <span className="text-muted">—</span>
           )}

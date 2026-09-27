@@ -7,7 +7,9 @@ interface InfoTipProps {
   /** Plain-language explanation shown on hover/focus. */
   tip: string;
   /** Tab order: 0 (the default) is its own Tab stop; −1 when a composite widget moves focus to it
-      itself — the heatmap's column headers, reached with the arrow keys (roving tabindex). */
+      itself — the heatmap's column headers, reached with the arrow keys (roving tabindex) — or when
+      the keyboard reaches what it says elsewhere: the table's per-season ranks, whose rank + pool the
+      heatmap cell's popover shows. Hover and tap open it either way. */
   tabIndex?: 0 | -1;
   /** The trigger button, for a parent that moves focus to it (the heatmap's arrow keys). */
   triggerRef?: (el: HTMLButtonElement | null) => void;
