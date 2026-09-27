@@ -31,9 +31,11 @@ interface StatDrilldownViewProps {
 
 const PLOT_H = 220; // px
 const LABEL_GAP = 12; // px from a dot's center to its value label
-// The narrowest a season column gets before the plot scrolls sideways (phones): a value label is
-// 17–19px wide, so 22 leaves neighbours 3px apart. Ten columns fit a 320px phone; more scroll.
-const COL_MIN = 22; // px
+// The narrowest a season column gets before the plot scrolls sideways (phones). A column is a click
+// target (it highlights its table row), so 24 — WCAG 2.5.8's minimum; at 22 neighbouring targets touched
+// (a11y review O6, 2026-09-27). A phone's 10px value label is 15–17px wide, leaving neighbours 7–9px
+// apart. Nine columns fit a 320px phone; more scroll.
+const COL_MIN = 24; // px
 // A dot in the bottom 12% of the plot (~26px of PLOT_H) has no room for its value label below it —
 // the label would land on the year axis — so the label goes to the dot's right instead.
 const FLOOR_LABEL_ZONE = 12; // % of the plot's height
@@ -131,13 +133,13 @@ export function StatDrilldownView({ player, stat, statKey, desc, mode, onStatCha
             // Compared but under the rank floor: the dash carries the reason the same way a
             // rank carries its pool, and says it outright for a screen reader.
             <>
-              <InfoTip label="—" tip={r.unranked} tabIndex={-1} />
+              <InfoTip label="—" name="Not ranked" tip={r.unranked} tabIndex={-1} />
               <span className="sr-only"> {r.unranked}</span>
             </>
           ) : r.note ? (
             // A small sample (hollow cell): the dash carries the heatmap footnote's first sentence
             // ("Small sample: 9 of 44 games"). The year cell already spoke it.
-            <InfoTip label="—" tip={r.note} tabIndex={-1} />
+            <InfoTip label="—" name="Not ranked" tip={r.note} tabIndex={-1} />
           ) : (
             <span className="text-muted">—</span>
           )}
@@ -151,6 +153,7 @@ export function StatDrilldownView({ player, stat, statKey, desc, mode, onStatCha
     <section
       id="drilldown"
       aria-labelledby="drilldown-title"
+      className="dd-section"
       style={{ marginTop: "var(--space-8)", paddingTop: "var(--space-6)", borderTop: "2px solid var(--color-divider)" }}
     >
       {/* Header: the stat picker IS the title — a <select> set in the heading face ("Blocks ▾"),
@@ -233,7 +236,11 @@ export function StatDrilldownView({ player, stat, statKey, desc, mode, onStatCha
                 ))}
               </div>
             </div>
-            <div className="dd-scroll">
+            {/* Out of the Tab order: on a phone this scrolls, and Chromium and Firefox then make a
+                scroller a Tab stop of its own — inside the hidden chart, so a screen reader said nothing
+                there, and in Firefox the sticky bar could cover it (user, 2026-09-27: skip it; every
+                number is in the table). */}
+            <div className="dd-scroll" tabIndex={-1}>
               <div className={"dd-inner" + (lastLabelRight ? " dd-edge-label" : "")} style={{ minWidth: n * COL_MIN }}>
                 <div style={{ position: "relative", height: PLOT_H }}>
                   {/* Gridlines */}

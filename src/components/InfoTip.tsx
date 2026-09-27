@@ -4,6 +4,9 @@ import { createPortal } from "react-dom";
 interface InfoTipProps {
   /** The visible term (e.g. "GP"). */
   label: string;
+  /** What a screen reader calls the trigger, when the visible term is only a mark: the rank column's
+      "—" is "Not ranked" (a punctuation-only name said nothing — a11y review R2, 2026-09-27). */
+  name?: string;
   /** Plain-language explanation shown on hover/focus. */
   tip: string;
   /** Tab order: 0 (the default) is its own Tab stop; −1 when a composite widget moves focus to it
@@ -78,7 +81,7 @@ export function placeBubble(trigger: Box, bubble: { width: number; height: numbe
  * The bubble is a React child of the trigger (events bubble in the React tree) but not a DOM
  * child, so "outside" means outside both.
  */
-export function InfoTip({ label, tip, tabIndex = 0, triggerRef: exposeTrigger }: InfoTipProps) {
+export function InfoTip({ label, name, tip, tabIndex = 0, triggerRef: exposeTrigger }: InfoTipProps) {
   const id = useId();
   const [, rerender] = useState(0);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
@@ -187,6 +190,7 @@ export function InfoTip({ label, tip, tabIndex = 0, triggerRef: exposeTrigger }:
       }}
       className="infotip"
       tabIndex={tabIndex}
+      aria-label={name}
       aria-describedby={id}
       onMouseEnter={show}
       onMouseLeave={closeSoon}

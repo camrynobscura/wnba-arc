@@ -1343,10 +1343,16 @@ select.select-reset {
   font-size: var(--fs-xs);
   color: var(--color-text-muted);
 }
-/* Phones: four equal columns of a ~280px row would be ~60px each, too narrow for "36th of 186".
-   Four plates (a counting stat, which has a rank) go two and two; three (a shooting %, which has
-   none) stay on one row. The number steps down one size so "36th of 186" still fits. */
-@media (max-width: 520px) {
+/* A narrow section: four equal columns of a ~280px row would be ~60px each, too narrow for "36th of
+   186". Four plates (a counting stat, which has a rank) go two and two; three (a shooting %, which has
+   none) stay on one row. The number steps down one size so "36th of 186" still fits. The section's
+   width in em (its text size), not the screen's in px: 30em is the old 520px-screen breakpoint at the
+   default size (a 480px column), and it also catches a desktop column whose text is enlarged — at 200%
+   four plates overflowed into each other there ("26.9 PTS" 136px in 78px; a11y review P8, 2026-09-27). */
+.dd-section {
+  container-type: inline-size;
+}
+@container (max-width: 30em) {
   .cs {
     display: flex;
     flex-wrap: wrap;
@@ -1409,8 +1415,8 @@ select.select-reset {
   .dd-inner.dd-edge-label {
     padding-right: var(--space-6);
   }
-  /* Denser columns (COL_MIN 22px): a 10px label is 15–17px wide, so neighbours at the same height
-     keep 5–7px of air; at 11px they were 3px apart and near-equal values ran together ("51%51%").
+  /* Denser columns (COL_MIN 24px): a 10px label is 15–17px wide, so neighbours at the same height
+     keep 7–9px of air; at 11px in 22px columns they were 3px apart and near-equal values ran together ("51%51%").
      Scoped under .dd-scroll to outrank the base .dd-value rule, which comes later in this file. */
   .dd-scroll .dd-value {
     font-size: var(--fs-3xs);
@@ -1429,10 +1435,12 @@ select.select-reset {
   gap: var(--space-2);
 }
 /* A season that is shown but not compared — a small sample, or a year with no reference: a ring,
-   not a filled dot. The same class draws the legend's swatch. */
+   not a filled dot. The same class draws the legend's swatch. -600, the reference dot's grey (hollow,
+   so the two still differ): the ring is the whole mark, and -500 was 2.57 / 2.31:1 against the card
+   (a11y review P7, 2026-09-27). */
 .dd-hollow {
   background: transparent;
-  border: 2px solid var(--color-neutral-500);
+  border: 2px solid var(--color-neutral-600);
   box-sizing: border-box;
 }
 /* A season column: the click target for the row highlight. */
@@ -1555,6 +1563,12 @@ select.select-reset {
   .dd-dot,
   .legend-dot:not(.dd-hollow) {
     box-shadow: 0 0 0 1px CanvasText;
+  }
+  /* The stat picker's ▾ is a background color through a mask, which forced colors swap for the ground
+     — it vanished. It is a control's cue, not data: drawn in the user's text color (a11y review P9). */
+  .select-wrap::after {
+    forced-color-adjust: none;
+    background: CanvasText;
   }
   .scale-grad {
     border-color: CanvasText;
