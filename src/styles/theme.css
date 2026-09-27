@@ -30,8 +30,8 @@
   /* Secondary text — ONE grey for every quieter line: hints, captions, the table and heatmap
      headers, kickers, the plates' labels, a hollow cell's value. The ramp's -700, so it follows the
      theme (the dark block redefines -700). Merged 2026-09-26 from three near-identical greys — 68%
-     and 72% ink mixes and -700 itself (user: "more consistent styling"). The search placeholders joined
-     it 2026-09-27 (they are the boxes' only label); icons and the missed-season dash keep the fainter -600. */
+     and 72% ink mixes and -700 itself (user: "more consistent styling"). The search placeholders and the
+     missed-season dash joined it 2026-09-27 (text a reader needs); icons keep the fainter -600. */
   --color-text-muted: var(--color-neutral-700);
 
   /* Career-heatmap + deviation-bar diverging scale — red = above the reference, blue =
@@ -176,6 +176,9 @@ h6 {
   line-height: 1.12;
   letter-spacing: -0.015em;
   margin: 0 0 var(--space-2);
+  /* A word wider than the whole line breaks rather than run off the screen: "Ogwumike" at 200% text on
+     a 320px phone overflowed beside the photo (a11y review P8, 2026-09-27). Words that fit are untouched. */
+  overflow-wrap: break-word;
 }
 h1 {
   font-size: var(--fs-4xl);
@@ -424,9 +427,12 @@ select.select-reset {
    that recolors both sections. z-index sits under the cell popover / InfoTip bubbles (20) and the
    skip link (100), over the grid. — */
 .has-compare-bar {
-  /* 2px top rule + 12px + the 34px control + 12px + 1px hairline. Keep in step with .compare-bar —
-     the scroll-margin below reads it. */
-  --compare-bar-h: 61px;
+  /* 2px top rule + 0.75rem + the control (2rem buttons + their group's two 1px borders) + 0.75rem + 1px
+     hairline = 61px at the default text size. In rem, like the parts it adds up (the buttons became
+     rem-sized 2026-09-27). The fallback: CompareBar.tsx sets the bar's measured height here once it
+     renders, which also covers the bar wrapping onto more lines with enlarged text on a phone. Keep in
+     step with .compare-bar — the scroll-margin below reads it. */
+  --compare-bar-h: calc(3.5rem + 5px);
 }
 .compare-bar {
   position: sticky;
@@ -443,6 +449,14 @@ select.select-reset {
      is what separates the stuck bar from whatever scrolls under it. */
   border-top: 2px solid var(--color-divider);
   border-bottom: 1px solid var(--color-divider);
+  /* A size container, so the buttons can change shape when the bar is too narrow for them (below). */
+  container-type: inline-size;
+}
+/* Taller than a fifth of the window (enlarged text on a phone): it stays at the top of the page and
+   scrolls away instead of covering a quarter of the screen or more (set by CompareBar.tsx; user,
+   2026-09-27). */
+.compare-bar[data-unstuck] {
+  position: relative;
 }
 /* Anything focused or scrolled-to inside the page stops clear of the stuck bar (WCAG 2.4.11 —
    focus not obscured), including the "See … history" jump into the drill-down section. */
@@ -454,9 +468,15 @@ select.select-reset {
 .compare-bar * {
   scroll-margin-top: 0;
 }
+/* One row — until it doesn't fit (enlarged text on a phone): then "A'ja vs" takes a line of its own
+   above the buttons, both centered (user, 2026-09-27; it overflowed the screen and both ends were cut
+   off — a11y review P8). The bar's real height feeds the scroll clearance (CompareBar.tsx). */
 .seg-wrap {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
+  justify-content: center;
+  row-gap: var(--space-2);
 }
 /* "A'ja vs" ahead of the segments: the name in full ink, a little heavier; the "vs" muted, with
    8px of air on each side (its own padding, not a flex gap, so the spacing belongs to the word). */
@@ -481,7 +501,9 @@ select.select-reset {
 }
 .seg-btn {
   position: relative;
-  height: 32px;
+  /* 2rem (32px at the default size), so the button grows with the reader's text size — at 32px the text
+     ran out of it at 175% (a11y review P8, 2026-09-27). */
+  height: 2rem;
   padding: 0 var(--space-3);
   font: inherit;
   font-size: var(--fs-sm);
@@ -522,6 +544,24 @@ select.select-reset {
 }
 .seg-btn:focus-visible {
   z-index: 1; /* the ring draws over the neighbouring segments' borders */
+}
+/* Too narrow for the three buttons on one line — only with enlarged text on a phone (175%+ on a 390px
+   one, 150% on 320px): each becomes its own outlined box and they wrap, centered, with a little air
+   between them. Wrapped inside the one joined frame they left a gap and a stray divider. The width is
+   in em — the bar's text size — and the buttons are ~12em wide at any text size ("Forwards" 12.05em
+   measured), so this never matches at the default size, where even a 320px phone gives the bar 17.5em
+   (a11y review P8, 2026-09-27). */
+@container (max-width: 12.5em) {
+  .seg {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: var(--space-2);
+    border: 0;
+  }
+  .seg-btn,
+  .seg-item:last-child > .seg-btn {
+    border: 1px solid var(--color-divider);
+  }
 }
 /* The reason bubble opens DOWNWARD: the bar is stuck to the viewport's top edge, so "above" (the
    InfoTip default) would be off-screen. Anchored to the segment's right edge so it stays inside
@@ -744,6 +784,11 @@ select.select-reset {
    rare wide value), so the page itself never scrolls sideways. */
 .table-scroll {
   overflow-x: auto;
+  /* The containing block for the cells' visually hidden text (.sr-only is position: absolute): without
+     it that text was placed against the page, not this scroller, and in WebKit a table wider than the
+     phone pushed it past the screen's edge — the whole page scrolled sideways (51px at 200% text; a11y
+     review P8, 2026-09-27). */
+  position: relative;
 }
 /* Headers — ONE face for the heatmap's stat headers and year labels and the drill-down table's
    column headers, so a label reads the same everywhere (user, 2026-09-26). The "table style": 11px
@@ -822,20 +867,26 @@ select.select-reset {
 /* — deviation heatmap (the top of the player page) — see components/DeviationHeatmap.tsx. Cells
      are <button>s in a roving-tabindex ARIA grid; backgrounds are a diverging color-mix computed
      inline (vs a neutral base token), the season's value inside. */
-/* Scroll wrapper: visible (no clip) on desktop so the header InfoTip bubbles can pop above the
-   grid; scrolls horizontally only on a phone, where the 8 stat columns can't fit 320px — the
-   grid scrolls instead of the page (WCAG 1.4.10 lets a data grid scroll). Keyboard focus into an
-   off-screen cell auto-scrolls it into view. */
-@media (max-width: 480px) {
-  .hm-scroll {
-    overflow-x: auto;
-  }
+/* Scroll wrapper: when the grid can't fit, it scrolls sideways in here instead of pushing the page
+   (WCAG 1.4.10 lets a data grid scroll) — on a phone, where the 8 stat columns can't fit 320px, and at
+   any width when the reader's text size is up (the columns grow with it, below). It was on phones only,
+   when desktop needed visible overflow for the header tooltips — they are portaled now (InfoTip.tsx).
+   4px of padding, taken back by the margin, keep the focus ring of an edge cell (3px out) and of a
+   header (4px out) inside the box, which a scroller would clip; the grid doesn't move. Keyboard focus
+   into an off-screen cell auto-scrolls it into view. */
+.hm-scroll {
+  overflow-x: auto;
+  padding: 4px;
+  margin: -4px;
 }
+/* Column widths in rem, so they grow with the reader's text size: in px, text at 175% ran over the
+   cells into their neighbours ("26.29.43.2…") and past the year column (a11y review P8, 2026-09-27).
+   The same widths at the default 16px (2.5rem = 40px). */
 .heatmap {
   display: grid;
   gap: 2px;
-  --hm-yearcol: 40px;
-  --hm-cellmin: 40px; /* a cell's minimum width (the column template reads it) */
+  --hm-yearcol: 2.5rem;
+  --hm-cellmin: 2.5rem; /* a cell's minimum width (the column template reads it) */
 }
 /* Full 4-digit year by default; 2-digit + narrower year column on mobile. */
 .hm-year-short {
@@ -843,7 +894,7 @@ select.select-reset {
 }
 @media (max-width: 480px) {
   .heatmap {
-    --hm-yearcol: 26px;
+    --hm-yearcol: 1.625rem; /* 26px */
   }
   .hm-year-full {
     display: none;
@@ -858,8 +909,8 @@ select.select-reset {
    minimum by a wide margin (measured 2026-09-24; DECISIONS). */
 @media (max-width: 400px) {
   .heatmap {
-    --hm-yearcol: 24px;
-    --hm-cellmin: 36px;
+    --hm-yearcol: 1.5rem; /* 24px */
+    --hm-cellmin: 2.25rem; /* 36px */
   }
 }
 /* Column headers = the 8 stats (short label, full name in a tooltip). Type: the shared header rule.
@@ -984,7 +1035,9 @@ select.select-reset {
 }
 .hm-empty {
   background: color-mix(in srgb, var(--color-text) 5%, transparent);
-  color: var(--color-neutral-600);
+  /* The "—" is the cell's only content, so it's text a reader needs: the secondary-text grey (-600 was
+     3.48 / 4.34:1 — a11y review P4, 2026-09-27). */
+  color: var(--color-text-muted);
   font-weight: 400;
 }
 /* Small-sample season: shown (with its value) but HOLLOW — no fill, a hairline outline — never

@@ -301,8 +301,11 @@ export function DeviationHeatmap({
         {grid.rows.map((row, r) => (
           <div role="row" style={{ display: "contents" }} key={grid.years[r]}>
             <div role="rowheader" className="hm-rowhead">
-              <span className="hm-year-full">{grid.years[r]}</span>
-              <span className="hm-year-short">{`'${String(grid.years[r]).slice(2)}`}</span>
+              {/* Drawn as "2024", or "'24" on a phone (CSS shows one); a screen reader gets the full year
+                  either way — on a phone the row was named "'26" (a11y review P11, 2026-09-27). */}
+              <span className="hm-year-full" aria-hidden="true">{grid.years[r]}</span>
+              <span className="hm-year-short" aria-hidden="true">{`'${String(grid.years[r]).slice(2)}`}</span>
+              <span className="sr-only">{grid.years[r]}</span>
             </div>
             {row.map((cell, c) => {
               const here = { r, c };

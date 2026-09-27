@@ -1,6 +1,9 @@
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { type CompareSegment, firstName, type HeatmapMode } from "../lib/deviation";
 import { asSentence } from "./InfoTip";
+
+/** The most of the window's height the bar may cover and still stick (see the effect in CompareBar). */
+const MAX_STUCK_SHARE = 0.2;
 
 interface CompareBarProps {
   /** The player's full name; the bar shows the first name ("A'ja vs …"). */
@@ -28,8 +31,44 @@ interface CompareBarProps {
  */
 export function CompareBar({ playerName, mode, segments, onModeChange }: CompareBarProps) {
   const first = firstName(playerName);
+  // The page's scroll clearance (`--compare-bar-h`, theme.css) is the bar's height. Measured here, not
+  // only computed in CSS: with enlarged text on a phone the bar wraps onto two or three lines, and a
+  // focused element must still stop below it (WCAG 2.4.11). At the default size it measures the 61px
+  // the CSS fallback says.
+  //
+  // A bar taller than a fifth of the window stops sticking (`data-unstuck`): it stays at the top of the
+  // page and scrolls away, so a reader with enlarged text keeps most of the screen — wrapped, it covered
+  // 26–40% of a phone's (user, 2026-09-27). No clearance is needed then. Re-decided when the bar changes
+  // size or the window changes WIDTH, not on height alone: a phone's toolbar shows and hides as the page
+  // scrolls, and the bar could flip between the two mid-scroll.
+  const barRef = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    const bar = barRef.current;
+    const host = bar?.closest<HTMLElement>(".has-compare-bar");
+    if (!bar || !host) return;
+    const sync = () => {
+      const tooTall = bar.offsetHeight > window.innerHeight * MAX_STUCK_SHARE;
+      bar.toggleAttribute("data-unstuck", tooTall);
+      host.style.setProperty("--compare-bar-h", tooTall ? "0px" : `${bar.offsetHeight}px`);
+    };
+    sync();
+    const observer = new ResizeObserver(sync);
+    observer.observe(bar);
+    let width = window.innerWidth;
+    const onResize = () => {
+      if (window.innerWidth === width) return;
+      width = window.innerWidth;
+      sync();
+    };
+    window.addEventListener("resize", onResize);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", onResize);
+      host.style.removeProperty("--compare-bar-h");
+    };
+  }, []);
   return (
-    <div className="compare-bar">
+    <div className="compare-bar" ref={barRef}>
       <div className="seg-wrap">
         {/* "A'ja vs" — the subject stays named while the header has scrolled away. Decoration for
             sighted readers; the group's accessible name carries the same sentence. */}
