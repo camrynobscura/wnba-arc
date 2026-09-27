@@ -27,6 +27,13 @@
   --color-neutral-800: #424244;
   --color-neutral-900: #2b2b2d;
 
+  /* Secondary text — ONE grey for every quieter line: hints, captions, the table and heatmap
+     headers, kickers, the plates' labels, a hollow cell's value. The ramp's -700, so it follows the
+     theme (the dark block redefines -700). Merged 2026-09-26 from three near-identical greys — 68%
+     and 72% ink mixes and -700 itself (user: "more consistent styling"). Placeholders, icons and
+     the missed-season dash keep the fainter -600: they are not text a reader needs. */
+  --color-text-muted: var(--color-neutral-700);
+
   /* Career-heatmap + deviation-bar diverging scale — red = above the reference, blue =
      below; each cell/bar mixes toward --hm-base by the deviation magnitude. The *-text
      tokens are the readable shades for small delta text (≥4.5:1); the plain --hm-above /
@@ -51,7 +58,7 @@
      the reference" in the heatmap, and color is reserved for data and team identity. */
   --duotone-neutral: #98989b;
 
-  /* Max content width for every view (App shell, select, summary, drill-down). */
+  /* Max content width for every page. */
   --app-width: 600px;
 
   --font-heading: 'Barlow Condensed', system-ui, sans-serif;
@@ -89,11 +96,9 @@
   --radius-md: 4px;
   --radius-lg: 7px;
 
-  /* Elevation — derived from the ground: soft ink-tinted shadows on a
-     light theme, a hairline edge + ambient darkness on a dark one. */
-  --shadow-sm: 0 1px 2px color-mix(in srgb, #2b2b2d 14%, transparent);
+  /* Elevation — the one shadow the floating pieces use (popover, tooltips, search results): a soft
+     ink-tinted shadow on the light ground, deeper ambient darkness on the dark one. */
   --shadow-md: 0 3px 10px color-mix(in srgb, #2b2b2d 16%, transparent);
-  --shadow-lg: 0 12px 32px color-mix(in srgb, #2b2b2d 22%, transparent);
 }
 
 /* — dark theme —
@@ -135,9 +140,7 @@
   --hm-base: #1e2229;
 
   /* Elevation on a dark ground: deeper, near-black ambient shadow. */
-  --shadow-sm: 0 1px 2px color-mix(in srgb, #000 40%, transparent);
   --shadow-md: 0 3px 12px color-mix(in srgb, #000 48%, transparent);
-  --shadow-lg: 0 12px 34px color-mix(in srgb, #000 58%, transparent);
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
@@ -213,19 +216,11 @@ img {
   display: block;
   max-width: 100%;
 }
-figure {
-  margin: 0;
-}
-figcaption {
-  font-size: var(--fs-2xs);
-  margin-top: var(--space-1);
-  color: color-mix(in srgb, var(--color-text) 55%, transparent);
-}
 
 /* — text utilities — */
-/* 68% ink meets WCAG 1.4.3 (~5:1 on the page ground); 55% read ~3.6:1 and failed. */
+/* The secondary-text grey (--color-text-muted) as a class. */
 .text-muted {
-  color: color-mix(in srgb, var(--color-text) 68%, transparent);
+  color: var(--color-text-muted);
 }
 /* Condensed display face for ad-hoc titley labels/values that aren't <h*> elements
    (headings already get this from the h1–h6 rule). Size stays at the call site; a
@@ -267,15 +262,15 @@ figcaption {
    COMPONENTS — the UI pieces, built with the tokens above.
    ══════════════════════════════════════════════════════════════════════ */
 
-/* — view layout — shared across the top-level views (Summary, drill-down) — */
-/* The centered page column every view's <main> uses. */
+/* — view layout — shared by the three pages (landing, player, About) — */
+/* The centered page column every page's <main> uses (each page sets its own padding). */
 .view-main {
   max-width: var(--app-width);
   width: 100%;
   margin: 0 auto;
   padding: var(--space-5) var(--space-5) var(--space-4);
 }
-/* The top bar of a view: back-control on the left, player-jump on the right. */
+/* The player page's top row: "All players" on the left, the player search on the right. */
 .view-header {
   display: flex;
   align-items: center;
@@ -330,17 +325,13 @@ figcaption {
     text-underline-offset: 3px;
   }
 }
-.btn-block {
-  width: 100%;
-  margin-top: var(--space-2);
-}
 
 /* — forms — */
 .field > label {
   display: block;
   font-size: var(--fs-xs);
   margin-bottom: var(--space-2);
-  color: color-mix(in srgb, var(--color-text) 70%, transparent);
+  color: var(--color-text-muted);
 }
 .input {
   width: 100%;
@@ -363,8 +354,8 @@ figcaption {
 }
 
 /* Custom <select> styling: native select chrome renders at inconsistent heights across
-   OS/browsers, so we drop the native appearance and draw our own chevron — giving the
-   season picker a deterministic 36px height that matches the segmented controls. */
+   OS/browsers, so we drop the native appearance and draw our own chevron (components/Select.tsx).
+   Its one use today is the drill-down's stat picker, the title variant further down. */
 .select-wrap {
   position: relative;
   display: inline-block;
@@ -407,21 +398,15 @@ select.select-reset {
   font-size: var(--fs-3xs);
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--color-neutral-700);
-}
-.elev-sm {
-  box-shadow: var(--shadow-sm);
+  color: var(--color-text-muted);
 }
 .elev-md {
   box-shadow: var(--shadow-md);
 }
-.elev-lg {
-  box-shadow: var(--shadow-lg);
-}
 
 /* — compare bar — the player page's ONE sticky row (components/CompareBar.tsx): the page-wide
    "Compare to" segmented control, centered (user's call, 09-23; it was left-aligned where the old
-   dropdown sat), and nothing else. It replaced the app-wide top bar (2026-09-23). Sticky on every width — a 48px band is worth it for the one control
+   dropdown sat), and nothing else. It replaced the app-wide top bar (2026-09-23). Sticky on every width — a 61px band is worth it for the one control
    that recolors both sections. z-index sits under the cell popover / InfoTip bubbles (20) and the
    skip link (100), over the grid. — */
 .has-compare-bar {
@@ -468,8 +453,8 @@ select.select-reset {
 }
 .seg-vs {
   padding: 0 10px 0 8px; /* user's tuning: a touch more air before the segments than after the name */
-  /* The app's muted tone (.text-muted), not neutral-600: that grey failed 4.5:1 on the light ground. */
-  color: color-mix(in srgb, var(--color-text) 68%, transparent);
+  /* The secondary-text grey, not neutral-600: that grey failed 4.5:1 on the light ground. */
+  color: var(--color-text-muted);
 }
 .seg {
   display: inline-flex;
@@ -599,6 +584,28 @@ select.select-reset {
 .search-underline::placeholder {
   color: var(--color-neutral-600);
 }
+/* One result row in either search's dropdown (a role="option" div): the name left, the team/position
+   right. Its own class — the rows used to borrow the button classes and undo half of them inline.
+   inline-flex at full width, as they rendered then. The highlighted row (arrow keys or hover) is the
+   one marked aria-selected. */
+.search-option {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: var(--space-3);
+  width: 100%;
+  padding: var(--space-3) var(--space-4);
+  font-family: var(--font-heading);
+  font-weight: var(--font-heading-weight);
+  font-size: var(--fs-md);
+  line-height: 1.2;
+  color: var(--color-text);
+  border-bottom: 1px solid var(--color-divider);
+  cursor: pointer;
+}
+.search-option[aria-selected="true"] {
+  background: color-mix(in srgb, var(--color-neutral-900) 10%, transparent);
+}
 
 /* Light/dark switch — a bare icon in a 32 × 34px hit area (no border: the user, 2026-09-26 — a box
    around a lone icon looked odd; 32 wide: 28 put the glyphs 11px apart and read as easy to mis-tap on
@@ -704,7 +711,7 @@ select.select-reset {
   font-size: var(--fs-2xs);
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: color-mix(in srgb, var(--color-text) 72%, transparent);
+  color: var(--color-text-muted);
 }
 .table thead th {
   text-align: left;
@@ -731,7 +738,7 @@ select.select-reset {
 }
 /* Column dividers between the body cells: a hairline so the columns' equal widths are visible.
    Without them the right-aligned numbers read as unevenly spaced (the gaps vary with each word's
-   width — the columns are identical, `table-layout: fixed`). Lighter than the row rules (5% vs 8%);
+   width — the columns are equal-width `<col>`s). Lighter than the row rules (5% vs 8%);
    the zebra stays for row tracking; none in the header row (the labels sit on one clean line).
    Drawn as a 1px background line inside the cell, NOT a border, stopping 1px short of the top and
    bottom: as a translucent border it crossed the (translucent) row rules and every intersection
@@ -764,11 +771,11 @@ select.select-reset {
   font-weight: 700;
 }
 
-/* — deviation heatmap (the summary view) — see components/DeviationHeatmap.tsx. Cells are
-     <button>s in a roving-tabindex ARIA grid; backgrounds are a diverging color-mix computed
-     inline (vs a neutral base token), value + gap stacked inside. */
+/* — deviation heatmap (the top of the player page) — see components/DeviationHeatmap.tsx. Cells
+     are <button>s in a roving-tabindex ARIA grid; backgrounds are a diverging color-mix computed
+     inline (vs a neutral base token), the season's value inside. */
 /* Scroll wrapper: visible (no clip) on desktop so the header InfoTip bubbles can pop above the
-   grid; scrolls horizontally only on a phone, where 8 value+gap columns can't fit 320px — the
+   grid; scrolls horizontally only on a phone, where the 8 stat columns can't fit 320px — the
    grid scrolls instead of the page (WCAG 1.4.10 lets a data grid scroll). Keyboard focus into an
    off-screen cell auto-scrolls it into view. */
 @media (max-width: 480px) {
@@ -822,7 +829,7 @@ select.select-reset {
   justify-content: flex-start;
 }
 /* Cells are <button>s (a roving-tabindex grid) — reset the native chrome, keep the tile look.
-   One number per cell (the value); the gap/rank live in the reveal strip below. Every cell is
+   One number per cell (the value); the gap and rank live in the cell's popover. Every cell is
    interactive (tap / hover / focus reveals it), so all get the pointer + hover ring. */
 .hm-cell {
   position: relative;
@@ -864,7 +871,7 @@ select.select-reset {
    to that stat's history, anchored to the cell. `fixed` (viewport coords set inline from the
    cell's rect) so it's never clipped by the mobile horizontal-scroll wrapper and always lands
    where the finger/pointer is — not in a strip that may be a screen away on a long career.
-   z-index above the sticky header (5), matching the InfoTip bubble. */
+   z-index 20: above the sticky compare bar (10), level with the InfoTip bubbles. */
 .hm-popover {
   position: fixed;
   z-index: 20;
@@ -899,7 +906,7 @@ select.select-reset {
   margin: 0;
 }
 .hm-popover-rows dt {
-  color: var(--color-neutral-700);
+  color: var(--color-text-muted);
 }
 .hm-popover-rows dd {
   margin: 0;
@@ -940,7 +947,7 @@ select.select-reset {
 .hm-muted {
   background: transparent;
   box-shadow: inset 0 0 0 1.5px var(--hm-mark);
-  color: var(--color-neutral-700);
+  color: var(--color-text-muted);
   font-weight: 400;
 }
 /* The "there's a note" mark on a not-normal cell: an asterisk in the top-right corner (was a 5px
@@ -952,15 +959,13 @@ select.select-reset {
   position: absolute;
   top: 2px;
   right: 5px;
-  font-size: 16px;
+  font-size: var(--fs-base); /* rem, like all type: grows with the reader's browser font size */
   line-height: 1;
   font-weight: 400;
   color: var(--hm-mark-glyph);
 }
-/* Diverging scale key — shared by the Career Trend heatmap and the Season Breakdown bars
-   (see components/ScaleKey.tsx). End labels + arrows are the non-color cue for the
-   encoding (1.4.1). .scale-legend is the fixed-width wrapper, placed directly above the
-   grid / bars in both sections so the two keys sit identically. */
+/* Diverging scale key above the heatmap (components/ScaleKey.tsx). End labels + arrows are the
+   non-color cue for the encoding (1.4.1). .scale-legend is its full-width wrapper. */
 .scale-legend {
   width: 100%;
 }
@@ -1070,7 +1075,7 @@ select.select-reset {
 }
 
 /* Info tooltip: a focusable term with a bubble shown on hover/focus/tap. The bubble is NOT a
-   DOM child of the trigger: InfoTip.tsx portals it to the end of <body> as an ordinary absolutely
+   DOM child of the trigger: InfoTip.tsx portals it to the end of <main> as an ordinary absolutely
    positioned element, placed in page coordinates from the trigger's rectangle (rules in the
    component). Why not simpler things: a child bubble is clipped by the phone heatmap's horizontal
    scroller (a box that scrolls one way clips the other); a `popover` / `position: fixed` bubble
@@ -1156,8 +1161,8 @@ select.select-reset {
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
-   STAT DRILL-DOWN — the career summary plates, the chart's league band, and
-   the table's rank column. (See components/StatDrilldownView.tsx.)
+   STAT DRILL-DOWN — the career summary plates, the dumbbell chart, and the
+   stat picker as the title. (See components/StatDrilldownView.tsx.)
    ══════════════════════════════════════════════════════════════════════ */
 
 /* — career summary: a row of "plates" — equal columns however many facts there are (3 or 4),
@@ -1194,7 +1199,7 @@ select.select-reset {
   font-size: var(--fs-2xs);
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--color-neutral-700);
+  color: var(--color-text-muted);
   white-space: nowrap;
 }
 .cs-v {
@@ -1211,12 +1216,12 @@ select.select-reset {
 .cs-q {
   font-size: var(--fs-sm);
   font-weight: 500;
-  color: var(--color-neutral-700);
+  color: var(--color-text-muted);
 }
 .cs-n {
   margin: var(--space-1) 0 0;
   font-size: var(--fs-xs);
-  color: var(--color-neutral-700);
+  color: var(--color-text-muted);
 }
 /* Phones: four equal columns of a ~280px row would be ~60px each, too narrow for "36th of 186".
    Four plates (a counting stat, which has a rank) go two and two; three (a shooting %, which has
@@ -1261,7 +1266,7 @@ select.select-reset {
   right: 4px;
   transform: translateY(-50%);
   font-size: var(--fs-3xs);
-  color: var(--color-neutral-700);
+  color: var(--color-text-muted);
   white-space: nowrap;
 }
 .dd-scroll {
@@ -1290,6 +1295,18 @@ select.select-reset {
   .dd-scroll .dd-value {
     font-size: var(--fs-3xs);
   }
+}
+/* The chart's legend: a wrapping row of swatch + words (the swatch is `.legend-dot`). */
+.dd-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-4);
+  font-size: var(--fs-xs);
+}
+.dd-legend-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
 }
 /* A season that is shown but not compared — a small sample, or a year with no reference: a ring,
    not a filled dot. The same class draws the legend's swatch. */
@@ -1374,4 +1391,52 @@ select.select-reset {
   height: 8px;
   right: 10px;
   top: calc(50% + 2px); /* a couple of px below center (user's tuning) */
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   HIGH CONTRAST (Windows forced colors) — the data keeps its colors.
+   Forced colors swap every author color for the user's palette: measured 2026-09-26, the heatmap
+   went all one fill, the chart's dots and the legend swatches vanished, the color key emptied and
+   the hollow cells lost their outline (a box-shadow, which forced colors drop). Here the color IS
+   the content — "the colors are the whole point" (user, 2026-09-26) — so only the pieces whose color
+   is the data opt out (`forced-color-adjust: none`, which does nothing outside forced colors);
+   text, grounds, rules and controls still follow the user's palette. A cell keeps its own tested
+   pairing (its value on its fill). The dots and swatches sit on the user's ground, which can be any
+   color: against black or white they clear 3:1 in both themes (lowest 3.63), but a dark-grey ground
+   like #2d3236 drops the dark theme's blue to 2.62 (computed) — so in forced colors each dot and
+   swatch gets a 1px ring in the user's text color, and the key a border in it, which contrast with
+   that ground whatever it is. (The compare bar's pressed segment has its own rule, above.)
+   ══════════════════════════════════════════════════════════════════════ */
+.hm-cell:not(.hm-muted):not(.hm-empty),
+.dd-dot,
+.legend-dot:not(.dd-hollow),
+.scale-grad {
+  forced-color-adjust: none;
+}
+@media (forced-colors: active) {
+  /* An exempt cell would draw its focus ring in the theme's ink, outside the cell on the user's
+     ground (dark ink on a black ground = no ring): the ring takes the system highlight instead. */
+  .hm-cell:focus-visible {
+    outline-color: Highlight;
+  }
+  /* A hollow (small-sample) cell follows the user's palette; its outline, a box-shadow elsewhere,
+     is redrawn as an inset outline in the user's text color so the cell still reads as hollow. */
+  .hm-muted {
+    outline: 1.5px solid CanvasText;
+    outline-offset: -1.5px;
+  }
+  /* The hover ring is a box-shadow too; cells that follow the palette get an outline instead. */
+  .hm-muted:hover,
+  .hm-empty:hover {
+    outline: 2px solid Highlight;
+    outline-offset: -2px;
+  }
+  /* The exempt dots, swatches and key, edged in the user's text color (see the banner). */
+  .dd-dot,
+  .legend-dot:not(.dd-hollow) {
+    box-shadow: 0 0 0 1px CanvasText;
+  }
+  .scale-grad {
+    border-color: CanvasText;
+  }
 }

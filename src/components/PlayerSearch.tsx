@@ -161,17 +161,7 @@ export function PlayerSearch({ players, listError, onPick, variant = "hero" }: P
               id={optionId(i)}
               role="option"
               aria-selected={i === highlight}
-              className="btn btn-block"
-              style={{
-                justifyContent: "flex-start",
-                border: 0,
-                borderBottom: "1px solid var(--color-divider)",
-                padding: "var(--space-3) var(--space-4)",
-                gap: "var(--space-3)",
-                marginTop: 0,
-                cursor: "pointer",
-                background: i === highlight ? "color-mix(in srgb, var(--color-neutral-900) 10%, transparent)" : undefined,
-              }}
+              className="search-option"
               // Keep focus on the input (so typing continues) while still registering the click.
               onMouseDown={(e) => e.preventDefault()}
               onMouseEnter={() => setHighlight(i)}

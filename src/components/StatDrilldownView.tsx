@@ -185,21 +185,21 @@ export function StatDrilldownView({ player, stat, statKey, desc, mode, onStatCha
       {/* Legend for the chart — hidden from assistive tech with the chart it explains (below): a
           screen reader gets every number from the table, so the legend was a key to nothing. */}
       <div aria-hidden="true" style={{ margin: "var(--space-5) 0 var(--space-3)" }}>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-2) var(--space-4)", fontSize: "var(--fs-xs)" }}>
-          <span style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
+        <div className="dd-legend">
+          <span className="dd-legend-item">
             <span aria-hidden="true" className="legend-dot" style={{ background: "var(--hm-above)" }} />
             Above {refNoun}
           </span>
-          <span style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
+          <span className="dd-legend-item">
             <span aria-hidden="true" className="legend-dot" style={{ background: "var(--hm-below)" }} />
             Below {refNoun}
           </span>
-          <span style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
+          <span className="dd-legend-item">
             <span aria-hidden="true" className="legend-dot" style={{ background: "var(--color-neutral-600)" }} />
             {refNoun.charAt(0).toUpperCase() + refNoun.slice(1)}
           </span>
           {anyNotCompared && (
-            <span style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
+            <span className="dd-legend-item">
               <span aria-hidden="true" className="legend-dot dd-hollow" />
               Not compared
             </span>
@@ -286,6 +286,7 @@ export function StatDrilldownView({ player, stat, statKey, desc, mode, onStatCha
                         )}
                         {yBase != null && (
                           <span
+                            className="dd-dot"
                             style={{
                               position: "absolute",
                               left: "50%",
@@ -299,7 +300,7 @@ export function StatDrilldownView({ player, stat, statKey, desc, mode, onStatCha
                           />
                         )}
                         <span
-                          className={notCompared ? "dd-hollow" : undefined}
+                          className={notCompared ? "dd-hollow" : "dd-dot"}
                           style={{
                             position: "absolute",
                             left: "50%",

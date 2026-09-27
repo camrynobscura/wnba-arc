@@ -5,16 +5,24 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>WNBA Arc — Player Career Arc Visualizer</title>
-    <!-- Apply the theme before first paint (stored choice, else OS) to avoid a flash. -->
+    <!-- Apply the theme before first paint (stored choice, else OS) to avoid a flash. Storage is read in
+         its own try: a browser that blocks site storage throws on the read, and that must not skip the
+         stamp — the page would sit on the light palette whatever the OS said (craftsmanship review 2.7). -->
     <script>
       (function () {
+        var t = null;
         try {
           var k = localStorage.getItem("arc-theme");
-          var t = k === "light" || k === "dark"
-            ? k
-            : (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
-          document.documentElement.dataset.theme = t;
+          if (k === "light" || k === "dark") t = k;
         } catch (e) {}
+        if (!t) {
+          try {
+            t = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+          } catch (e) {
+            t = "light";
+          }
+        }
+        document.documentElement.dataset.theme = t;
       })();
     </script>
   </head>

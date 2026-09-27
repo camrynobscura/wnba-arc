@@ -24,7 +24,7 @@ const h2Style: React.CSSProperties = {
  */
 export function AboutView({ onBack }: AboutViewProps) {
   return (
-    <main id="main" style={{ maxWidth: "var(--app-width)", width: "100%", margin: "0 auto", padding: "var(--space-10) var(--space-5) var(--space-12)" }}>
+    <main id="main" className="view-main" style={{ padding: "var(--space-10) var(--space-5) var(--space-12)" }}>
       <button className="btn btn-ghost" style={{ marginBottom: "var(--space-5)", paddingInline: 0 }} onClick={onBack}>
         ← Back
       </button>
