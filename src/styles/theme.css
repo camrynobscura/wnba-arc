@@ -229,6 +229,14 @@ img {
   font-family: var(--font-heading);
   font-weight: var(--font-heading-weight);
 }
+/* A kicker: the small tracked caps line above a title — the player's team · position · number, the
+   drill-down's "Stat detail". (Was `.card-kicker`, from the ported card styles; it's used on no card.) */
+.kicker {
+  font-size: var(--fs-3xs);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
 
 /* — focus & selection — */
 :focus {
@@ -327,12 +335,6 @@ img {
 }
 
 /* — forms — */
-.field > label {
-  display: block;
-  font-size: var(--fs-xs);
-  margin-bottom: var(--space-2);
-  color: var(--color-text-muted);
-}
 .input {
   width: 100%;
   min-height: 36px;
@@ -354,7 +356,7 @@ img {
 }
 
 /* Custom <select> styling: native select chrome renders at inconsistent heights across
-   OS/browsers, so we drop the native appearance and draw our own chevron (components/Select.tsx).
+   OS/browsers, so we drop the native appearance and draw our own chevron (components/TitleSelect.tsx).
    Its one use today is the drill-down's stat picker, the title variant further down. */
 .select-wrap {
   position: relative;
@@ -393,12 +395,6 @@ select.select-reset {
   padding: var(--space-3);
   border-radius: var(--radius-md);
   background: var(--color-surface);
-}
-.card-kicker {
-  font-size: var(--fs-3xs);
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--color-text-muted);
 }
 .elev-md {
   box-shadow: var(--shadow-md);
@@ -612,12 +608,13 @@ select.select-reset {
   background: color-mix(in srgb, var(--color-neutral-900) 10%, transparent);
 }
 
-/* Light/dark switch — a bare icon in a 32 × 34px hit area (no border: the user, 2026-09-26 — a box
+/* The footer's icon controls — the About link and the light/dark switch (was `.theme-toggle`, which
+   named only one of them): a bare icon in a 32 × 34px hit area (no border: the user, 2026-09-26 — a box
    around a lone icon looked odd; 32 wide: 28 put the glyphs 11px apart and read as easy to mis-tap on
    a phone, so 15px now; over the 24px minimum target of WCAG 2.5.8; 34 tall to sit level with the
-   freshness chip). Also the footer's About link (an <a>, hence the text-decoration
-   reset). The keyboard focus ring is the global :focus-visible outline. */
-.theme-toggle {
+   freshness chip). The About link is an <a>, hence the text-decoration reset. The keyboard focus
+   ring is the global :focus-visible outline. */
+.icon-btn {
   text-decoration: none;
   display: inline-flex;
   align-items: center;
@@ -632,16 +629,22 @@ select.select-reset {
   border-radius: 0;
   cursor: pointer;
 }
-.theme-toggle svg {
+.icon-btn svg {
   display: block;
 }
 /* Hover dims the icon slightly (user, 2026-09-26) to the mid grey — measured 5.87:1 light / 6.91:1
-   dark on the page (14.79 / 13.45 at rest), well over the 3:1 an icon needs. Hover devices only: a tapped toggle on a phone would
+   dark on the page (14.79 / 13.45 at rest), well over the 3:1 an icon needs. Hover devices only: a tapped icon on a phone would
    otherwise stay dimmed and read as disabled. */
 @media (hover: hover) {
-  .theme-toggle:hover {
+  .icon-btn:hover {
     color: var(--color-neutral-700);
   }
+}
+
+/* — landing: a featured player's row takes a faint wash under the pointer (it lived alone in app.css
+   until 2026-09-26) — */
+.row-hover:hover {
+  background: color-mix(in srgb, var(--color-text) 4%, transparent);
 }
 
 /* — player photo / avatar (see components/PlayerPhoto.tsx) —
@@ -1369,7 +1372,7 @@ select.select-reset {
 }
 
 
-/* — a <select> as a section title (components/Select.tsx `variant="title"`; the drill-down's stat
+/* — a <select> as a section title (components/TitleSelect.tsx; the drill-down's stat
    picker, which doubles as its heading). The visible title is a span in the heading face (type set
    inline in the component); the native select lies over it invisible at the normal size, so the
    browser's popup menu is normal-sized (Safari sizes the menu by the select's font and ignores

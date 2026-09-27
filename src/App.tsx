@@ -11,7 +11,7 @@ import { PlayerRoute } from "./routes/PlayerRoute";
 /**
  * App shell: loads the app-wide data (roster + per-year league/position averages + freshness)
  * ONCE, shares it via context, and renders the route table. The URL is now the source of truth —
- * which player, stat, season, and compare-target all live in the address bar, not in state.
+ * which player, which stat's history, and the compare mode all live in the address bar, not in state.
  */
 export default function App() {
   // Loaded once on startup: the player list + per-year league data.

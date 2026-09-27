@@ -22,6 +22,7 @@ import {
   sampleNote,
   smallSampleReason,
   spokenValue,
+  upperFirst,
   type HeatmapCell,
   type HeatmapGrid,
   type League,
@@ -382,6 +383,15 @@ describe("fmtCell — the glance form drawn in a heatmap cell", () => {
   it("is a dash for no value", () => {
     expect(fmtCell(null, true)).toBe("—");
     expect(fmtCell(undefined, false)).toBe("—");
+  });
+});
+
+describe("upperFirst — a noun that starts a label", () => {
+  it("raises only the first letter", () => {
+    expect(upperFirst("career avg")).toBe("Career avg");
+    expect(upperFirst("forwards")).toBe("Forwards");
+    expect(upperFirst("League avg")).toBe("League avg");
+    expect(upperFirst("")).toBe("");
   });
 });
 

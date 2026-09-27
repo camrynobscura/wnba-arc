@@ -67,7 +67,7 @@ export function PlayerView({
             the name, as before (craftsmanship review 1.6, 2026-09-26). */}
         <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
           <h1 style={{ fontSize: "var(--fs-2xl)", margin: 0, lineHeight: 1 }}>{player.name}</h1>
-          <div className="card-kicker" style={{ marginBottom: "var(--space-1)", order: -1 }}>
+          <div className="kicker" style={{ marginBottom: "var(--space-1)", order: -1 }}>
             {playerMeta(player, true)}
           </div>
         </div>

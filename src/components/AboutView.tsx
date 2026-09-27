@@ -19,8 +19,8 @@ const h2Style: React.CSSProperties = {
 /**
  * Static "about" page explaining what ARC shows, how to read it, and where the
  * data comes from. A top-level view (not a modal) so the content has room and
- * needs no focus-trap handling. Reachable from the header on any screen; "Back"
- * returns the user to wherever they were (reconstructed in App from view state).
+ * needs no focus-trap handling. Reachable from every page's footer; "Back" returns the
+ * reader to where they came from (history back — AboutRoute; the landing page for a cold link).
  */
 export function AboutView({ onBack }: AboutViewProps) {
   return (

@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { PlayerDetail, SeasonPlayed } from "../data/api";
 import { STATS } from "../data/stats";
-import { buildHeatmapGrid, compareSentence, firstName, isCountingStat, isRateStat, lowerFirst, type HeatmapCell, type HeatmapMode, type League, ordinal, type PositionLookup, positionNoun, rankNote, scaleNoun, selfModeAvailable, spokenValue, type StatKey } from "../lib/deviation";
+import { buildHeatmapGrid, compareSentence, firstName, isCountingStat, isRateStat, lowerFirst, type HeatmapCell, type HeatmapMode, type League, ordinal, type PositionLookup, positionNoun, positionSingular, rankNote, scaleNoun, selfModeAvailable, spokenValue, type StatKey, upperFirst } from "../lib/deviation";
 import { type GridCoord, gridMove, HEADER_ROW } from "../lib/gridNav";
 import { InfoTip } from "./InfoTip";
 import { ScaleKey } from "./ScaleKey";
@@ -23,13 +23,11 @@ interface DeviationHeatmapProps {
 // white text can clear.
 const MAX_INTENSITY = 75;
 
-const POS_SINGULAR: Record<string, string> = { G: "guard", F: "forward", C: "center" };
-
 /** Spoken phrase for a cell's accessible name ("their career average", "the league average", …). */
 function referencePhrase(mode: HeatmapMode, pos: string | null): string {
   if (mode === "self") return "their career average";
   if (mode === "league") return "the league average";
-  return `the ${POS_SINGULAR[pos ?? ""] ?? "position"} average`;
+  return `the ${positionSingular(pos)} average`;
 }
 
 type Coord = GridCoord;
@@ -41,8 +39,8 @@ const HINT_ID = "hm-grid-hint";
 /**
  * The player's whole career as one season × stat grid, colored by how far each stat sits from a
  * **switchable reference** — their own career, their position peers, or the league (that year).
- * Warm above / cool below. Each cell shows only the value; the *detail* (gap, and the percentile
- * rank in the peer modes) lives in a **popover anchored to the cell**: hover previews it, tap or
+ * Warm above / cool below. Each cell shows only the value; the *detail* (the reference average, the
+ * gap, the rank) lives in a **popover anchored to the cell**: hover previews it, tap or
  * click pins it, arrow-key focus opens it, Esc / click-outside closes it. It carries a link to
  * that stat's full history. Cells never navigate — so a tap on a phone gets the same detail as a
  * mouse, right where the finger is (not in a strip that may be a screen below on a long career).
@@ -433,7 +431,7 @@ function CellPopover({ cell, anchor, noun, rank, rankNote, rankNoun, pinned, pop
         <dd>{cell.valueFmt}</dd>
         {cell.refValue != null && (
           <>
-            <dt>{noun.charAt(0).toUpperCase() + noun.slice(1)}</dt>
+            <dt>{upperFirst(noun)}</dt>
             <dd>{cell.refFmt}</dd>
           </>
         )}

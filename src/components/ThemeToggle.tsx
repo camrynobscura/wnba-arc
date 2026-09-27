@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
-import { resolveTheme, setTheme, storedTheme, systemTheme, type Theme } from "../lib/theme";
+import { applyTheme, resolveTheme, setTheme, storedTheme, systemTheme, type Theme } from "../lib/theme";
 
 /**
- * Header light/dark switch. Seeds from the resolved theme (OS preference until the
+ * The footer's light/dark switch. Seeds from the resolved theme (OS preference until the
  * user picks one), then persists an explicit choice. While no choice is stored it
  * keeps following the OS live, so changing the system theme still flips the app.
  */
@@ -16,7 +16,7 @@ export function ThemeToggle() {
       if (storedTheme() == null) {
         const t = systemTheme();
         setThemeState(t);
-        document.documentElement.dataset.theme = t;
+        applyTheme(t);
       }
     };
     mq.addEventListener("change", onChange);
@@ -33,7 +33,7 @@ export function ThemeToggle() {
   return (
     <button
       type="button"
-      className="theme-toggle"
+      className="icon-btn"
       onClick={toggle}
       aria-label={`Switch to ${next} mode`}
       title={`Switch to ${next} mode`}

@@ -250,6 +250,12 @@ export function lowerFirst(s: string): string {
   return s.charAt(0).toLowerCase() + s.slice(1);
 }
 
+/** First letter raised, for a noun that starts a label ("career avg" → "Career avg", "forwards" →
+    "Forwards"). (data/stats.ts keeps its own copy: the data layer doesn't import this one.) */
+export function upperFirst(s: string): string {
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
 /** The seasons a career average is computed over: those over the COLOR bar (partial seasons count —
     tinted means counted), or every played season when fewer than two are (a one-season career still
     gets a number). Games only — a shooting % pools makes over attempts, so an attempt-thin season
@@ -299,7 +305,7 @@ export function rankNote(s: SeasonPlayed, key: StatKey, mode: HeatmapMode, playe
 
 /** Whether a season is too thin a sample to trust FOR A GIVEN STAT — either too few games
     (any stat) or, for a shooting %, too few attempts of that shot. This is the per-stat gate
-    the heatmap cells, drill-down bars, and summary bars all read; it supersedes the plain
+    the heatmap cells, the stat chart and its table all read; it supersedes the plain
     games-only isSmallSample everywhere a single (season, stat) value is shown or selected. */
 export function isStatSmallSample(season: SeasonPlayed, statKey: StatKey): boolean {
   if (isSmallSample(season)) return true;
@@ -686,7 +692,7 @@ export interface CompareSegment {
  */
 export function compareSegments(canSelf: boolean, position: string | null, positionsLoaded: boolean): CompareSegment[] {
   const noun = positionNoun(position);
-  const positionLabel = position == null ? "Position" : noun.charAt(0).toUpperCase() + noun.slice(1);
+  const positionLabel = position == null ? "Position" : upperFirst(noun);
   const positionReason = position == null ? "No position on record" : positionsLoaded ? null : "Position averages unavailable";
   return [
     // "Self" (user's call, 2026-09-24): "Career" read as career totals; "A'ja vs Self" is the sports
@@ -702,7 +708,7 @@ export function compareSegments(canSelf: boolean, position: string | null, posit
  * From zero, a true-shooting career of 42–56% used a fifth of the plot and every gap looked the
  * same. This is a dot chart — the reader compares positions, not bar lengths — so a non-zero
  * floor is honest, and the bottom tick says so ("40%"). Counting stats keep their zero: it is a
- * real floor players sit near (blocks 0.2–0.5), and so does the league band's low edge.
+ * real floor players sit near (blocks 0.2–0.5).
  *
  * Rules, in tenths of a percentage point (integers, so no float drift):
  *  - covers every value passed (the player's seasons AND the reference dots), with at least one

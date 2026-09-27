@@ -1,11 +1,10 @@
 interface ScaleKeyProps {
-  /** The comparison noun the ends read against — e.g. "average" or "baseline". */
+  /** The reference the ends read against — `scaleNoun()`: "career avg", "league avg", "center avg". */
   noun: string;
 }
 
 /**
- * The diverging blue→base→red gradient key, shared by the Career Trend heatmap and the
- * Season Breakdown bars so both views explain the same scale identically. The end labels
+ * The diverging blue→base→red gradient key above the heatmap. The end labels
  * + arrows are the non-color cue for the encoding (WCAG 1.4.1). Width/placement are the
  * caller's job; this renders just the gradient bar and its two end labels.
  */

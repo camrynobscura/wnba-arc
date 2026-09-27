@@ -6,6 +6,7 @@ import {
   ordinal,
   positionNoun,
   scaleNoun,
+  upperFirst,
   type HeatmapMode,
   type StatDetail,
   type StatKey,
@@ -13,7 +14,7 @@ import {
 } from "../lib/deviation";
 import { CareerSummary } from "./CareerSummary";
 import { InfoTip } from "./InfoTip";
-import { LabeledSelect } from "./Select";
+import { TitleSelect } from "./TitleSelect";
 
 interface StatDrilldownViewProps {
   player: PlayerDetail;
@@ -33,11 +34,13 @@ const LABEL_GAP = 12; // px from a dot's center to its value label
 // The narrowest a season column gets before the plot scrolls sideways (phones): a value label is
 // 17–19px wide, so 22 leaves neighbours 3px apart. Ten columns fit a 320px phone; more scroll.
 const COL_MIN = 22; // px
+// A dot in the bottom 12% of the plot (~26px of PLOT_H) has no room for its value label below it —
+// the label would land on the year axis — so the label goes to the dot's right instead.
+const FLOOR_LABEL_ZONE = 12; // % of the plot's height
 
 /**
  * One stat's year-by-year history — the career at a glance (plates), a per-season dumbbell chart
- * (the season's value vs. its reference, with the comparison group's middle 80% banded behind
- * it), and the full yearly table. A **section of the player page**, below the heatmap, not its
+ * (the season's value vs. its reference), and the full yearly table. A **section of the player page**, below the heatmap, not its
  * own route: the heatmap is the overview, this is the detail for the one stat in the dropdown
  * (or reached via a heatmap cell's "See … history" link / Enter). The heading has tabIndex=-1 so
  * that link can move focus here for keyboard/screen-reader users.
@@ -75,7 +78,7 @@ export function StatDrilldownView({ player, stat, statKey, desc, mode, onStatCha
   const colCount = 5 + (showRank ? 1 : 0);
   // The crowd a rank is among: the player's position in position mode, otherwise the league.
   const rankNoun = mode === "position" ? positionNoun(player.pos) : "players";
-  const rankAmong = mode === "position" ? rankNoun.charAt(0).toUpperCase() + rankNoun.slice(1) : "WNBA";
+  const rankAmong = mode === "position" ? upperFirst(rankNoun) : "WNBA";
   const refNoun = scaleNoun(mode, player.pos);
 
   // A hollow dot on the chart (a small sample, or a full season with no reference) needs its
@@ -84,7 +87,7 @@ export function StatDrilldownView({ player, stat, statKey, desc, mode, onStatCha
   // Where a column's value label sits relative to its dot (see the column render below). Computed
   // here as well for the last column: a label to the RIGHT of the last dot reaches past the plot's
   // edge, which a phone's scroller clips — so the inner keeps a right margin in that one case.
-  const sideFor = (b: (typeof bars)[number]): "above" | "below" | "right" => (b.up !== false ? "above" : b.hPct != null && 100 - b.hPct > 88 ? "right" : "below");
+  const sideFor = (b: (typeof bars)[number]): "above" | "below" | "right" => (b.up !== false ? "above" : b.hPct != null && b.hPct < FLOOR_LABEL_ZONE ? "right" : "below");
   const lastLabelRight = n > 0 && bars[n - 1].kind !== "missed" && sideFor(bars[n - 1]) === "right";
 
   const renderRow = (r: StatTableRow) => (
@@ -156,14 +159,13 @@ export function StatDrilldownView({ player, stat, statKey, desc, mode, onStatCha
       <div>
         {/* A kicker names the section — without it a lone "Blocks ▾" had no context (user). Plain
             text for sighted readers; the hidden heading below carries the section's name for AT. */}
-        <div className="card-kicker" style={{ marginBottom: "var(--space-1)" }}>
+        <div className="kicker" style={{ marginBottom: "var(--space-1)" }}>
           Stat detail
         </div>
         <h2 id="drilldown-title" tabIndex={-1} className="sr-only">
           {stat.label}, year by year
         </h2>
-        <LabeledSelect
-          variant="title"
+        <TitleSelect
           ariaLabel="Stat"
           value={statKey}
           options={STATS.map((s) => ({ value: s.key, label: s.label }))}
@@ -196,7 +198,7 @@ export function StatDrilldownView({ player, stat, statKey, desc, mode, onStatCha
           </span>
           <span className="dd-legend-item">
             <span aria-hidden="true" className="legend-dot" style={{ background: "var(--color-neutral-600)" }} />
-            {refNoun.charAt(0).toUpperCase() + refNoun.slice(1)}
+            {upperFirst(refNoun)}
           </span>
           {anyNotCompared && (
             <span className="dd-legend-item">
@@ -263,7 +265,7 @@ export function StatDrilldownView({ player, stat, statKey, desc, mode, onStatCha
                     // The value is printed beside the player's dot, on the side AWAY from the reference
                     // dot (above when at/above it, below when under it) so it never sits on the
                     // connector, LABEL_GAP px from the dot's center (the dot's radius is 5, so ~7px of
-                    // air — at 8 it read as cramped). A dot within ~25px of the plot's floor has no room
+                    // air — at 8 it read as cramped). A dot within FLOOR_LABEL_ZONE of the plot's floor has no room
                     // below — the label would land on the year axis — so there it goes to the dot's right.
                     const labelSide = sideFor(b);
                     const notCompared = b.kind === "small" || b.up == null;
