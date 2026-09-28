@@ -5,25 +5,27 @@ interface AboutViewProps {
   onBack: () => void;
 }
 
-// Section headers: larger than the old 20px and set apart from the body with a
-// divider + generous top space, so the three sections read as clear tiers under
-// the page title rather than sitting flush with the paragraphs beneath them.
+// Rewritten 2026-09-27 (user): plain, spoken wording and short lists instead of dense paragraphs; the
+// intro sits under the title (no "What ARC shows" heading); "Arc", not "ARC". Every rule it states is
+// the code's — the games and shots minimums are lib/deviation's QUALIFYING_GAMES, COLOR_GAMES_FRACTION,
+// TINT_FLOOR and RANK_FLOOR, scaled to the player's own team's games — so change them together.
 const sectionStyle: React.CSSProperties = {
   marginTop: "var(--space-10)",
   paddingTop: "var(--space-8)",
   borderTop: "1px solid var(--color-divider)",
 };
+// A step under the title (32px, as the landing page's): section headings, not a second title.
 const h2Style: React.CSSProperties = {
-  fontSize: "var(--fs-2xl)",
+  fontSize: "var(--fs-xl)",
   letterSpacing: "-0.01em",
   marginBottom: "var(--space-4)",
 };
 
 /**
- * Static "about" page explaining what ARC shows, how to read it, and where the
- * data comes from. A top-level view (not a modal) so the content has room and
- * needs no focus-trap handling. Reachable from every page's footer; "Back" returns the
- * reader to where they came from (history back — AboutRoute; the landing page for a cold link).
+ * Static "about" page: what Arc shows, how to read it, and where the data comes from. A top-level
+ * view (not a modal) so the content has room and needs no focus-trap handling. Reachable from every
+ * page's footer; "Back" returns the reader to where they came from (history back — AboutRoute; the
+ * landing page for a cold link).
  */
 export function AboutView({ onBack }: AboutViewProps) {
   // The heading takes focus when the page arrives by a page change (pageArrival.ts).
@@ -39,97 +41,101 @@ export function AboutView({ onBack }: AboutViewProps) {
         </span>
       </button>
 
-      <h1 ref={headingRef} tabIndex={-1} className="page-heading" style={{ fontSize: "var(--fs-4xl)", marginBottom: "var(--space-1)" }}>
-        About ARC
+      <h1 ref={headingRef} tabIndex={-1} className="page-heading" style={{ fontSize: "var(--fs-3xl)", marginBottom: "var(--space-4)" }}>
+        About Arc
       </h1>
-
-      <section style={{ marginTop: "var(--space-6)" }}>
-        <h2 style={h2Style}>What ARC shows</h2>
-        <p style={{ marginBottom: "var(--space-3)" }}>
-          Is this the best season of a player's career, or just another year at the office? A single stat line
-          rarely tells you.
-        </p>
-        <p style={{ margin: 0 }}>
-          ARC answers that by measuring every stat against what's normal for that player. You still see the real
-          numbers, but each one is shown as how far it lands above or below their usual, so a career year stands out
-          immediately and a quiet one does too.
-        </p>
-      </section>
+      <p>
+        Is a WNBA player averaging 15 points per game having a good season? Well, it depends on the player. For a superstar they could be slumping, but for a bench player they could be having a breakout season. Arc lets you compare a player's season
+        with different averages: their own career, the whole league that year, or players at their same position. This lets you see how well they're doing in the current season (or other years) compared to the rest of their career, and compared to the rest of the league.
+      </p>
+      <p style={{ margin: 0 }}>
+        Each player page shows their career heatmap, with each cell representing a season's average for a stat, like 15.2 points per game. The color
+        shows if the year's stat is above or below average: the more red, the more above average, and the more blue, the more below average.
+      </p>
 
       <section style={sectionStyle}>
         <h2 style={h2Style}>How to read it</h2>
-        <p style={{ marginBottom: "var(--space-3)" }}>
-          Each player has two views. <strong>Career Trend</strong> grids every season against that player's own career
-          average (warmer above, cooler below), so a whole career reads at a glance. The <strong>league comparison</strong>{" "}
-          below it takes one season and shows how each stat stacks up against everyone else that year.
-        </p>
-        <p style={{ marginBottom: "var(--space-3)" }}>
-          <strong>Two controls.</strong> Pick the <strong>season</strong>, then choose what to compare it against — the
-          whole <strong>league</strong> average, or other players at the same <strong>position</strong> (guards,
-          forwards, or centers) — for that same year.
-        </p>
-        <p style={{ margin: 0 }}>
-          <strong>The bars.</strong> A bar's length is how far the stat lands from that average — but measured against
-          how much players actually differ on it, not as a flat percentage. That keeps an ordinary bump on a low-volume
-          stat (a tenth of a block) small, while a genuinely rare number — leading the league in rebounds — fills the
-          bar. A full bar is about as far from normal as anyone gets, so the handful of all-time seasons past that point
-          simply max out. Click into any stat for its full year-by-year history and where each season ranked — "6th of
-          122" among everyone who played enough that year, or among the chosen position. Shooting percentages are
-          shown as a plain gap from the average, and rank among the players who shot enough (below).
-        </p>
+        <ul className="about-list">
+          <li>
+            <strong>How strong the colors are:</strong> comparing with the league or a position, the color depends on
+            how unusual the number is. Most players are close together on blocks, so one block above average shows up
+            much stronger than one point above average. Comparing with the player's own career, the colors follow
+            their own ups and downs, so their best and worst years stand out.
+          </li>
+          <li>
+            <strong>Outlined, no color:</strong> they didn't play enough games, or take enough shots, to compare fairly.
+          </li>
+          <li>
+            <strong>An asterisk (*):</strong> there's a note about that season, like a partial season.
+          </li>
+        </ul>
       </section>
 
       <section style={sectionStyle}>
         <h2 style={h2Style}>The data</h2>
-        <p style={{ marginBottom: "var(--space-3)" }}>
-          ARC pulls from ESPN and refreshes nightly, so the current season keeps up as games are played.
-        </p>
-        <p style={{ marginBottom: "var(--space-3)" }}>
-          <strong>Who's in.</strong> Every player who has appeared in a WNBA game since the league's first season in
-          1997, retired players included. A current player who misses a year for injury, maternity, or an overseas
-          stint sticks around, with the gap shown right in her timeline.
-        </p>
-        <p style={{ marginBottom: "var(--space-3)" }}>
-          <strong>Measured against the whole league.</strong> The averages and ranks a season is compared with include
-          everyone who played enough of that year (below) — so a 2004 season is measured against 2004's whole league,
-          not just the players still around today. That crowd is wider than the WNBA's own leaderboard, which
-          requires about 70% of the schedule, so "6th of 122" here is not the same count as "6th of 105" there.
-        </p>
-        <p style={{ marginBottom: "var(--space-3)" }}>
-          <strong>Positions start in 2012.</strong> ESPN has no position on record for most players before then, so
-          comparing with other guards, forwards, or centers is offered from 2012 on; the league comparison covers every
-          year. A player's position is her current one, applied across her whole career.
-        </p>
-        <p style={{ marginBottom: "var(--space-3)" }}>
-          <strong>Enough games.</strong> Two bars, both scaled to the year's schedule. Under a quarter of the schedule
-          (11 games of 44) a season is still listed, as an uncolored outlined cell, but not compared and left out of the averages, so a
-          handful of games can't count as a year. From there up to 20 games of 44 (13 of 28 in 1997, 10 of the
-          2020 bubble's 22 — Basketball-Reference's bar for its WNBA leaders) it is a <em>partial season</em>: colored
-          and counted, but not ranked, and marked with an asterisk. Only seasons over the 20-game bar make up the
-          crowd behind the averages and ranks. Every asterisked cell says what the mark is about when you tap or hover
-          it — "Partial season: 17 of 44 games", "Small sample: 29 attempts from three".
-        </p>
-        <p style={{ marginBottom: "var(--space-3)" }}>
-          <strong>Enough shots.</strong> A shooting percentage is only as good as the number of shots behind it, so
-          the three percentages have two more bars. To get a color, a season needs 40 three-point attempts (3P%),
-          100 field-goal attempts (FG%), or 100 shooting possessions (TS% — field-goal attempts plus 0.44 × free-throw
-          attempts). To get a rank, it needs enough attempts or enough makes, per 44 games and scaled to the year:
-          60 three-point attempts or 20 made, 200 field-goal attempts or 85 made, or 125 shooting possessions. The
-          made counts are Basketball-Reference's; the attempts route means a player who shoots a lot and misses a lot
-          is still ranked. A colored cell that falls short says so ("Needs 55 attempts from three or 19 made to
-          rank"), and ranks among the players who cleared it — so a 4-of-10 can't lead the league at 40%. Career percentages pool every counted season's makes and attempts, so a thin season adds its
-          few shots to the total rather than a whole season's worth of noise.
-        </p>
-        <p style={{ marginBottom: "var(--space-3)" }}>
-          <strong>What's missing.</strong> A few stats need data ESPN doesn't share (rebound percentages, and all-in-one
-          metrics like PER), and a handful of one-game appearances from the early 2000s have no record at all, so ARC
-          leaves them out rather than guessing.
-        </p>
-        <p className="text-muted" style={{ margin: 0, fontSize: "var(--fs-sm)", lineHeight: 1.5 }}>
-          ARC is an independent, unofficial project — not affiliated with, endorsed by, or connected to the WNBA or
-          ESPN. All team and player names, logos, and photos are the property of their respective owners.
-        </p>
+        <ul className="about-list">
+          <li>
+            <strong>Where it comes from:</strong> ESPN, updated every morning.
+          </li>
+          <li>
+            <strong>Who's in it:</strong> every WNBA player since the league started in 1997, over 1,200 of them,
+            including retired players. The only ones missing are a handful of very short appearances that ESPN has no
+            usable record of.
+          </li>
+          <li>
+            <strong>Averages and ranks</strong> include everyone who played enough games that season, not just players
+            still in the league today. So a 2004 season is compared with the whole 2004 league.
+          </li>
+          <li>
+            <strong>Positions:</strong> ESPN only lists each player's current position, so that's used for their whole
+            career. Most players before 2012 don't have one, so position comparisons start in 2012.
+          </li>
+        </ul>
       </section>
+
+      {/* Sections of their own, not 18px subheadings under "The data" (user, 2026-09-27: too small; the
+          page is short enough to need only two heading levels). */}
+      <section style={sectionStyle}>
+        <h2 style={h2Style}>How many games count</h2>
+        <p>It depends on how many games the player's team played. In a 44-game season:</p>
+        <ul className="about-list">
+          <li>
+            <strong>Under 11 games:</strong> outlined and not compared.
+          </li>
+          <li>
+            <strong>11 to 19 games:</strong> a partial season. It's compared and colored, with an asterisk, but not
+            ranked.
+          </li>
+          <li>
+            <strong>20 or more games:</strong> a full season. It's ranked and counts toward the league and position
+            averages.
+          </li>
+        </ul>
+        <p>Shorter seasons scale down, so for example in 1997 teams played 28 games, so if a player played 13 games that was enough to be ranked (in 2026 you'd need 20).</p>
+      </section>
+
+      <section style={sectionStyle}>
+        <h2 style={h2Style}>How many shots count</h2>
+        <p>Shooting percentages also need enough shots behind them:</p>
+        <ul className="about-list">
+          <li>
+            <strong>3-point %:</strong> 40 attempts to be colored; 60 attempts or 20 makes to be ranked.
+          </li>
+          <li>
+            <strong>Field goal %:</strong> 100 attempts to be colored; 200 attempts or 85 makes to be ranked.
+          </li>
+          <li>
+            <strong>True shooting %:</strong> 100 TS attempts (shots plus trips to the free-throw line) to be colored;
+            125 to be ranked.
+          </li>
+        </ul>
+        <p>The numbers to be ranked are for a 44-game season, and go down if the team played fewer games.</p>
+      </section>
+
+      <p className="text-muted" style={{ margin: "var(--space-10) 0 0", fontSize: "var(--fs-sm)", lineHeight: 1.5 }}>
+        WNBA Arc is an independent, unofficial project. It isn't affiliated with or endorsed by the WNBA or ESPN. Team and
+        player names and photos belong to their owners.
+      </p>
     </main>
   );
 }

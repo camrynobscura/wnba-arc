@@ -205,6 +205,14 @@ h6 {
 p {
   margin: 0 0 var(--space-3);
 }
+/* The About page's lists (rewritten 2026-09-27: short lists instead of dense paragraphs). */
+.about-list {
+  margin: 0 0 var(--space-4);
+  padding-left: 1.25em;
+}
+.about-list li + li {
+  margin-top: var(--space-2);
+}
 a {
   /* Ink, not an accent: color is reserved for data (the red/blue heat) and identity (team tints).
      The underline is what marks a link, so it never depends on color alone (WCAG 1.4.1). */

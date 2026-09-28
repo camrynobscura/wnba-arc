@@ -174,6 +174,12 @@ export function fmtRaw(r: number, pct: boolean): string {
   return (r > 0 ? "+" : "−") + shown;
 }
 
+/** The difference prints as "0.0" (fmtRaw): no direction, so it's drawn in the muted grey, not the
+    above / below color its unrounded sign would pick (user, 2026-09-27). */
+export function roundsToZero(r: number, pct: boolean): boolean {
+  return fmtRaw(r, pct) === "0.0";
+}
+
 export function playedSeasons(player: PlayerDetail): SeasonPlayed[] {
   return player.seasons.filter((x): x is SeasonPlayed => x.played);
 }
@@ -423,6 +429,8 @@ export interface HeatmapCell {
       or a greyed small-sample cell). */
   colorT: number | null;
   up: boolean;
+  /** The difference prints as "0.0" — drawn grey, not in the `up` color (roundsToZero). */
+  flat: boolean;
   /** Too thin a sample for this stat that season → greyed, not heat-colored, not clickable. */
   smallSample: boolean;
   /** Between the games bars: tinted and counted, but asterisked and not ranked. */
@@ -486,7 +494,7 @@ export function buildHeatmapGrid(
     STATS.map((st): HeatmapCell => {
       const shell = { year: s.year, statKey: st.key, pct: st.pct } as const;
       if (!s.played) {
-        return { ...shell, played: false, value: null, valueFmt: "—", cellFmt: "—", refValue: null, refFmt: "—", delta: null, deltaFmt: "—", colorT: null, up: false, smallSample: false, partial: false, note: null, selectable: false };
+        return { ...shell, played: false, value: null, valueFmt: "—", cellFmt: "—", refValue: null, refFmt: "—", delta: null, deltaFmt: "—", colorT: null, up: false, flat: false, smallSample: false, partial: false, note: null, selectable: false };
       }
       const value = s[st.key];
       const small = isStatSmallSample(s, st.key);
@@ -524,6 +532,7 @@ export function buildHeatmapGrid(
         deltaFmt: delta != null ? fmtRaw(delta, st.pct) : "—",
         colorT,
         up: (delta ?? 0) >= 0,
+        flat: delta != null && roundsToZero(delta, st.pct),
         smallSample: small,
         partial: isPartialSeason(s),
         note: sampleNote(s, st.key, mode, playerPosition),
@@ -840,7 +849,9 @@ export function buildStatDetail(
       valFmt: fmtV(v, stat.pct),
       gp: x.gp,
       deltaFmt: hasDelta ? fmtRaw(v - b, stat.pct) : "—",
-      deltaColor: hasDelta && v - b >= 0 ? "var(--hm-above-text)" : "var(--hm-below-text)",
+      // Grey when there's no direction to show: a "—" (nothing to compare) or a "0.0". The dash took
+      // the below color until 2026-09-27.
+      deltaColor: !hasDelta || roundsToZero(v - b, stat.pct) ? "var(--color-text-muted)" : v - b > 0 ? "var(--hm-above-text)" : "var(--hm-below-text)",
       rank: sm ? null : rankOf(x),
       pool: poolOf(x),
       unranked: sm ? null : rankNote(x, key, mode, playerPosition),

@@ -20,6 +20,7 @@ import {
   pctAxis,
   positionNoun,
   rankNote,
+  roundsToZero,
   sampleNote,
   smallSampleReason,
   spokenValue,
@@ -546,6 +547,21 @@ describe("buildStatDetail — the reference follows the page's mode", () => {
     expect(row(d, 2022).deltaFmt).toBe("+6.0");
   });
 
+  it("draws a difference with no direction in the muted grey: a \"0.0\" or a \"—\"", () => {
+    const L = league([2020, 2021, 2022]); // league pts avg 12.0
+    const p = player([playedSeason(2020, 5, { pts: 30 }), playedSeason(2021, 40, { pts: 12.03 }), playedSeason(2022, 40, { pts: 18 })]);
+    const d = buildStatDetail(p, pts, "league", L, POS, "F");
+    expect(row(d, 2021).deltaFmt).toBe("0.0");
+    expect(row(d, 2021).deltaColor).toBe("var(--color-text-muted)");
+    expect(row(d, 2022).deltaColor).toBe("var(--hm-above-text)");
+    expect(row(d, 2020).deltaFmt).toBe("—"); // 5 games: a small sample, not compared
+    expect(row(d, 2020).deltaColor).toBe("var(--color-text-muted)");
+    const g = buildHeatmapGrid(p, "league", L, POS, "F");
+    const c = (year: number) => g.rows[g.years.indexOf(year)].find((x) => x.statKey === "pts")!;
+    expect(c(2021).flat).toBe(true);
+    expect(c(2022).flat).toBe(false);
+  });
+
   it("self mode: a FLAT career-average reference (the heatmap's own basis), no percentile, no band", () => {
     // pts 10 and 20 → career avg 15 → 2020 below, 2022 above; the same 15 the heatmap colors by.
     const L = league([2020, 2022]);
@@ -897,5 +913,7 @@ describe("fmtRaw", () => {
     expect(fmtRaw(-0.049, false)).toBe("0.0"); // was "−0.0"
     expect(fmtRaw(0.0004, true)).toBe("0.0"); // 0.04 points
     expect(fmtRaw(-0.0004, true)).toBe("0.0");
+    expect(roundsToZero(0.049, false)).toBe(true);
+    expect(roundsToZero(0.05, false)).toBe(false); // "+0.1"
   });
 });

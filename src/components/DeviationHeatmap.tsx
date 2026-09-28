@@ -480,7 +480,7 @@ function CellPopover({ cell, anchor, noun, rank, rankNote, rankNoun, pinned, pop
         {cell.delta != null && (
           <>
             <dt>Difference</dt>
-            <dd className="hm-popover-delta" style={{ color: cell.up ? "var(--hm-above-text)" : "var(--hm-below-text)" }}>
+            <dd className="hm-popover-delta" style={{ color: cell.flat ? "var(--color-text-muted)" : cell.up ? "var(--hm-above-text)" : "var(--hm-below-text)" }}>
               {cell.deltaFmt}
             </dd>
           </>
