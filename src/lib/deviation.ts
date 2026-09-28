@@ -653,7 +653,18 @@ export interface StatDetail {
 
 /** "guard" / "forward" / "center" — the singular for labels like "forward avg". */
 export function positionSingular(position: string | null): string {
-  return ({ G: "guard", F: "forward", C: "center" } as Record<string, string>)[position ?? ""] ?? "position";
+  // A switch, like positionNoun: an object lookup would also find inherited keys
+  // ("constructor", "__proto__") if the API ever sent one as a position.
+  switch (position) {
+    case "G":
+      return "guard";
+    case "F":
+      return "forward";
+    case "C":
+      return "center";
+    default:
+      return "position";
+  }
 }
 
 /** Short noun for a reference, by mode ("career avg" / "league avg" / "center avg") — the scale

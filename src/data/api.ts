@@ -202,7 +202,7 @@ export function getPlayer(id: string): Promise<PlayerDetail> {
   if (hit) return Promise.resolve(hit);
   let request = playerRequests.get(id);
   if (!request) {
-    request = fetchJson<PlayerDetail>(`/players/${id}`)
+    request = fetchJson<PlayerDetail>(`/players/${encodeURIComponent(id)}`)
       .then((detail) => {
         playerCache.set(id, detail);
         return detail;

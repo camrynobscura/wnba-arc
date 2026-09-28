@@ -40,4 +40,10 @@ describe("photoUrls", () => {
   it("sizes the player header's 54px photo", () => {
     expect(photoUrls("3149391", 54)[0]).toContain("&w=223&h=162&");
   });
+
+  it("encodes the id, so an odd one can't add resizer parameters or path segments", () => {
+    const [resized, original] = photoUrls("1&w=9/x", 40);
+    expect(new URL(resized).searchParams.getAll("w")).toEqual(["165"]);
+    expect(new URL(original).pathname).toBe("/i/headshots/wnba/players/full/1%26w%3D9%2Fx.png");
+  });
 });

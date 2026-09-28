@@ -39,4 +39,10 @@ describe("getPlayer — remembers each player for the visit", () => {
     expect((await getPlayer("103")).id).toBe("103");
     expect(fetch).toHaveBeenCalledTimes(2);
   });
+
+  it("encodes the id into the request path", async () => {
+    const fetch = mockFetch(() => ok(detail("a/b")));
+    await getPlayer("a/b?x=1");
+    expect(fetch.mock.calls[0]![0]).toMatch(/\/players\/a%2Fb%3Fx%3D1$/);
+  });
 });

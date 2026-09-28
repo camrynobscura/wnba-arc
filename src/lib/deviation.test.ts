@@ -19,6 +19,7 @@ import {
   ownStatAverage,
   pctAxis,
   positionNoun,
+  positionSingular,
   rankNote,
   roundsToZero,
   sampleNote,
@@ -277,6 +278,18 @@ describe("positionNoun", () => {
   it("falls back for an unknown or missing position", () => {
     expect(positionNoun(null)).toBe("players at the same position");
     expect(positionNoun("X")).toBe("players at the same position");
+  });
+});
+
+describe("positionSingular", () => {
+  it("maps position codes to singular nouns", () => {
+    expect(positionSingular("G")).toBe("guard");
+    expect(positionSingular("F")).toBe("forward");
+    expect(positionSingular("C")).toBe("center");
+  });
+
+  it("falls back for an unknown, missing or inherited-key position", () => {
+    for (const p of [null, "X", "__proto__", "constructor", "toString"]) expect(positionSingular(p)).toBe("position");
   });
 });
 

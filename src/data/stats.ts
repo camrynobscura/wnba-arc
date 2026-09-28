@@ -40,7 +40,9 @@ export const STATS: StatDef[] = [
  * squashed — checked 2026-09-28).
  */
 export function photoUrls(espnId: string, size: number): [resized: string, original: string] {
-  const path = `/i/headshots/wnba/players/full/${espnId}.png`;
+  // Encoded: the id comes from the API (digits, so the URL is unchanged), but an odd one could
+  // otherwise add its own parameters to the resizer's query ("&w=…") or path segments.
+  const path = `/i/headshots/wnba/players/full/${encodeURIComponent(espnId)}.png`;
   const h = size * 3;
   const w = Math.round((h * 600) / 436);
   return [`https://a.espncdn.com/combiner/i?img=${path}&w=${w}&h=${h}&scale=crop`, `https://a.espncdn.com${path}`];
