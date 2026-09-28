@@ -30,5 +30,8 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+    <!-- Page-view counts. No cookies or local storage; it counts the app's in-page route changes on its own,
+         and only accepts visits from the site's own domain, so local dev and tests aren't counted. -->
+    <!-- Cloudflare Web Analytics --><script type='module' src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "d9cfdc02eb944b15ba5a23d39507bced"}'></script><!-- End Cloudflare Web Analytics -->
   </body>
 </html>
