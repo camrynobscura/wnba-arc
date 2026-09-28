@@ -1,7 +1,8 @@
 /* Industry — design-system tokens and component classes, ported from the
    Claude Design "Industry" theme. Retune tokens here; component classes
-   below are built on top of them. */
-@import url('https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;700&family=Barlow+Condensed:wght@400;600&display=swap');
+   below are built on top of them.
+   The fonts (Barlow 400/500/600/700, Barlow Condensed 400/500/600) are bundled from @fontsource, imported in
+   src/main.tsx — served with the app, not from Google Fonts (2026-09-28). */
 
 /* ══════════════════════════════════════════════════════════════════════════
    DESIGN TOKENS — the whole system's variables. Retune here; everything below

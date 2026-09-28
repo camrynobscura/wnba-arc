@@ -4,11 +4,10 @@
  *   public/apple-touch-icon.png 180×180, the iPhone home-screen icon
  * Run after changing either: `npm run assets`. The PNGs are committed; the build doesn't run this.
  *
- * Fonts: the app loads Barlow from Google Fonts, but this renders offline, so the two faces the card
- * uses are committed as .ttf (assets/brand/fonts, SIL OFL, from github.com/google/fonts). resvg's
- * Node build reads only font FILES, and only TrueType/OpenType — not the .woff/.woff2 the npm font
- * packages ship (tested 2026-09-28: nothing drew). An unknown font-family draws nothing either, with no
- * error, so check the card after changing a name.
+ * Fonts: the app bundles Barlow as .woff2 from @fontsource, but resvg's Node build reads only font FILES,
+ * and only TrueType/OpenType — not .woff/.woff2 (tested 2026-09-28: nothing drew). So the two faces the
+ * card uses are committed as .ttf (assets/brand/fonts, SIL OFL, from github.com/google/fonts). An unknown
+ * font-family draws nothing either, with no error, so check the card after changing a name.
  */
 import { Resvg } from "@resvg/resvg-js";
 import fs from "node:fs";
