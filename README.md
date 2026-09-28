@@ -93,9 +93,11 @@ instead of a shared package, and the database stays private behind the API.
 
 Protections, since the API is public and runs on free tiers: `helmet` headers, CORS
 limited to the frontend's origin and GET, 100 requests per minute per IP (trusting exactly one proxy
-hop, so the limit keys on the real client and not Render's proxy), a connection pool capped at 5
-with a 10-second statement timeout, and idle-connection errors logged instead of crashing the
-process. An uptime monitor pings the API so Render's free tier doesn't put it to sleep.
+hop, so the limit keys on the real client and not Render's proxy), a connection pool capped at 5,
+and idle-connection errors logged instead of crashing the process. The API reaches the database over
+TLS, checking the server's certificate against Supabase's own root, and logs in as a read-only user
+with a 10-second statement timeout, so even a compromised API server couldn't change the data. An
+uptime monitor pings the API so Render's free tier doesn't put it to sleep.
 
 ### Frontend (this repo)
 
@@ -119,7 +121,9 @@ Dependencies point one way, **components → lib → data**:
   heatmap and the team tints on headshots.
 
 The URL holds the whole view state (`/player/aja-wilson/blk?vs=league`), so back and forward,
-refresh and shared links all open the same view. Netlify serves the static build with an SPA fallback.
+refresh and shared links all open the same view. Netlify serves the static build with an SPA fallback
+and security headers, including a content security policy that the build writes from the page's own
+inline scripts.
 
 ## How the comparison works
 
