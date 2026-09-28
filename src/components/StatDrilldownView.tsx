@@ -5,6 +5,7 @@ import {
   lowerFirst,
   ordinal,
   positionNoun,
+  referencePhrase,
   scaleNoun,
   upperFirst,
   type HeatmapMode,
@@ -120,13 +121,14 @@ export function StatDrilldownView({ player, stat, statKey, desc, mode, onStatCha
               lost: hover and tap still open them, a screen reader gets the text in the cell, and the
               keyboard reaches the same rank + pool / reason in the heatmap cell's popover. */}
           {r.rank != null && r.pool != null ? (
-            // The place alone, so the column skims as one number per row; the pool ("of 187") is in
-            // the tooltip — hover or tap. "34th of 187" on every row right-aligned on the
-            // pool and left the ranks ragged. The visually hidden copy keeps the pool in the cell's
-            // own text for a screen reader moving through the table cell by cell, where a tooltip
-            // description isn't reliably spoken.
+            // The place alone, so the column skims as one number per row; the pool is in the tooltip —
+            // hover or tap. "34th of 187" on every row right-aligned on the pool and left the ranks
+            // ragged. The tooltip repeats the place ("34th of 187 players.", as the popover's Rank row):
+            // "of 187 players." read as a broken sentence (user, 2026-09-27). The visually hidden copy
+            // keeps the pool in the cell's own text for a screen reader moving through the table cell by
+            // cell, where a tooltip description isn't reliably spoken.
             <>
-              <InfoTip label={ordinal(r.rank)} tip={`of ${r.pool} ${rankNoun}`} tabIndex={-1} />
+              <InfoTip label={ordinal(r.rank)} tip={`${ordinal(r.rank)} of ${r.pool} ${rankNoun}`} tabIndex={-1} />
               <span className="sr-only"> of {r.pool}</span>
             </>
           ) : r.unranked ? (
@@ -396,7 +398,9 @@ export function StatDrilldownView({ player, stat, statKey, desc, mode, onStatCha
                 <th scope="col">
                   <InfoTip
                     label="Rank"
-                    tip={`${mode === "position" ? `Rank among the qualified ${rankNoun}` : "League rank among the qualified players"} in this dataset that season (1st = best)`}
+                    // "Qualified … in this dataset" until 2026-09-27 (user: no jargon) — the crowd is the
+                    // players over the games bar, and for a shooting % the shot floor too (lib/deviation).
+                    tip={`Rank among ${mode === "position" ? rankNoun : "all players"} ${stat.pct ? "with enough games and shots" : "who played enough games"} that season (1st = best)`}
                   />
                 </th>
               )}
@@ -404,7 +408,7 @@ export function StatDrilldownView({ player, stat, statKey, desc, mode, onStatCha
                 {/* "Diff", as the popover's "Difference" row: "vs avg" (with its space) wrapped to two
                     lines in a phone column and lifted the whole header row. A shooting %'s cells drop
                     their " pp" for the same reason; the unit lives here instead. */}
-                <InfoTip label="Diff" tip={`How far above or below the ${refNoun} that season${stat.pct ? ", in percentage points" : ""}`} />
+                <InfoTip label="Diff" tip={`How far above or below ${referencePhrase(mode, player.pos)} that season${stat.pct ? ", in percentage points" : ""}`} />
               </th>
             </tr>
           </thead>

@@ -312,6 +312,9 @@ img {
 }
 
 /* — buttons — */
+/* The text face at medium weight, as the compare bar's buttons: every .btn is small UI text ("All
+   players", the popover's "See … history", About's "← Back"), and the condensed display face was
+   narrow and tight at 14px (user, 2026-09-27). */
 .btn {
   display: inline-flex;
   align-items: center;
@@ -319,8 +322,8 @@ img {
   gap: 6px;
   cursor: pointer;
   text-decoration: none;
-  font-family: var(--font-heading);
-  font-weight: var(--font-heading-weight);
+  font-family: var(--font-body);
+  font-weight: 500;
   font-size: var(--fs-md);
   line-height: 1.2;
   color: var(--color-text);
@@ -624,6 +627,11 @@ select.select-reset {
 @media (pointer: coarse) {
   .search-underline,
   .input {
+    font-size: 1rem;
+  }
+  /* The player page's top row: "All players" the same size as the search box beside it (user,
+     2026-09-27 — 14px beside 16px on a phone). */
+  .view-header .btn {
     font-size: 1rem;
   }
 }
@@ -1117,7 +1125,7 @@ select.select-reset {
   /* Room for the hop above the resting balls, so the row's box never changes size. */
   height: calc(var(--spinner-ball) - var(--spinner-hop));
 }
-/* Inline beside small text ("Loading roster…"): a smaller ball and a shorter hop. */
+/* Inline beside small text ("Loading players…"): a smaller ball and a shorter hop. */
 .spinner.spinner-sm {
   --spinner-ball: 11px;
   --spinner-hop: -8px;
@@ -1308,16 +1316,18 @@ select.select-reset {
   flex-direction: column;
   min-width: 0;
 }
+/* The page's small-caps label look (.kicker: "Stat detail", the team line), not the condensed display
+   face — at 11px it was narrow and tight (user, 2026-09-27). */
 .cs-k {
   position: absolute;
   top: -7px;
   left: 8px;
   padding: 0 5px;
   background: var(--color-bg);
-  font-family: var(--font-heading);
-  font-weight: var(--font-heading-weight);
-  font-size: var(--fs-2xs);
-  letter-spacing: 0.08em;
+  font-family: var(--font-body);
+  font-weight: 400;
+  font-size: var(--fs-3xs);
+  letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--color-text-muted);
   white-space: nowrap;
@@ -1344,8 +1354,7 @@ select.select-reset {
   color: var(--color-text-muted);
 }
 /* A narrow section: four equal columns of a ~280px row would be ~60px each, too narrow for "36th of
-   186". Four plates (a counting stat, which has a rank) go two and two; three (a shooting %, which has
-   none) stay on one row. The number steps down one size so "36th of 186" still fits. The section's
+   186". Four plates go two and two; three (no ranked season, so no Best-rank plate) stay on one row. The number steps down one size so "36th of 186" still fits. The section's
    width in em (its text size), not the screen's in px: 30em is the old 520px-screen breakpoint at the
    default size (a 480px column), and it also catches a desktop column whose text is enlarged — at 200%
    four plates overflowed into each other there ("26.9 PTS" 136px in 78px; a11y review P8, 2026-09-27). */
@@ -1367,6 +1376,27 @@ select.select-reset {
   }
   .cs-v {
     font-size: var(--fs-xl);
+  }
+}
+/* A plate's label sits on its border and never wraps, so it needs its plate wide enough (measured
+   2026-09-27; the a11y review's text-size check only asked whether text overflowed its own box, which a
+   label that grows to fit never does). Three across ran "CAREER AVG" past its plate's edge below ~16em
+   (a 390px phone at 150% text; a desktop column at 200%): there, two and one — the third plate grows
+   to the full row. Two across ran out below ~10.4em (a 320px phone at 175%, a 390px one at 200%):
+   there, one plate per row. At the default size even a 320px phone is 17.5em, so neither applies. */
+@container (max-width: 16.5em) {
+  .cs-plate:first-child:nth-last-child(3),
+  .cs-plate:first-child:nth-last-child(3) ~ .cs-plate {
+    flex-basis: calc(50% - var(--space-3));
+  }
+}
+@container (max-width: 11em) {
+  .cs-plate,
+  .cs-plate:first-child:nth-last-child(3),
+  .cs-plate:first-child:nth-last-child(3) ~ .cs-plate,
+  .cs-plate:first-child:nth-last-child(4),
+  .cs-plate:first-child:nth-last-child(4) ~ .cs-plate {
+    flex-basis: 100%;
   }
 }
 

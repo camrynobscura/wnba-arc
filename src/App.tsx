@@ -19,7 +19,7 @@ export default function App() {
   const [players, setPlayers] = useState<PlayerSummary[] | null>(null);
   const [leagueData, setLeagueData] = useState<LeagueSeason[] | null>(null);
   const [positionData, setPositionData] = useState<PositionSeason[] | null>(null);
-  const [loadError, setLoadError] = useState<string | null>(null);
+  const [loadFailed, setLoadFailed] = useState(false);
   const [meta, setMeta] = useState<Meta | null>(null);
 
   useEffect(() => {
@@ -28,7 +28,10 @@ export default function App() {
         setPlayers(ps);
         setLeagueData(lg);
       })
-      .catch((e) => setLoadError(String(e)));
+      .catch((e) => {
+        console.error(e); // the pages say what to do (lib/loadFailure); the error itself is for debugging
+        setLoadFailed(true);
+      });
   }, []);
 
   // Freshness + position averages are fetched separately so a missing/failed endpoint (e.g.
@@ -49,8 +52,8 @@ export default function App() {
   const positions = useMemo(() => (positionData ? makePositionLookup(positionData) : null), [positionData]);
 
   const appData = useMemo<AppData>(
-    () => ({ players, loadError, league, positions, meta }),
-    [players, loadError, league, positions, meta],
+    () => ({ players, loadFailed, league, positions, meta }),
+    [players, loadFailed, league, positions, meta],
   );
 
   return (

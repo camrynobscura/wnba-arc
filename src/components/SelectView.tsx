@@ -14,31 +14,35 @@ interface SelectViewProps {
   featured: FeaturedPlayer[];
   /** Full roster from the API — null until it loads. Powers search + team names. */
   players: PlayerSummary[] | null;
-  /** Set if the roster fetch failed; search is then unavailable but featured still show. */
-  listError: string | null;
+  /** The roster fetch failed: search is unavailable (and so is every player page — it needs the same data). */
+  listFailed: boolean;
   /** A search result was chosen (the featured list is plain links). */
   onPick: (espn: string) => void;
 }
 
-export function SelectView({ featured, players, listError, onPick }: SelectViewProps) {
+export function SelectView({ featured, players, listFailed, onPick }: SelectViewProps) {
   // The heading takes focus when the landing page arrives by a page change (pageArrival.ts).
   const headingRef = useRef<HTMLHeadingElement>(null);
   useArrivalFocus(headingRef);
   return (
     <main id="main" className="view-main" style={{ padding: "var(--space-10) var(--space-5)" }}>
       <h1 ref={headingRef} tabIndex={-1} className="page-heading" style={{ fontSize: "var(--fs-3xl)", marginBottom: "var(--space-3)" }}>
-        How far from normal is this season?
+        WNBA Arc
       </h1>
-      <p className="text-muted" style={{ fontSize: "var(--fs-base)", marginBottom: "var(--space-6)" }}>
-        Pick a WNBA player. See how any season compares to the rest of their own career, and to the league that year.
+      {/* The search box sits as far from the text above and below it as the heading does from this
+          paragraph (user, 2026-09-27): ~24px as the eye sees it, the glyphs' line spacing included —
+          measured on the rendered page (heading → text 24, text → box 23.5, box → "Featured" 23). */}
+      <p className="text-muted" style={{ fontSize: "var(--fs-base)", marginBottom: "var(--space-5)" }}>
+        Breakout season or slump? Choose a player to see a heatmap of their stats over the years, measuring each season
+        against the averages from their career, the league, or players at their position.
       </p>
 
-      <PlayerSearch variant="hero" players={players} listError={listError} onPick={onPick} />
+      <PlayerSearch variant="hero" players={players} listFailed={listFailed} onPick={onPick} />
 
-      <div style={{ marginTop: "var(--space-8)" }}>
+      <div style={{ marginTop: "var(--space-5)" }}>
         <h2
           className="text-muted"
-          style={{ fontSize: "var(--fs-sm)", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: "var(--space-2)" }}
+          style={{ fontSize: "var(--fs-md)", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: "var(--space-2)" }}
         >
           Featured players
         </h2>
@@ -74,7 +78,8 @@ export function SelectView({ featured, players, listError, onPick }: SelectViewP
               >
                 <PlayerPhoto src={photoUrl(f.espn)} name={f.name} size={40} tint={teamTintByName(f.team)} />
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div className="text-heading" style={{ fontSize: "var(--fs-base)" }}>{f.name}</div>
+                  {/* Line height 1.2, not the body's 1.55: the name sat 9px above its team line (user, 2026-09-27). */}
+                  <div className="text-heading" style={{ fontSize: "var(--fs-lg)", lineHeight: 1.2 }}>{f.name}</div>
                   <div className="text-muted" style={{ fontSize: "var(--fs-xs)" }}>
                     {[f.team, f.pos].filter(Boolean).join(" · ")}
                   </div>

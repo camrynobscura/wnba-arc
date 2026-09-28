@@ -8,7 +8,7 @@ import { playerPath } from "../lib/routes";
 
 /** "/" — the landing / player-select screen. */
 export function SelectRoute() {
-  const { players, loadError, meta } = useAppData();
+  const { players, loadFailed, meta } = useAppData();
   const navigate = useNavigate();
   // The same as index.html's, which a fresh load shows before this runs.
   usePageTitle(`${SITE_NAME} — Career Arc Visualizer`);
@@ -22,7 +22,7 @@ export function SelectRoute() {
 
   return (
     <>
-      <SelectView featured={FEATURED} players={players} listError={loadError} onPick={pick} />
+      <SelectView featured={FEATURED} players={players} listFailed={loadFailed} onPick={pick} />
       <Footer meta={meta} />
     </>
   );

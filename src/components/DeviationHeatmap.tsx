@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { PlayerDetail, SeasonPlayed } from "../data/api";
 import { STATS } from "../data/stats";
-import { buildHeatmapGrid, compareSentence, firstName, isCountingStat, isRateStat, lowerFirst, type HeatmapCell, type HeatmapMode, type League, ordinal, type PositionLookup, positionNoun, positionSingular, rankNote, scaleNoun, selfModeAvailable, spokenValue, type StatKey, upperFirst } from "../lib/deviation";
+import { buildHeatmapGrid, compareSentence, firstName, isCountingStat, isRateStat, lowerFirst, type HeatmapCell, type HeatmapMode, type League, ordinal, type PositionLookup, positionNoun, rankNote, referencePhrase, scaleNoun, selfModeAvailable, spokenValue, type StatKey, upperFirst } from "../lib/deviation";
 import { type GridCoord, gridMove, HEADER_ROW } from "../lib/gridNav";
 import { InfoTip } from "./InfoTip";
 import { ScaleKey } from "./ScaleKey";
@@ -22,13 +22,6 @@ interface DeviationHeatmapProps {
 // themes — a full-saturation gradient passes through a mid-luminance band neither dark nor
 // white text can clear.
 const MAX_INTENSITY = 75;
-
-/** Spoken phrase for a cell's accessible name ("their career average", "the league average", …). */
-function referencePhrase(mode: HeatmapMode, pos: string | null): string {
-  if (mode === "self") return "their career average";
-  if (mode === "league") return "the league average";
-  return `the ${positionSingular(pos)} average`;
-}
 
 type Coord = GridCoord;
 const sameCoord = (a: Coord | null, b: Coord | null) => a != null && b != null && a.r === b.r && a.c === b.c;

@@ -6,6 +6,7 @@ import {
   compareSegments,
   compareSentence,
   fmtCell,
+  fmtRaw,
   fmtV,
   gamesTier,
   gamesToRank,
@@ -182,8 +183,8 @@ describe("games tiers — a quarter of the team's games to be colored, 20 of 44 
     expect(sampleNote(playedSeason(2022, 8, { fg3Att: 200 }), "tpp", "league", "G")).toBe(`Small sample: 8 of 40 games. ${lg}`); // games first
     expect(sampleNote(playedSeason(2022, 40, { fg3Att: 29, fg3Made: 9 }), "tpp", "league", "G")).toBe(`Small sample: 29 attempts from three. ${lg}`);
     expect(sampleNote(playedSeason(2022, 40, { fgAtt: 80, fgMade: 30 }), "fgp", "league", "G")).toBe(`Small sample: 80 FG attempts. ${lg}`);
-    expect(sampleNote(playedSeason(2022, 40, { fgAtt: 80, ftAtt: 40 }), "tsPct", "league", "G")).toBe(`Small sample: 97 TS possessions. ${lg}`); // 97.6 rounded DOWN
-    expect(sampleNote(playedSeason(2022, 40, { fgAtt: 99, ftAtt: 2 }), "tsPct", "league", "G")).toBe(`Small sample: 99 TS possessions. ${lg}`); // 99.88: never "100" beside a floor of 100
+    expect(sampleNote(playedSeason(2022, 40, { fgAtt: 80, ftAtt: 40 }), "tsPct", "league", "G")).toBe(`Small sample: 97 TS attempts. ${lg}`); // 97.6 rounded DOWN
+    expect(sampleNote(playedSeason(2022, 40, { fgAtt: 99, ftAtt: 2 }), "tsPct", "league", "G")).toBe(`Small sample: 99 TS attempts. ${lg}`); // 99.88: never "100" beside a floor of 100
     expect(sampleNote(playedSeason(2022, 40, { fg3Att: 1, fg3Made: 1 }), "tpp", "league", "G")).toBe(`Small sample: 1 attempt from three. ${lg}`); // singular
     expect(sampleNote(playedSeason(2022, 15), "pts", "league", "G")).toBe("Partial season: 15 of 40 games");
     expect(sampleNote(playedSeason(2022, 15, { fg3Att: 29 }), "tpp", "league", "G")).toBe(`Small sample: 29 attempts from three. ${lg}`); // the shot floor wins over partial
@@ -346,7 +347,7 @@ describe("rankNote — why a compared shooting-% season has no rank", () => {
     const under = playedSeason(2022, 40, { fg3Made: 9, fg3Att: 45, rank: ranks(), ratePool: { fgp: 70, tpp: 65, tsPct: 98 } });
     expect(rankNote(under, "tpp", "league", "G")).toBe("Needs 55 attempts from three or 19 made to rank");
     expect(rankNote(under, "fgp", "league", "G")).toBe("Needs 182 FG attempts or 78 made to rank"); // ceil(200 × 40 / 44), ceil(85 × 40 / 44)
-    expect(rankNote(under, "tsPct", "league", "G")).toBe("Needs 114 TS possessions to rank"); // ceil(125 × 40 / 44); TS% has no makes route
+    expect(rankNote(under, "tsPct", "league", "G")).toBe("Needs 114 TS attempts to rank"); // ceil(125 × 40 / 44); TS% has no makes route
     const ranked = playedSeason(2022, 40, { rank: ranks({ tpp: 4 }), ratePool: { fgp: 70, tpp: 65, tsPct: 98 } });
     expect(rankNote(ranked, "tpp", "league", "G")).toBeNull();
   });
@@ -880,5 +881,21 @@ describe("compareSentence", () => {
     expect(compareSentence("league", "A'ja", "C")).toBe("Each season against the league averages of that year.");
     expect(compareSentence("position", "A'ja", "C")).toBe("Each season against other centers that year.");
     expect(compareSentence("position", "Sabrina", "G")).toBe("Each season against other guards that year.");
+  });
+});
+
+describe("fmtRaw", () => {
+  it("signs a difference in the stat's units, percentage points for a rate", () => {
+    expect(fmtRaw(2.34, false)).toBe("+2.3");
+    expect(fmtRaw(-0.6, false)).toBe("−0.6");
+    expect(fmtRaw(0.005, true)).toBe("+0.5"); // 34.6% vs 34.1%
+    expect(fmtRaw(-0.0123, true)).toBe("−1.2");
+  });
+  it("prints a gap that rounds to zero without a sign", () => {
+    expect(fmtRaw(0, false)).toBe("0.0"); // was "±0.0"
+    expect(fmtRaw(0.03, false)).toBe("0.0"); // was "+0.0"
+    expect(fmtRaw(-0.049, false)).toBe("0.0"); // was "−0.0"
+    expect(fmtRaw(0.0004, true)).toBe("0.0"); // 0.04 points
+    expect(fmtRaw(-0.0004, true)).toBe("0.0");
   });
 });

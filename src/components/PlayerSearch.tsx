@@ -3,12 +3,13 @@ import type { PlayerSummary } from "../data/api";
 import { Spinner } from "./Spinner";
 import { playerMeta } from "../lib/playerMeta";
 import { fold, rankPlayers } from "../lib/search";
+import { OFFLINE_HINT, RETRY_HINT, useOnline } from "../lib/loadFailure";
 
 interface PlayerSearchProps {
   /** Full roster from the API — null until it loads. */
   players: PlayerSummary[] | null;
-  /** Set if the roster fetch failed; search is then unavailable. */
-  listError: string | null;
+  /** The roster fetch failed; search is then unavailable. */
+  listFailed: boolean;
   onPick: (espn: string) => void;
   /** "hero" = the big landing search box; "compact" = the quiet underline input on player pages. */
   variant?: "hero" | "compact";
@@ -29,7 +30,7 @@ const Magnifier = ({ size }: { size: number }) => (
  * highlighted), Escape / an outside click closes the list. Mouse hover drives the same
  * highlight so keyboard and pointer stay in sync.
  */
-export function PlayerSearch({ players, listError, onPick, variant = "hero" }: PlayerSearchProps) {
+export function PlayerSearch({ players, listFailed, onPick, variant = "hero" }: PlayerSearchProps) {
   const hero = variant === "hero";
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false); // dropdown (results) visible
@@ -37,6 +38,7 @@ export function PlayerSearch({ players, listError, onPick, variant = "hero" }: P
   const rootRef = useRef<HTMLDivElement>(null);
   const listId = useId();
   const optionId = (i: number) => `${listId}-opt-${i}`;
+  const online = useOnline(); // which line the landing's failure message says
 
   // Matching + ranking live in lib/search (pure, tested): each typed word is its own check,
   // word-start matches first, then team matches, mid-word matches last; current players first.
@@ -44,12 +46,12 @@ export function PlayerSearch({ players, listError, onPick, variant = "hero" }: P
 
   const q = fold(query);
   const showDrop = open && q.length > 0 && filtered.length > 0;
-  const searchPending = q.length > 0 && players == null && !listError;
+  const searchPending = q.length > 0 && players == null && !listFailed;
   const noMatches = q.length > 0 && players != null && filtered.length === 0;
 
   // Announced to screen readers as the search state changes (the dropdown is otherwise silent).
   const searchStatus = searchPending
-    ? "Loading roster…"
+    ? "Loading players…"
     : showDrop
       ? `${filtered.length} ${filtered.length === 1 ? "result" : "results"}`
       : noMatches
@@ -142,7 +144,7 @@ export function PlayerSearch({ players, listError, onPick, variant = "hero" }: P
   const listbox = (posStyle: React.CSSProperties) => {
     if (!(showDrop || searchPending || noMatches)) return null;
     const boxStyle: React.CSSProperties = { position: "absolute", zIndex: 20, background: "var(--color-surface)", border: "1px solid var(--color-divider)", overflowY: "auto", ...posStyle };
-    // A message isn't a list: "Loading roster…" / "No players match" is drawn in the same box but not as
+    // A message isn't a list: "Loading players…" / "No players match" is drawn in the same box but not as
     // a listbox — one with no options is an ARIA error (axe aria-required-children; a11y review R1,
     // 2026-09-27). The status line below announces it.
     if (!showDrop) {
@@ -150,7 +152,7 @@ export function PlayerSearch({ players, listError, onPick, variant = "hero" }: P
         <div className="elev-md" style={boxStyle}>
           {searchPending ? (
             <div className="text-muted" style={{ padding: "var(--space-3) var(--space-4)", fontSize: "var(--fs-sm)", display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
-              <Spinner small /> Loading roster…
+              <Spinner small /> Loading players…
             </div>
           ) : (
             <div className="text-muted" style={{ padding: "var(--space-3) var(--space-4)", fontSize: "var(--fs-sm)" }}>No players match “{query}”.</div>
@@ -201,11 +203,11 @@ export function PlayerSearch({ players, listError, onPick, variant = "hero" }: P
           className="search-underline"
           // Font size lives in .search-underline (theme.css) so the touch-device rule there can win.
           style={{ width: "100%", height: 30, paddingLeft: "var(--space-6)", color: "var(--color-text)", fontFamily: "var(--font-body)" }}
-          // No "Loading roster…" placeholder while the list loads (~0.2–0.7s, measured 2026-09-26): it
+          // No "Loading players…" placeholder while the list loads (~0.2–0.7s, measured 2026-09-26): it
           // flashed by too fast to read and read as confusing (user). Someone who types before it
-          // arrives still gets the dropdown's "Loading roster…".
-          placeholder={listError ? "Search unavailable" : "Search players…"}
-          disabled={listError != null}
+          // arrives still gets the dropdown's "Loading players…".
+          placeholder={listFailed ? "Search unavailable" : "Search players…"}
+          disabled={listFailed}
         />
         {/* Fixed width (not min/max content-sizing) so the box doesn't shrink as you type and
             the result set narrows — it stays locked at the max from the first keystroke. */}
@@ -228,21 +230,21 @@ export function PlayerSearch({ players, listError, onPick, variant = "hero" }: P
           style={{ paddingLeft: "var(--space-10)", height: 48, fontSize: "var(--fs-base)" }}
           // Same as the compact box: no loading placeholder; "Search unavailable" if the list failed
           // (it used to stay "Loading roster for search…" forever on a failure).
-          placeholder={listError ? "Search unavailable" : "Search a player or team…"}
+          placeholder={listFailed ? "Search unavailable" : "Search players or teams…"}
         />
         {listbox({ left: 0, right: 0, top: 54, maxHeight: 360 })}
       </div>
 
       {srStatus}
 
-      {searchPending && (
-        <p className="text-muted" style={{ fontSize: "var(--fs-xs)", marginTop: "var(--space-2)", display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
-          <Spinner small /> Loading full roster…
-        </p>
-      )}
-      {listError && (
+      {/* No second loading line under the box: "Loading full roster…" sat here beside the dropdown's own
+          message, at the same moment (user, 2026-09-27: one message, "players" — the list is everyone
+          since 1997, not a roster). */}
+      {/* It said "…but featured players still work" until 2026-09-27 — they don't: a player page needs
+          the same list and league averages, and shows its error screen without them. */}
+      {listFailed && (
         <p role="alert" className="text-muted" style={{ fontSize: "var(--fs-xs)", marginTop: "var(--space-2)" }}>
-          Couldn't load the full roster — search is unavailable, but featured players still work.
+          {online ? `Couldn't load the player list. ${RETRY_HINT}` : OFFLINE_HINT}
         </p>
       )}
     </>

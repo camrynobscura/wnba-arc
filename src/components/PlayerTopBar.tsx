@@ -3,9 +3,9 @@ import type { PlayerSummary } from "../data/api";
 import { PlayerSearch } from "./PlayerSearch";
 
 interface PlayerTopBarProps {
-  /** Full roster + its load error, for the "search more players" box (null while it loads). */
+  /** Full roster, for the "search more players" box (null while it loads), and whether it failed. */
   players: PlayerSummary[] | null;
-  listError: string | null;
+  listFailed: boolean;
   onPick: (espn: string) => void;
 }
 
@@ -17,7 +17,7 @@ interface PlayerTopBarProps {
  * search floating alone up here — it looked stranded, and the player's name can't share the row
  * with it on a phone.)
  */
-export function PlayerTopBar({ players, listError, onPick }: PlayerTopBarProps) {
+export function PlayerTopBar({ players, listFailed, onPick }: PlayerTopBarProps) {
   return (
     <div className="view-header">
       {/* A link to the landing page, drawn as the ghost button (`.btn` resets the underline): it goes
@@ -28,7 +28,7 @@ export function PlayerTopBar({ players, listError, onPick }: PlayerTopBarProps) 
         </svg>
         <span>All players</span>
       </Link>
-      <PlayerSearch variant="compact" players={players} listError={listError} onPick={onPick} />
+      <PlayerSearch variant="compact" players={players} listFailed={listFailed} onPick={onPick} />
     </div>
   );
 }

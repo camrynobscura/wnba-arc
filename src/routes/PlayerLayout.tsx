@@ -8,6 +8,7 @@ import { Footer } from "../components/Footer";
 import { Notice } from "../components/Notice";
 import { PlayerTopBar } from "../components/PlayerTopBar";
 import { espnForSlug, playerPath } from "../lib/routes";
+import { OFFLINE_HINT, RETRY_HINT, useOnline } from "../lib/loadFailure";
 
 /** What the player subtree (summary + stat routes) reads from the layout via <Outlet>. By the
  *  time a child renders, detail + league are guaranteed present (the gate below waits for them). */
@@ -22,7 +23,8 @@ export interface PlayerOutletCtx {
  *  between players (or landing on a deep link cold) drives the fetch. */
 export function PlayerLayout() {
   const { slug } = useParams();
-  const { players, loadError, league, positions, meta } = useAppData();
+  const { players, loadFailed, league, positions, meta } = useAppData();
+  const online = useOnline();
   const navigate = useNavigate();
   // Name-slugs resolve against the roster (so the id stays out of the URL); the id-form resolves
   // without it. Null while the roster is still loading OR when nothing matches — the gates below
@@ -38,17 +40,21 @@ export function PlayerLayout() {
   // shows the page at once, with no "Loading…" frame (user, 2026-09-26). A fresh player is fetched
   // below. Both are keyed by id, so switching players can never show the previous one for a frame.
   const [fetched, setFetched] = useState<{ id: string; detail: PlayerDetail } | null>(null);
-  const [failed, setFailed] = useState<{ id: string; error: string } | null>(null);
+  const [failedId, setFailedId] = useState<string | null>(null);
   const detail = id == null ? null : (cachedPlayer(id) ?? (fetched?.id === id ? fetched.detail : null));
-  const detailError = detail == null && id != null && failed?.id === id ? failed.error : null;
+  const detailFailed = detail == null && id != null && failedId === id;
 
   useEffect(() => {
     if (id == null || cachedPlayer(id) != null) return;
-    setFailed((f) => (f?.id === id ? null : f)); // a retry shows "Loading…", not the last error
+    setFailedId((f) => (f === id ? null : f)); // a retry shows "Loading…", not the last error
     let cancelled = false;
     getPlayer(id)
       .then((d) => !cancelled && setFetched({ id, detail: d }))
-      .catch((e) => !cancelled && setFailed({ id, error: String(e) }));
+      .catch((e) => {
+        if (cancelled) return;
+        console.error(e); // the page says what to do (lib/loadFailure); the error itself is for debugging
+        setFailedId(id);
+      });
     return () => {
       cancelled = true;
     };
@@ -60,14 +66,16 @@ export function PlayerLayout() {
   // Which screen this is. Order matters. A name-slug can't resolve until the roster is in, so "loading
   // roster" must win over "not found" — otherwise a valid deep link flashes not-found on a cold load. And
   // surfacing a real not-found/error (vs. the old App's infinite spinner) is the point.
-  const notice: { title: string; detail?: string; error?: boolean } | null = loadError
-    ? { title: "Couldn't load players", detail: loadError, error: true }
+  // Either load failing is the same thing to the visitor — this player didn't load — and the same fix.
+  const failure = { title: "Couldn't load this player", detail: online ? RETRY_HINT : OFFLINE_HINT, error: true };
+  const notice: { title: string; detail?: string; error?: boolean } | null = loadFailed
+    ? failure
     : players == null || league == null
       ? { title: "Loading…" }
       : espn == null || players.find((p) => p.espn === espn) == null
         ? { title: "Player not found", detail: "No player matches this link.", error: true }
-        : detailError
-          ? { title: "Couldn't load this player", detail: detailError, error: true }
+        : detailFailed
+          ? failure
           : // Same title as the roster/league gate above so a hard refresh shows one steady
             // "Loading…" instead of switching text between the two sequential load phases.
             detail == null
@@ -93,7 +101,7 @@ export function PlayerLayout() {
         Skip to main content
       </a>
       <header className="view-main view-top">
-        <PlayerTopBar players={players} listError={loadError} onPick={pick} />
+        <PlayerTopBar players={players} listFailed={loadFailed} onPick={pick} />
       </header>
       <main id="main" className="view-main has-compare-bar">
         {loaded ? (

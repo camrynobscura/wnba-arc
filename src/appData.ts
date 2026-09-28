@@ -6,7 +6,8 @@ import type { League, PositionLookup } from "./lib/deviation";
  *  per-player detail is NOT here — it's fetched per route in PlayerLayout, keyed on the URL. */
 export interface AppData {
   players: PlayerSummary[] | null;
-  loadError: string | null;
+  /** The player list or the league averages failed to load (no retry: a refresh starts over). */
+  loadFailed: boolean;
   league: League | null;
   positions: PositionLookup | null;
   /** GET /meta — data freshness for the footer; null until loaded (or if the fetch failed). */

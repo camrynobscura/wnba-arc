@@ -162,18 +162,16 @@ export function firstName(fullName: string): string {
   return fullName.split(" ")[0] || fullName;
 }
 
-function sgn(r: number): string {
-  if (r > 0.0001) return "+";
-  if (r < -0.0001) return "−";
-  return "±";
-}
-
-/** Raw delta in the stat's own units — percentage POINTS for a rate stat ("+2.6" for 34.6% vs
+/** Raw delta in the stat's own units — percentage POINTS for a rate stat ("+0.5" for 34.6% vs
     34.1%), printed without a unit: a " pp" suffix wrapped inside a 40px phone column and the
     abbreviation was not understood; the table's Diff tooltip and the cell's spoken label name the
-    unit instead. */
+    unit instead. A gap that rounds to zero has no direction to show: "0.0", not "+0.0" / "−0.0"
+    (the sign used to be decided before rounding — A'ja Wilson 2020 blocks read "+0.0"; user,
+    2026-09-27). */
 export function fmtRaw(r: number, pct: boolean): string {
-  return sgn(r) + (pct ? (Math.abs(r) * 100).toFixed(1) : Math.abs(r).toFixed(1));
+  const shown = (Math.abs(r) * (pct ? 100 : 1)).toFixed(1);
+  if (shown === "0.0") return shown;
+  return (r > 0 ? "+" : "−") + shown;
 }
 
 export function playedSeasons(player: PlayerDetail): SeasonPlayed[] {
@@ -234,14 +232,15 @@ export function smallSampleReason(season: SeasonPlayed, statKey: StatKey): strin
   if (!isRateStat(statKey)) return null;
   const att = rateAttempts(season, statKey);
   if (att == null || att >= TINT_FLOOR[statKey]) return null;
-  // Round DOWN: only TS possessions are fractional (FGA + 0.44·FTA), and rounding to nearest showed
-  // 99.7 as "100 TS possessions" beside a floor of 100 (Teonni Key 2026). Whole counts are unchanged.
+  // Round DOWN: only TS attempts are fractional (FGA + 0.44·FTA), and rounding to nearest showed
+  // 99.7 as "100 TS attempts" beside a floor of 100 (Teonni Key 2026). Whole counts are unchanged.
   const n = Math.floor(att);
   const s = n === 1 ? "" : "s";
   // Short forms (user, 2026-09-25 — keep the footnote tight). Threes read "attempts from three",
   // not "3-point attempts": "1 3-point attempt" read as "13-point attempt" (user) — a digit, a
-  // space, a digit.
-  const what = statKey === "tpp" ? `attempt${s} from three` : statKey === "fgp" ? `FG attempt${s}` : `TS possession${s}`;
+  // space, a digit. TS: "TS attempts", basketball's usual name for FGA + 0.44·FTA (true shooting
+  // attempts); it said "TS possessions" until 2026-09-27 (user).
+  const what = statKey === "tpp" ? `attempt${s} from three` : statKey === "fgp" ? `FG attempt${s}` : `TS attempt${s}`;
   return `Small sample: ${n} ${what}`;
 }
 
@@ -299,7 +298,7 @@ export function rankNote(s: SeasonPlayed, key: StatKey, mode: HeatmapMode, playe
   const need = (n: number) => Math.ceil((n * s.teamGames) / FULL_SCHEDULE_GAMES);
   const floor = RANK_FLOOR[key];
   const made = floor.made != null ? ` or ${need(floor.made)} made` : "";
-  const att = key === "tpp" ? "attempts from three" : key === "fgp" ? "FG attempts" : "TS possessions";
+  const att = key === "tpp" ? "attempts from three" : key === "fgp" ? "FG attempts" : "TS attempts";
   return `Needs ${need(floor.att)} ${att}${made} to rank`;
 }
 
@@ -654,6 +653,15 @@ export function scaleNoun(mode: HeatmapMode, position: string | null): string {
   if (mode === "self") return "career avg";
   if (mode === "league") return "league avg";
   return `${positionSingular(position)} avg`;
+}
+
+/** The same reference in full words, for a sentence ("their career average", "the league average",
+    "the guard average") — a heatmap cell's spoken name and the table's Diff tooltip. `scaleNoun`'s
+    "avg" is a label's shorthand; inside a sentence it read like a typo (user, 2026-09-27). */
+export function referencePhrase(mode: HeatmapMode, position: string | null): string {
+  if (mode === "self") return "their career average";
+  if (mode === "league") return "the league average";
+  return `the ${positionSingular(position)} average`;
 }
 
 /** Self mode needs ≥2 seasons to be meaningful (one season vs. itself is all-neutral); a

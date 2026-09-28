@@ -73,9 +73,9 @@ export function Footer({ meta, showAbout = true }: FooterProps) {
         {/* The same info icon the old top bar had (user's call over an "About ARC" text chip), the
             same size and hit area as the theme switch so the two read as a pair. Named by its `title`
             alone — the hover tooltip; an equal aria-label beside it was read twice, as the name and
-            again as the description (a11y review R3, 2026-09-27). */}
+            again as the description (a11y review R3, 2026-09-27). "Arc", not "ARC", as the tab titles (user, 09-27). */}
         {showAbout && (
-          <Link to="/about" className="icon-btn" title="About ARC">
+          <Link to="/about" className="icon-btn" title="About Arc">
             <svg aria-hidden="true" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="12" cy="12" r="9" />
               <path d="M12 11v5M12 8h.01" />
