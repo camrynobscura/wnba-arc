@@ -1,7 +1,9 @@
 /// <reference types="vitest/config" />
 import { defineConfig, type Plugin } from "vite";
 import react from "@vitejs/plugin-react";
+import { createHash } from "node:crypto";
 import { apiBase, PLAYER_LIST_PATH } from "./src/data/apiUrls";
+import { headersFile, inlineScripts } from "./src/securityHeaders";
 
 /**
  * Puts `<link rel="preload" as="fetch" …>` for the player list into index.html, so the browser starts that
@@ -22,6 +24,32 @@ function preloadPlayerList(): Plugin {
     },
     transformIndexHtml() {
       return [{ tag: "link", attrs: { rel: "preload", as: "fetch", href, crossorigin: true }, injectTo: "head" }];
+    },
+  };
+}
+
+/**
+ * Writes Netlify's `_headers` (the security headers, src/securityHeaders.ts) into dist, computed from the finished
+ * index.html: the CSP lists each inline script by its SHA-256 and the API by the same VITE_API_BASE the app calls,
+ * so editing either can't leave a stale header behind. Runs after Vite has written index.html into the bundle
+ * (`enforce: "post"`).
+ */
+function securityHeaders(): Plugin {
+  let apiOrigin: string | null = null;
+  return {
+    name: "security-headers",
+    apply: "build",
+    enforce: "post",
+    configResolved(config) {
+      const base = apiBase(config.env.VITE_API_BASE);
+      apiOrigin = base.startsWith("/") ? null : new URL(base).origin; // "/api" = this site's own origin
+    },
+    generateBundle(_options, bundle) {
+      const page = bundle["index.html"];
+      if (!page || page.type !== "asset") this.error("security-headers: index.html is not in the bundle");
+      const html = typeof page.source === "string" ? page.source : new TextDecoder().decode(page.source);
+      const scriptHashes = inlineScripts(html).map((s) => createHash("sha256").update(s, "utf8").digest("base64"));
+      this.emitFile({ type: "asset", fileName: "_headers", source: headersFile({ apiOrigin, scriptHashes }) });
     },
   };
 }
@@ -49,9 +77,26 @@ const apiProxy = {
   },
 };
 
+/**
+ * Files the dev server must never hand out. It serves the whole project folder, and the project's
+ * working docs (DECISIONS.md, CLAUDE.md, TRIAGE.md …) are private: they're kept out of git, yet with
+ * `--host` anyone on the same network could fetch them (measured 2026-09-28). No app code imports a
+ * .md file. Setting `deny` REPLACES Vite's defaults, so they're repeated first — copied from Vite
+ * 8.2's docs (node_modules/vite/dist/node/index.d.ts, `deny?`); re-check them when Vite upgrades.
+ */
+const DEV_SERVER_DENY = [
+  ".env",
+  ".env.*",
+  "*.{crt,pem,key,p12,pfx,cer,der}",
+  ".npmrc",
+  ".yarnrc.yml",
+  "**/.git/**",
+  "**/*.md",
+];
+
 export default defineConfig({
-  plugins: [react(), preloadPlayerList()],
-  server: { proxy: apiProxy },
+  plugins: [react(), preloadPlayerList(), securityHeaders()],
+  server: { proxy: apiProxy, fs: { deny: DEV_SERVER_DENY } },
   preview: { proxy: apiProxy },
   // Vitest stubs CSS imports to "" — even `?raw` — unless the file is listed here. theme.test.ts reads
   // theme.css's --color-bg values to check the browser bar's theme-color against them.
