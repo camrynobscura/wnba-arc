@@ -74,7 +74,7 @@ instead of a shared package, and the database stays private behind the API.
   every qualified player has a position on record (2012 on; ESPN has none for most earlier players).
 
 **Daily refresh**
-- A GitHub Actions cron (4:23 AM Eastern, with an explicit time zone) re-ingests only the current
+- A GitHub Actions cron (overnight, with an explicit Eastern time zone) re-ingests only the current
   season, since past seasons never change. It reads every team's schedule for games played so far
   and the last completed game, then rebuilds the season's averages and spreads.
 - The job uses the current year, so it moves to the next season without code changes.
