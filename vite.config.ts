@@ -1,3 +1,4 @@
+/// <reference types="vitest/config" />
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 
@@ -28,4 +29,7 @@ export default defineConfig({
   plugins: [react()],
   server: { proxy: apiProxy },
   preview: { proxy: apiProxy },
+  // Vitest stubs CSS imports to "" — even `?raw` — unless the file is listed here. theme.test.ts reads
+  // theme.css's --color-bg values to check the browser bar's theme-color against them.
+  test: { css: { include: [/src\/styles\/theme\.css/] } },
 });

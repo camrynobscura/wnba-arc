@@ -1,0 +1,3 @@
+# Everything may be crawled. (Without this file, the catch-all in _redirects answered /robots.txt with the app's page.)
+User-agent: *
+Allow: /

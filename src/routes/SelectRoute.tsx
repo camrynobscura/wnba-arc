@@ -11,7 +11,7 @@ export function SelectRoute() {
   const { players, loadFailed, meta } = useAppData();
   const navigate = useNavigate();
   // The same as index.html's, which a fresh load shows before this runs.
-  usePageTitle(`${SITE_NAME} — Career Arc Visualizer`);
+  usePageTitle(SITE_NAME);
 
   // A search result → the player's page. Results come from the roster, so it has the name for the
   // slug. (The featured list is links — they carry their own paths.)

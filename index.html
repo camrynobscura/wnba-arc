@@ -3,9 +3,40 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <!-- iPhone home-screen icon; made by scripts/make-assets.mjs (npm run assets), like og.png. -->
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <!-- The landing page's title; each page sets its own once it renders (src/pageArrival.ts). -->
-    <title>WNBA Arc — Career Arc Visualizer</title>
+    <!-- The landing page's title; each page sets its own once it renders (src/pageArrival.ts). Every path serves
+         this file (public/_redirects), so the description is what link previews show for any page. -->
+    <title>WNBA Arc</title>
+    <meta
+      name="description"
+      content="Breakout season or slump? See every season of a WNBA player's career as a heatmap, compared with their career average, the league, or players at their position."
+    />
+    <!-- Link previews. No og:url and no canonical link: this same file is served for every path, so either one
+         would tell previews and search engines that each player page is the home page. -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="WNBA Arc" />
+    <meta property="og:title" content="WNBA Arc" />
+    <meta
+      property="og:description"
+      content="Breakout season or slump? See every season of a WNBA player's career as a heatmap, compared with their career average, the league, or players at their position."
+    />
+    <meta property="og:image" content="https://wnba-arc.netlify.app/og.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta
+      property="og:image:alt"
+      content="WNBA Arc: Breakout season or slump? Next to it, a heatmap of one player's seasons, red above her career average and blue below."
+    />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta
+      name="twitter:image:alt"
+      content="WNBA Arc: Breakout season or slump? Next to it, a heatmap of one player's seasons, red above her career average and blue below."
+    />
+    <!-- The browser bar's color (Chrome, Android; Safari 26 ignores it) matches the page: light here, switched
+         by the script below and by src/lib/theme.ts applyTheme. src/lib/theme.test.ts checks both values. -->
+    <meta name="theme-color" content="#f2f2f3" />
     <!-- Apply the theme before first paint (stored choice, else OS) to avoid a flash. Storage is read in
          its own try: a browser that blocks site storage throws on the read, and that must not skip the
          stamp — the page would sit on the light palette whatever the OS said (craftsmanship review 2.7). -->
@@ -24,6 +55,7 @@
           }
         }
         document.documentElement.dataset.theme = t;
+        document.querySelector('meta[name="theme-color"]').setAttribute("content", t === "dark" ? "#17191e" : "#f2f2f3");
       })();
     </script>
   </head>

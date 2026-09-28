@@ -31,9 +31,14 @@ export function resolveTheme(): Theme {
   return storedTheme() ?? systemTheme();
 }
 
-/** Stamp the attribute the CSS reads. */
+/** Each theme's page background (theme.css `--color-bg`), for the browser bar's `theme-color`. index.html's
+    pre-paint script repeats the two values; theme.test.ts checks all three places agree. */
+export const THEME_COLOR: Record<Theme, string> = { light: "#f2f2f3", dark: "#17191e" };
+
+/** Stamp the attribute the CSS reads, and give the browser bar the page's color. */
 export function applyTheme(t: Theme): void {
   document.documentElement.dataset.theme = t;
+  document.querySelector('meta[name="theme-color"]')?.setAttribute("content", THEME_COLOR[t]);
 }
 
 /** Persist an explicit choice and apply it. */
