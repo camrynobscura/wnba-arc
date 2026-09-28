@@ -8,6 +8,8 @@
  * section is ever built — the data is already on the wire.
  */
 
+import { apiBase, PLAYER_LIST_PATH } from "./apiUrls";
+
 /** A row in the select-screen list. */
 export interface PlayerSummary {
   id: string;
@@ -157,14 +159,8 @@ export interface PositionSeason {
 
 // ── fetch plumbing ───────────────────────────────────────────────────────────
 
-/** Where the wnba-data read API lives. Set `VITE_API_BASE` at build time (e.g. in the
- *  Netlify env) to point at the deployed API. Unset (local dev) it falls back to the
- *  same-origin `/api` path, which the Vite dev server proxies to the API (vite.config.ts).
- *  A relative path means the browser never makes a cross-origin request in dev, so the app
- *  works from any device that can reach the dev server (a phone on the same wifi), not only
- *  from `localhost` on the machine running the API. `||` rather than `??` so an empty
- *  `VITE_API_BASE=` in a stray .env counts as unset instead of producing `""` + path. */
-const BASE_URL = import.meta.env.VITE_API_BASE || "/api";
+/** Where the wnba-data read API lives — the rule is in apiUrls.ts, shared with the build's preload. */
+const BASE_URL = apiBase(import.meta.env.VITE_API_BASE);
 
 /**
  * GET a path from the API and parse the JSON body, typed as T.
@@ -181,11 +177,10 @@ async function fetchJson<T>(path: string): Promise<T> {
 
 // ── endpoints ────────────────────────────────────────────────────────────────
 
-/** The select-screen list, alphabetical — everyone on record since 1997, retired players included.
- *  (The API's default scope is the rolling 3-season window, for a client that wants only current
- *  players; this app shows league history.) */
+/** The select-screen list, alphabetical (PLAYER_LIST_PATH: everyone since 1997). index.html preloads this
+ *  exact request (vite.config.ts), so on a cold load it's already on its way when this runs. */
 export function getPlayers(): Promise<PlayerSummary[]> {
-  return fetchJson<PlayerSummary[]>("/players?scope=all");
+  return fetchJson<PlayerSummary[]>(PLAYER_LIST_PATH);
 }
 
 // Players already fetched this visit, by DB id: coming back to one — About's Back, the browser's
