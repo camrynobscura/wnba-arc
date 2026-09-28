@@ -1,8 +1,8 @@
 # WNBA Arc
 
-A full-stack data app for WNBA careers. Every season a player has played is shown as a heatmap of
-eight stats, measured against the player's own career average, the whole league that year, or
-players at the same position.
+A full-stack data app that compares each season of a WNBA player's career with their own career
+average, the league that year, or players at their position. Every season is shown as a heatmap of
+eight stats.
 
 The system is two repositories: this one, the **React + TypeScript frontend**, and
 **[wnba-data](https://github.com/camrynobscura/wnba-data)**, a **Node + Postgres data service** that
