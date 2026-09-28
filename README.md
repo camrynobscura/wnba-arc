@@ -11,9 +11,9 @@ small read-only API. This README covers both.
 
 **[Live demo →](https://wnba-arc.netlify.app)**
 
-| Player page, light | Player page, dark |
+| Heatmap | Stat detail |
 | :--: | :--: |
-| ![A'ja Wilson's season-by-season heatmap with a cell's detail popover open, the career summary plates, and the year-by-year chart, light theme](assets/summary-light.png) | ![The same player page in the dark theme](assets/summary-dark.png) |
+| <img src="assets/mobile-heatmap.png" width="320" alt="A'ja Wilson's player page on a phone, dark theme: the season-by-season heatmap of eight stats, each season compared with A'ja's own career averages"> | <img src="assets/mobile-stat-detail.png" width="320" alt="The Stat detail section for points on a phone: high, low, career average and best rank, a chart of every season against the career average, and the start of the yearly table"> |
 
 ## Stack
 
@@ -157,7 +157,7 @@ counts.
 
 ## Accessibility
 
-Built to **WCAG 2.1 AA**, plus the 2.2 additions that apply:
+Built to **WCAG 2.2 AA**:
 
 - The heatmap is an ARIA grid with a roving tabindex: one Tab stop, arrow keys between cells, Enter
   for the stat's history. Each cell's name carries the value, the difference, the reference and the
