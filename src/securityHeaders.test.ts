@@ -36,11 +36,11 @@ describe("contentSecurityPolicy", () => {
 });
 
 describe("headersFile", () => {
-  it("applies every header to every path, the policy as report-only", () => {
+  it("applies every header to every path, the policy enforced", () => {
     const lines = headersFile({ apiOrigin: null, scriptHashes: [] }).split("\n");
     expect(lines[1]).toBe("/*");
     expect(lines.slice(2).filter(Boolean).every((l) => /^ {2}[A-Za-z-]+: \S/.test(l))).toBe(true);
-    expect(lines[2]).toMatch(/^ {2}Content-Security-Policy-Report-Only: default-src 'self'; /);
+    expect(lines[2]).toMatch(/^ {2}Content-Security-Policy: default-src 'self'; /);
     expect(lines).toContain("  X-Frame-Options: DENY");
   });
 });

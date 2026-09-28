@@ -8,10 +8,11 @@
  *   images   — ours, `data:` (the stat picker's ▾ in theme.css), ESPN's headshots;
  *   fonts    — ours (bundled Barlow);
  *   connects — ours, the API, Cloudflare's beacon reports.
- * The policy ships as Content-Security-Policy-Report-Only: the browser reports what it WOULD block (in the console)
- * and blocks nothing, until a check on the live site shows it's clean. X-Frame-Options: DENY blocks framing now
- * (the CSP's frame-ancestors only reports until it's enforced; the site is never embedded — the portfolio uses a
- * screenshot, user 2026-09-28) and covers older browsers. HSTS already comes from Netlify.
+ * The policy is ENFORCED. It shipped report-only first, and the live site (3 engines × 5 pages, the Cloudflare beacon
+ * on) flagged nothing while a deliberate violation was flagged in all three (2026-09-28). A new outside host or
+ * inline script must be added here, or the browser blocks it. X-Frame-Options: DENY says the same as frame-ancestors
+ * for older browsers (the site is never embedded — the portfolio uses a screenshot, user 2026-09-28). HSTS comes
+ * from Netlify.
  */
 
 /** The bodies of the inline (no `src`) `<script>` elements, exactly as a browser hashes them for a CSP. */
@@ -51,7 +52,7 @@ export function headersFile(inputs: HeaderInputs): string {
   return [
     "# Built by vite.config.ts from src/securityHeaders.ts — edit there, not here.",
     "/*",
-    `  Content-Security-Policy-Report-Only: ${contentSecurityPolicy(inputs)}`,
+    `  Content-Security-Policy: ${contentSecurityPolicy(inputs)}`,
     "  X-Frame-Options: DENY",
     "  X-Content-Type-Options: nosniff",
     "  Referrer-Policy: strict-origin-when-cross-origin",
