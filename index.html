@@ -62,8 +62,19 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
-    <!-- Page-view counts. No cookies or local storage; it counts the app's in-page route changes on its own,
-         and only accepts visits from the site's own domain, so local dev and tests aren't counted. -->
-    <!-- Cloudflare Web Analytics --><script type='module' src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "d9cfdc02eb944b15ba5a23d39507bced"}'></script><!-- End Cloudflare Web Analytics -->
+    <!-- Cloudflare Web Analytics: page-view counts. No cookies or local storage; it counts the app's in-page route
+         changes on its own. Loaded only on the live site, so local dev, previews and tests never contact it (from
+         localhost Cloudflare refuses every report, each one a console error; a Netlify deploy preview's address
+         would be counted as the site). A custom domain needs adding here. The tag is Cloudflare's snippet, built
+         in script: the same src, type and data-cf-beacon. -->
+    <script>
+      if (location.hostname === "wnba-arc.netlify.app") {
+        var beacon = document.createElement("script");
+        beacon.type = "module";
+        beacon.src = "https://static.cloudflareinsights.com/beacon.min.js";
+        beacon.setAttribute("data-cf-beacon", '{"token": "d9cfdc02eb944b15ba5a23d39507bced"}');
+        document.body.appendChild(beacon);
+      }
+    </script>
   </body>
 </html>
