@@ -41,5 +41,6 @@ describe("headersFile", () => {
     expect(lines[1]).toBe("/*");
     expect(lines.slice(2).filter(Boolean).every((l) => /^ {2}[A-Za-z-]+: \S/.test(l))).toBe(true);
     expect(lines[2]).toMatch(/^ {2}Content-Security-Policy-Report-Only: default-src 'self'; /);
+    expect(lines).toContain("  X-Frame-Options: DENY");
   });
 });
