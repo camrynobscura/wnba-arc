@@ -78,7 +78,7 @@ instead of a shared package, and the database stays private behind the API.
   season, since past seasons never change. It reads every team's schedule for games played so far
   and the last completed game, then rebuilds the season's averages and spreads.
 - The job uses the current year, so it moves to the next season without code changes.
-- It sends a Telegram or Discord alert when a featured player's identity changes or ESPN renames a
+- It sends a Telegram alert when a featured player's identity changes or ESPN renames a
   team, since both need a matching change in the frontend.
 
 **API**
