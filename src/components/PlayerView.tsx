@@ -1,5 +1,4 @@
 import { useRef } from "react";
-import { photoUrl } from "../data/stats";
 import { useArrivalFocus } from "../pageArrival";
 import type { PlayerDetail } from "../data/api";
 import type { CompareSegment, HeatmapMode, League, PositionLookup, StatDetail, StatKey } from "../lib/deviation";
@@ -66,7 +65,7 @@ export function PlayerView({
           /* The 2px rule under the header is the CompareBar's top border now (theme.css). */
         }}
       >
-        <PlayerPhoto src={photoUrl(player.espn)} name={player.name} size={54} tint={teamTint(player.teamAbbr)} />
+        <PlayerPhoto espn={player.espn} name={player.name} size={54} tint={teamTint(player.teamAbbr)} />
         {/* The name comes first in the markup and the team line second, so a screen reader that jumps
             to the heading reads on into "Las Vegas Aces · C · #22"; `order: -1` draws the line above
             the name, as before (craftsmanship review 1.6, 2026-09-26). */}

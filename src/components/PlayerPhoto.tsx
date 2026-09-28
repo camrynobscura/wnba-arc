@@ -1,7 +1,9 @@
 import { useState, type CSSProperties } from "react";
+import { photoUrls } from "../data/stats";
 
 interface PlayerPhotoProps {
-  src: string;
+  /** The player's ESPN id — the headshot is looked up by it. */
+  espn: string;
   /** Player name — used only for the initials fallback. The photo is decorative
       (the name always appears as adjacent text), so it's hidden from the a11y tree. */
   name: string;
@@ -11,8 +13,12 @@ interface PlayerPhotoProps {
   tint?: string | null;
 }
 
-export function PlayerPhoto({ src, name, size, tint }: PlayerPhotoProps) {
-  const [failed, setFailed] = useState(false);
+export function PlayerPhoto({ espn, name, size, tint }: PlayerPhotoProps) {
+  // The resized headshot, then the original, then the initials: each failed load moves one step. The count
+  // is kept per player, so a photo that stays mounted while the player changes starts again at the first.
+  const sources = photoUrls(espn, size);
+  const [failed, setFailed] = useState({ espn, count: 0 });
+  const src = sources[failed.espn === espn ? failed.count : 0];
   const initials = name
     .split(" ")
     .map((w) => w[0])
@@ -42,15 +48,17 @@ export function PlayerPhoto({ src, name, size, tint }: PlayerPhotoProps) {
       aria-hidden="true"
       style={style}
     >
-      {!failed ? (
+      {src ? (
         <img
+          // A new element per source: a late error from the previous source can't count against this one.
+          key={src}
           src={src}
           alt=""
           width={size}
           height={size}
           style={{ width: "100%", height: "100%", objectFit: "cover" }}
           loading="lazy"
-          onError={() => setFailed(true)}
+          onError={() => setFailed((f) => ({ espn, count: (f.espn === espn ? f.count : 0) + 1 }))}
         />
       ) : (
         <span

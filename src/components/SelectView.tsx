@@ -1,7 +1,6 @@
 import { useRef } from "react";
 import { Link } from "react-router-dom";
 import { useArrivalFocus } from "../pageArrival";
-import { photoUrl } from "../data/stats";
 import type { PlayerSummary } from "../data/api";
 import type { FeaturedPlayer } from "../data/featured";
 import { PlayerPhoto } from "./PlayerPhoto";
@@ -76,7 +75,7 @@ export function SelectView({ featured, players, listFailed, onPick }: SelectView
                   textDecoration: "none",
                 }}
               >
-                <PlayerPhoto src={photoUrl(f.espn)} name={f.name} size={40} tint={teamTintByName(f.team)} />
+                <PlayerPhoto espn={f.espn} name={f.name} size={40} tint={teamTintByName(f.team)} />
                 <div style={{ flex: 1, minWidth: 0 }}>
                   {/* Line height 1.2, not the body's 1.55: the name sat 9px above its team line (user, 2026-09-27). */}
                   <div className="text-heading" style={{ fontSize: "var(--fs-lg)", lineHeight: 1.2 }}>{f.name}</div>

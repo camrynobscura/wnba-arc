@@ -30,9 +30,20 @@ export const STATS: StatDef[] = [
   { key: "tsPct", short: "TS%", label: "True Shooting %", pct: true, desc: "True shooting % — overall scoring efficiency across twos, threes, and free throws" },
 ];
 
-/** ESPN headshot URL for a player, built from their espn id. */
-export function photoUrl(espnId: string): string {
-  return `https://a.espncdn.com/i/headshots/wnba/players/full/${espnId}.png`;
+/**
+ * A player's ESPN headshot for a photo `size` CSS px tall, best source first: ESPN's image resizer at the
+ * size it's shown (3× for sharp phone screens), then the full 600×436 original in case the resizer fails.
+ * The originals are ~280 KB each and were 5.5 MB on the landing page at 40px (Lighthouse, 2026-09-28).
+ * The resizer (`combiner`) is what ESPN's own site uses; like the headshot path, it isn't documented. It
+ * answers 404 for a missing headshot, as the original does, so the initials fallback still fires.
+ * `scale=crop` crops rather than stretches a photo that isn't 600×436 (without it, a mismatched shape is
+ * squashed — checked 2026-09-28).
+ */
+export function photoUrls(espnId: string, size: number): [resized: string, original: string] {
+  const path = `/i/headshots/wnba/players/full/${espnId}.png`;
+  const h = size * 3;
+  const w = Math.round((h * 600) / 436);
+  return [`https://a.espncdn.com/combiner/i?img=${path}&w=${w}&h=${h}&scale=crop`, `https://a.espncdn.com${path}`];
 }
 
 /** The description without its "Name — " lead-in, capitalized: what the drill-down shows under
