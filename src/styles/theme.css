@@ -968,8 +968,8 @@ select.select-reset {
   font-family: inherit;
   font-size: var(--fs-sm);
   /* 500, not 600: the numbers read harsh in bold on the saturated cells. Softened via WEIGHT
-     rather than opacity — the heat colors are tuned so this text only clears ~4.7:1 on the worst
-     cell, and a visible opacity drop (measured: 0.85 → 4.02–4.32:1) breaks AA. Weight leaves the
+     rather than opacity — the heat colors are tuned so this text only clears 4.53:1 on the worst
+     cell (a full-red cell in dark mode, measured 2026-09-27), and a visible opacity drop (measured: 0.85 → 4.02–4.32:1) breaks AA. Weight leaves the
      contrast ratio untouched. */
   font-weight: 500;
   font-variant-numeric: tabular-nums;
