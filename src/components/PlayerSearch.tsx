@@ -1,6 +1,7 @@
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import type { PlayerSummary } from "../data/api";
 import { Spinner } from "./Spinner";
+import { MetaLine } from "./MetaLine";
 import { playerMeta } from "../lib/playerMeta";
 import { fold, rankPlayers } from "../lib/search";
 import { OFFLINE_HINT, RETRY_HINT, useOnline } from "../lib/loadFailure";
@@ -181,7 +182,7 @@ export function PlayerSearch({ players, listFailed, onPick, variant = "hero" }: 
               className="text-muted"
               style={{ fontFamily: "var(--font-body)", fontSize: "var(--fs-xs)", marginLeft: "auto", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", minWidth: 0 }}
             >
-              {playerMeta(p)}
+              <MetaLine text={playerMeta(p)} />
             </span>
           </div>
         ))}

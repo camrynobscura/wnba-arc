@@ -18,6 +18,7 @@ import {
   ordinal,
   ownStatAverage,
   pctAxis,
+  positionName,
   positionNoun,
   positionSingular,
   rankNote,
@@ -275,9 +276,15 @@ describe("positionNoun", () => {
     expect(positionNoun("C")).toBe("centers");
   });
 
-  it("falls back for an unknown or missing position", () => {
-    expect(positionNoun(null)).toBe("players at the same position");
-    expect(positionNoun("X")).toBe("players at the same position");
+  it("falls back for an unknown, missing or inherited-key position", () => {
+    for (const p of [null, "X", "__proto__", "constructor", "toString"]) expect(positionNoun(p)).toBe("players at the same position");
+  });
+});
+
+describe("positionName", () => {
+  it("maps position codes to their words, and anything else to null", () => {
+    expect([positionName("G"), positionName("F"), positionName("C")]).toEqual(["guard", "forward", "center"]);
+    for (const p of [null, "X", "__proto__", "constructor", "toString"]) expect(positionName(p)).toBeNull();
   });
 });
 
@@ -811,7 +818,7 @@ describe("buildStatDetail — every season on the timeline is a chart column", (
 
 describe("pctAxis — a shooting-% chart's fitted vertical scale", () => {
   it("fits the data with whole-five ends and a whole-ten span (the measured Gabby Williams TS% case)", () => {
-    // Her seasons 42–55%, league refs 51.8–56.1% → 40–60 (from zero the data used ~21% of the plot).
+    // Their seasons 42–55%, league refs 51.8–56.1% → 40–60 (from zero the data used ~21% of the plot).
     expect(pctAxis([0.48, 0.47, 0.5, 0.51, 0.42, 0.55, 0.51, 0.561, 0.518])).toEqual({ lo: 0.4, hi: 0.6 });
   });
 

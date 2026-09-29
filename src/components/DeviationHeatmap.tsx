@@ -44,7 +44,7 @@ const HINT_ID = "hm-grid-hint";
  * grid (craftsmanship review 3.2, 2026-09-26). Each cell's accessible name carries value + gap +
  * reference + rank (so nothing is pointer-only), starting with the value as the cell shows it; the
  * "Enter opens that stat's history" instruction is said once, as the grid's description, not in
- * every name (3.5). The open cell is marked aria-expanded and the popover — rendered in DOM order
+ * every name (3.5). The open cell points at the popover (aria-controls; not aria-expanded — see Cell) and the popover — rendered in DOM order
  * right after the grid, so Tab reaches its link — is positioned `fixed` from the cell's rect, which
  * also lifts it out of the mobile horizontal-scroll container that would otherwise clip it.
  */
@@ -555,22 +555,26 @@ function Cell({ cell, rank, rankNote, rankNoun, noun, refPhrase, tabbable, expan
         ? "var(--hm-base)"
         : `color-mix(in srgb, ${cell.colorT >= 0 ? "var(--hm-above)" : "var(--hm-below)"} ${Math.abs(cell.colorT) * MAX_INTENSITY}%, var(--hm-base))`;
 
-  // Grey for a small sample; the asterisk (.hm-ss) for any cell with a caveat — small OR partial.
-  const cls = "hm-cell" + (!cell.played ? " hm-empty" : "") + (cell.smallSample ? " hm-muted" : "") + (cell.smallSample || cell.partial ? " hm-ss" : "");
+  // Grey for a small sample; the asterisk (.hm-ss, on the drawn value) for any cell with a caveat — small OR partial.
+  const cls = "hm-cell" + (!cell.played ? " hm-empty" : "") + (cell.smallSample ? " hm-muted" : "");
+  const marked = cell.smallSample || cell.partial;
 
-  // Accessible name: the full line (a grid doesn't auto-associate its headers like a table), the
+  // Accessible name (the cell's sr-only content, below): the full line (a grid doesn't auto-associate its headers like a table), the
   // same detail the popover shows — including the rank — so a screen-reader user gets everything on
   // the cell itself. The value as the cell shows it, then exact ("53%, exactly 52.7%" — the name
   // must contain the visible label, WCAG 2.5.3). The Enter instruction is the grid's description.
+  // The reference's own number too, wherever the popover shows it ("vs their career average of 21.6"):
+  // until 2026-09-29 it was the one number only the popover had (user, the VoiceOver review).
   const stat = statName(cell.statKey);
   const shown = spokenValue(cell.cellFmt, cell.valueFmt);
+  const ref = cell.refValue != null ? cell.refFmt : null;
   const detail = !cell.played
     ? `${stat} ${cell.year}: did not play`
     : cell.smallSample
-      ? `${stat} ${cell.year}: ${shown}, ${lowerFirst(cell.note ?? "small sample — not compared")}`
+      ? `${stat} ${cell.year}: ${shown}, ${ref ? `${refPhrase} ${ref}, ` : ""}${lowerFirst(cell.note ?? "small sample — not compared")}`
       : cell.delta == null
         ? `${stat} ${cell.year}: ${shown}, no ${noun} that season`
-        : `${stat} ${cell.year}: ${shown}, ${cell.deltaFmt}${isCountingStat(cell.statKey) ? "" : " percentage points"} vs ${refPhrase}` +
+        : `${stat} ${cell.year}: ${shown}, ${cell.deltaFmt}${isCountingStat(cell.statKey) ? "" : " percentage points"} vs ${refPhrase}${ref ? ` of ${ref}` : ""}` +
           (cell.note ? `, ${lowerFirst(cell.note)}` : "") +
           (rank ? `, ranked ${ordinal(rank.rank)} of ${rank.pool} ${rankNoun}` : rankNote ? `, not ranked: ${lowerFirst(rankNote)}` : "");
 
@@ -582,15 +586,23 @@ function Cell({ cell, rank, rankNote, rankNoun, noun, refPhrase, tabbable, expan
       className={cls}
       style={bg ? { background: bg, color: "var(--color-text)" } : undefined}
       tabIndex={tabbable ? 0 : -1}
-      aria-label={detail}
-      aria-expanded={expanded}
+      // No aria-expanded: focus opens the popover, so a screen reader landing on a cell always heard
+      // "expanded" — on every cell, telling nothing (user, 2026-09-29). The link to it stays (silent).
       aria-controls={expanded ? POPOVER_ID : undefined}
       onFocus={onFocus}
       onMouseEnter={(e) => onHover(e.clientX, e.clientY)}
       onPointerDown={onPress}
       onClick={onTap}
     >
-      {cell.cellFmt}
+      {/* The cell says the whole line as its CONTENT, like the year labels: drawn value aria-hidden, the line
+          sr-only. VoiceOver in Safari reads a grid cell's aria-label AND then its contents — as an aria-label the
+          line was followed by the value again ("…ranked 1st of 157 players, 26.2"), and with the value hidden, by
+          "blank" (user, 2026-09-29). The asterisk rides on the drawn value so it's hidden too; it still draws in
+          the button's corner (the button is its positioned ancestor). */}
+      <span aria-hidden="true" className={marked ? "hm-ss" : undefined}>
+        {cell.cellFmt}
+      </span>
+      <span className="sr-only">{detail}</span>
     </button>
   );
 }

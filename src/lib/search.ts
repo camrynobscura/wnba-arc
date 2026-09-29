@@ -7,8 +7,8 @@ import type { PlayerSummary } from "../data/api";
  * Burras and Elisabeth Cebrian (a-l-i-S-A-B-urras) above Sabrina Ionescu, seventh of nine.
  *
  * Now each typed word is its own check, and a player matches only when EVERY word matches:
- *   - the START of a word of her name ("sab" → Sabrina, Sabally; "io" → Ionescu), or
- *   - the START of a word of her team ("sun" → Connecticut Sun), or
+ *   - the START of a word of their name ("sab" → Sabrina, Sabally; "io" → Ionescu), or
+ *   - the START of a word of their team ("sun" → Connecticut Sun), or
  *   - letters somewhere INSIDE a name word — the weak match, kept on purpose so "aja" or an
  *     accent-stripped fragment still finds someone, but ranked last.
  * Word order doesn't matter ("ionescu sab" = "sab ionescu"). Folding strips accents, apostrophes

@@ -30,7 +30,7 @@ const roster: PlayerSummary[] = [
   mk("Tina Charles", { team: "Connecticut Sun" }),
 ];
 
-/** A roster player by name — so a test doesn't depend on where she sits in the list. */
+/** A roster player by name — so a test doesn't depend on where they sit in the list. */
 const byName = (n: string): PlayerSummary => roster.find((p) => p.name === n)!;
 
 describe("fold / foldWords", () => {

@@ -6,6 +6,8 @@ import type { FeaturedPlayer } from "../data/featured";
 import { PlayerPhoto } from "./PlayerPhoto";
 import { teamTintByName } from "../data/teams";
 import { PlayerSearch } from "./PlayerSearch";
+import { MetaLine } from "./MetaLine";
+import { joinMeta, positionPart } from "../lib/playerMeta";
 import { playerPath } from "../lib/routes";
 
 interface SelectViewProps {
@@ -80,7 +82,7 @@ export function SelectView({ featured, players, listFailed, onPick }: SelectView
                   {/* Line height 1.2, not the body's 1.55: the name sat 9px above its team line (user, 2026-09-27). */}
                   <div className="text-heading" style={{ fontSize: "var(--fs-lg)", lineHeight: 1.2 }}>{f.name}</div>
                   <div className="text-muted" style={{ fontSize: "var(--fs-xs)" }}>
-                    {[f.team, f.pos].filter(Boolean).join(" · ")}
+                    <MetaLine text={joinMeta([f.team, positionPart(f.pos)])} />
                   </div>
                 </div>
                 <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--color-neutral-600)" strokeWidth="1.75">

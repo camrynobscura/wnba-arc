@@ -5,6 +5,7 @@ import type { CompareSegment, HeatmapMode, League, PositionLookup, StatDetail, S
 import { CompareBar } from "./CompareBar";
 import { PlayerPhoto } from "./PlayerPhoto";
 import { teamTint } from "../data/teams";
+import { MetaLine } from "./MetaLine";
 import { playerMeta } from "../lib/playerMeta";
 import { DeviationHeatmap } from "./DeviationHeatmap";
 import { StatDrilldownView } from "./StatDrilldownView";
@@ -67,14 +68,14 @@ export function PlayerView({
       >
         <PlayerPhoto espn={player.espn} name={player.name} size={54} tint={teamTint(player.teamAbbr)} />
         {/* The name comes first in the markup and the team line second, so a screen reader that jumps
-            to the heading reads on into "Las Vegas Aces · C · #22"; `order: -1` draws the line above
+            to the heading reads on into "Las Vegas Aces, center, #22" (MetaLine); `order: -1` draws the line above
             the name, as before (craftsmanship review 1.6, 2026-09-26). */}
         <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
           <h1 ref={headingRef} tabIndex={-1} className="page-heading" style={{ fontSize: "var(--fs-2xl)", margin: 0, lineHeight: 1 }}>
             {player.name}
           </h1>
           <div className="kicker" style={{ marginBottom: "var(--space-1)", order: -1 }}>
-            {playerMeta(player, true)}
+            <MetaLine text={playerMeta(player, true)} />
           </div>
         </div>
       </div>

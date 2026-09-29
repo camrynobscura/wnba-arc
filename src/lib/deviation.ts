@@ -120,18 +120,27 @@ export function makePositionLookup(seasons: PositionSeason[]): PositionLookup {
   };
 }
 
-/** The plain-language plural for a position code, for labels/captions ("other guards"). */
-export function positionNoun(position: string | null): string {
+/** The word behind a position code ("C" → "center"); null for no position or a code we don't know. The one
+    mapping: positionNoun, positionSingular and the spoken meta line (playerMeta.ts) all start here. */
+export function positionName(position: string | null): string | null {
+  // A switch: an object lookup would also find inherited keys ("constructor", "__proto__") if the API ever
+  // sent one as a position.
   switch (position) {
     case "G":
-      return "guards";
+      return "guard";
     case "F":
-      return "forwards";
+      return "forward";
     case "C":
-      return "centers";
+      return "center";
     default:
-      return "players at the same position";
+      return null;
   }
+}
+
+/** The plain-language plural for a position code, for labels/captions ("other guards"). */
+export function positionNoun(position: string | null): string {
+  const name = positionName(position);
+  return name ? `${name}s` : "players at the same position";
 }
 
 export function fmtV(v: number | null | undefined, pct: boolean): string {
@@ -653,18 +662,7 @@ export interface StatDetail {
 
 /** "guard" / "forward" / "center" — the singular for labels like "forward avg". */
 export function positionSingular(position: string | null): string {
-  // A switch, like positionNoun: an object lookup would also find inherited keys
-  // ("constructor", "__proto__") if the API ever sent one as a position.
-  switch (position) {
-    case "G":
-      return "guard";
-    case "F":
-      return "forward";
-    case "C":
-      return "center";
-    default:
-      return "position";
-  }
+  return positionName(position) ?? "position";
 }
 
 /** Short noun for a reference, by mode ("career avg" / "league avg" / "center avg") — the scale

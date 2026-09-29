@@ -24,7 +24,7 @@ const TEXT = "#1d1f20"; // --color-text
 const MUTED = "#5d5d60"; // --color-text-muted (neutral-700)
 
 const STATS = ["PTS", "REB", "AST", "STL", "BLK", "FG%", "3P%", "TS%"];
-// A real heatmap, not a made-up pattern: A'ja Wilson's seasons, 2026 (top) to 2018, each compared with her
+// A real heatmap, not a made-up pattern: A'ja Wilson's seasons, 2026 (top) to 2018, each compared with their
 // career average ("Self"), light theme — every cell's color as the app drew it (read from the page,
 // 2026-09-28). null = a hollow cell (too few 3-point attempts to color), drawn as the app draws it.
 const CELLS = [

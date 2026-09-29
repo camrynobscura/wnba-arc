@@ -1349,6 +1349,17 @@ select.select-reset {
   color: var(--color-text-muted);
   white-space: nowrap;
 }
+/* The label's spoken copy (CareerSummary.tsx) keeps its own case: Safari hands VoiceOver the capitals, and it spelled
+   "LOW" out letter by letter (2026-09-29). */
+.cs-k .sr-only {
+  text-transform: none;
+}
+/* The one value — number, then note — stacked as the plate stacked them when they were two <dd>s. */
+.cs-d {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+}
 .cs-v {
   margin: 0;
   font-family: var(--font-heading);
