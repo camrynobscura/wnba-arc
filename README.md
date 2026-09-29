@@ -23,8 +23,8 @@ small read-only API. This README covers both.
 | API | Node, TypeScript, Express 5, raw `pg` (no ORM) | Render |
 | Database | Postgres, 9 plain-SQL migrations | Supabase |
 | Ingest | TypeScript scripts over ESPN's public JSON | GitHub Actions, daily |
-| Tests | Vitest: 155 frontend, 72 backend | |
-| CI | oxlint, type check, Prettier, tests and build on every push | GitHub Actions |
+| Tests | Frontend: 157 unit, 34 browser tests in Chromium, Firefox and WebKit. Backend: 95 unit, 26 on a real Postgres | Vitest, Playwright |
+| CI | oxlint, type check, Prettier, the build and all four test suites on every push | GitHub Actions |
 
 ## Architecture
 
@@ -175,8 +175,8 @@ Built to **WCAG 2.2 AA**:
   reader's text size, not just the screen width. Checked from 320px to desktop at 100 to 200% text.
 - In Windows High Contrast mode, the heatmap keeps its colors and everything else uses the user's
   palette.
-- Every page state is scanned with axe in Chromium, Firefox and WebKit, in both themes: 0
-  violations. Also checked by hand with VoiceOver in Safari on a Mac.
+- axe scans nine page states, popups and error screens included, on every push, in Chromium, Firefox and
+  WebKit and both themes: 0 violations. Also checked by hand with VoiceOver in Safari on a Mac.
 
 ## Engineering notes
 
@@ -210,16 +210,28 @@ npm run lint          # oxlint
 npm run typecheck     # type-check only
 npm run test          # unit tests, once
 npm run test:watch    # re-run on change
+npm run test:e2e      # browser tests (first time: npx playwright install)
 npm run format        # format with Prettier
 npm run format:check  # check formatting (CI runs this)
 ```
 
-**Tests.** Frontend (155, 14 files): the grid, references, games and shots minimums, pooled averages, number
-formatting, the comparison buttons, the chart axis and best-rank rule, arrow-key movement, URL slugs,
+**Tests.** Frontend unit tests (157, 14 files): the grid, references, games and shots minimums, pooled averages,
+number formatting, the comparison buttons, the chart axis and best-rank rule, arrow-key movement, URL slugs,
 search ranking, the header line, the footer's freshness line, tooltip placement, the player cache,
 headshot addresses, the API address, the browser bar color, the security and caching headers, and the font setup.
-Backend (72, 8 files): ESPN parsing, team game counts, schedule reading, role rates, the change
-alerts, the database connection's encryption settings and player id checks.
+
+Browser tests (34, each run in Chromium, Firefox and WebKit; `e2e/`): the production build under its real
+security headers, with the API answered from recorded responses for six players picked for their edge cases.
+They cover search, the heatmap's keyboard grid and popover, the comparison bar (unavailable modes, and never
+covering what has focus), the stat history, load errors and not-found, two players with the same name, the
+theme switch, the 320px layout, and the axe scans above. Any uncaught error, console error or blocked resource
+fails a test.
+
+Backend unit tests (95, 9 files): ESPN parsing, team game counts, schedule reading, role rates, the change
+alerts, the database connection's encryption settings, player id checks, and the API's routes (bad input,
+errors, CORS, headers, the rate limit). Database tests (26) run on a throwaway Postgres 17 with Supabase's
+settings: ingest, who qualifies, the league and position averages, ranks and ties, the shooting floors, and
+the player list. Their data is a small made-up league, so every expected number can be checked by hand.
 
 ## Data source
 
