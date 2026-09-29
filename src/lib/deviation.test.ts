@@ -571,7 +571,7 @@ describe("buildHeatmapGrid — the switchable-reference heatmap", () => {
     expect(cell(g, 2020, "pts").delta).toBeCloseTo(-5, 5);
   });
 
-  it("league mode: colors in z-score steps vs THAT year's league (same ruler as the old bars)", () => {
+  it("league mode: colors in z-score steps vs THAT year's league", () => {
     // pts 18 vs league 12, step 5 → 1.2 steps → 1.2/3 = 0.4 colorT. Delta +6.
     const L = league([2022]);
     const p = player([playedSeason(2022, 40, { pts: 18 })]);
@@ -682,7 +682,7 @@ describe("buildStatDetail — the reference follows the page's mode", () => {
   const bar = (d: ReturnType<typeof buildStatDetail>, year: number) => d.bars.find((b) => b.year === year)!;
   const row = (d: ReturnType<typeof buildStatDetail>, year: number) => d.tableRows.find((r) => r.year === year)!;
 
-  it("league mode: each season vs THAT year's league average, with its percentile", () => {
+  it("league mode: each season vs THAT year's league average", () => {
     const L = league([2021, 2022]);
     const p = player([playedSeason(2021, 40, { pts: 10 }), playedSeason(2022, 40, { pts: 18 })]);
     const d = buildStatDetail(p, pts, "league", L, POS, "F");
@@ -711,7 +711,7 @@ describe("buildStatDetail — the reference follows the page's mode", () => {
     expect(c(2022).flat).toBe(false);
   });
 
-  it("self mode: a FLAT career-average reference (the heatmap's own basis), no percentile, no band", () => {
+  it("self mode: a FLAT career-average reference (the heatmap's own basis)", () => {
     // pts 10 and 20 → career avg 15 → 2020 below, 2022 above; the same 15 the heatmap colors by.
     const L = league([2020, 2022]);
     const p = player([playedSeason(2020, 40, { pts: 10 }), playedSeason(2022, 40, { pts: 20 })]);
