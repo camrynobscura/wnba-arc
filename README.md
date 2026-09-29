@@ -228,3 +228,9 @@ totals rather than taken from a precomputed field. Rebound percentages and all-i
 PER aren't included: ESPN doesn't publish the opponent data or ratings they need.
 
 WNBA Arc is an independent, unofficial project, not affiliated with the WNBA or ESPN.
+
+## License
+
+The code is under the [MIT License](LICENSE). That covers the code only: the Barlow fonts keep their own license (SIL
+Open Font License, [`assets/brand/fonts/OFL.txt`](assets/brand/fonts/OFL.txt)), and player stats and photos come from
+ESPN and belong to their owners.
