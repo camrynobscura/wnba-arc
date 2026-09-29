@@ -1,13 +1,13 @@
 import AxeBuilder from "@axe-core/playwright";
 import type { Page } from "@playwright/test";
-import { cells, expect, heading, openPlayer, search, test } from "./support";
+import { cells, expect, heading, openPlayer, search, test, type Api, type Errors } from "./support";
 
 /**
- * axe on every state the app can be in, in both themes: all of axe's rules, best practices included (a scan
+ * axe on the app's screens and popups, in both themes: all of axe's rules, best practices included (a scan
  * limited to the WCAG tags skips the landmark and region rules). axe finds only what a machine can see; the
  * keyboard and focus behavior is tested in player.spec.ts and navigation.spec.ts.
  */
-const STATES: [name: string, reach: (page: Page) => Promise<void>][] = [
+const STATES: [name: string, reach: (page: Page, api: Api, errors: Errors) => Promise<void>][] = [
   ["the landing page", (page) => page.goto("/").then(() => expect(heading(page)).toBeVisible())],
   [
     "the landing page's search results",
@@ -37,6 +37,15 @@ const STATES: [name: string, reach: (page: Page) => Promise<void>][] = [
   ],
   ["the About page", (page) => page.goto("/about").then(() => expect(heading(page)).toHaveText("About Arc"))],
   [
+    "a player that didn't load",
+    async (page, api, errors) => {
+      errors.allow(/500/);
+      api.fail("/players/3");
+      await page.goto("/player/aja-wilson");
+      await expect(heading(page)).toHaveText("Couldn't load this player");
+    },
+  ],
+  [
     "a player that doesn't exist",
     (page) => page.goto("/player/nobody-at-all").then(() => expect(heading(page)).toHaveText("Player not found")),
   ],
@@ -46,8 +55,8 @@ for (const colorScheme of ["light", "dark"] as const) {
   test.describe(`${colorScheme} theme`, () => {
     test.use({ colorScheme });
     for (const [name, reach] of STATES) {
-      test(`${name}: no axe violations`, async ({ page }) => {
-        await reach(page);
+      test(`${name}: no axe violations`, async ({ page, api, errors }) => {
+        await reach(page, api, errors);
         await expect(page.locator("html")).toHaveAttribute("data-theme", colorScheme);
         const { violations } = await new AxeBuilder({ page }).analyze();
         expect(violations.map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(" ")).join(", ")}`)).toEqual([]);
