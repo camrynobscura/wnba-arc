@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import indexHtml from "../index.html?raw";
-import { contentSecurityPolicy, headersFile, inlineScripts } from "./securityHeaders";
+import { contentSecurityPolicy, headersFile, headersFor, inlineScripts } from "./securityHeaders";
 
 describe("inlineScripts", () => {
   it("finds index.html's two inline scripts — the theme script and the analytics loader — and not the bundle", () => {
@@ -63,5 +63,29 @@ describe("headersFile", () => {
         .get("/*")!
         .some((l) => l.includes("Cache-Control")),
     ).toBe(false);
+  });
+});
+
+describe("headersFor", () => {
+  const file = headersFile({ apiOrigin: null, scriptHashes: ["AAA="] });
+  const names = (pathname: string) => headersFor(file, pathname).map(([name]) => name);
+
+  it("gives a page the security headers and no long cache", () => {
+    expect(names("/player/aja-wilson")).toEqual([
+      "Content-Security-Policy",
+      "X-Frame-Options",
+      "X-Content-Type-Options",
+      "Referrer-Policy",
+      "Permissions-Policy",
+    ]);
+    expect(headersFor(file, "/")[0]![1]).toBe(contentSecurityPolicy({ apiOrigin: null, scriptHashes: ["AAA="] }));
+  });
+
+  it("gives a hashed build file the long cache as well", () => {
+    expect(names("/assets/index-abc123.js")).toContain("Cache-Control");
+    expect(headersFor(file, "/assets/index-abc123.js").at(-1)).toEqual([
+      "Cache-Control",
+      "public, max-age=31536000, immutable",
+    ]);
   });
 });

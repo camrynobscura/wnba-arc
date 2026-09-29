@@ -2,9 +2,11 @@
 import { defineConfig, type Plugin } from "vite";
 import react from "@vitejs/plugin-react";
 import { createHash } from "node:crypto";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { apiBase, PLAYER_LIST_PATH } from "./src/data/apiUrls";
 import { APP_FONTS, fontFile, fontPackage } from "./src/fonts";
-import { headersFile, inlineScripts } from "./src/securityHeaders";
+import { headersFile, headersFor, inlineScripts } from "./src/securityHeaders";
 
 /**
  * Adds `<link rel="preload" as="fetch">` for the player list to index.html, so the browser starts that
@@ -88,6 +90,25 @@ function securityHeaders(): Plugin {
 }
 
 /**
+ * `vite preview` sends the headers Netlify would (dist/_headers), the CSP above all, so the end-to-end tests (e2e/)
+ * run under the production policy: an inline script or outside host it doesn't list fails a test, not the live site.
+ */
+function previewHeaders(): Plugin {
+  return {
+    name: "preview-headers",
+    configurePreviewServer(server) {
+      const file = readFileSync(resolve(server.config.root, server.config.build.outDir, "_headers"), "utf8");
+      server.middlewares.use((req, res, next) => {
+        for (const [name, value] of headersFor(file, new URL(req.url ?? "/", "http://preview").pathname)) {
+          res.setHeader(name, value);
+        }
+        next();
+      });
+    },
+  };
+}
+
+/**
  * Dev-only API proxy: with `VITE_API_BASE` unset, the app fetches the same-origin path `/api`, forwarded
  * here to the wnba-data server on localhost:3001 without the prefix. Same-origin, so dev needs no CORS
  * setup, and a phone on the same wifi works (`npm run dev -- --host`), where "localhost" would mean the
@@ -118,10 +139,14 @@ const DEV_SERVER_DENY = [
 ];
 
 export default defineConfig({
-  plugins: [react(), preloadPlayerList(), preloadFonts(), securityHeaders()],
+  plugins: [react(), preloadPlayerList(), preloadFonts(), securityHeaders(), previewHeaders()],
   server: { proxy: apiProxy, fs: { deny: DEV_SERVER_DENY } },
   preview: { proxy: apiProxy },
-  // Vitest stubs CSS imports to "", even `?raw`, unless the file is listed here. theme.test.ts and
-  // fonts.test.ts read the stylesheets.
-  test: { css: { include: [/src\/styles\/(theme|fonts)\.css/] } },
+  test: {
+    // The unit tests; e2e/ is Playwright's.
+    include: ["src/**/*.test.ts"],
+    // Vitest stubs CSS imports to "", even `?raw`, unless the file is listed here. theme.test.ts and
+    // fonts.test.ts read the stylesheets.
+    css: { include: [/src\/styles\/(theme|fonts)\.css/] },
+  },
 });

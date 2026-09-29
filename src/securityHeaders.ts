@@ -56,6 +56,25 @@ export function contentSecurityPolicy({ apiOrigin, scriptHashes }: HeaderInputs)
  */
 export const ASSET_CACHE = { path: "/assets/*", value: "public, max-age=31536000, immutable" };
 
+/**
+ * The headers a `_headers` file gives `pathname`: every block whose path matches (a trailing `*` matches the rest),
+ * in file order. `vite preview` sends them (vite.config.ts), so the end-to-end tests run under the production policy.
+ */
+export function headersFor(file: string, pathname: string): [string, string][] {
+  const out: [string, string][] = [];
+  let matches = false;
+  for (const line of file.split("\n")) {
+    if (line === "" || line.startsWith("#")) continue;
+    if (!line.startsWith(" ")) {
+      matches = line.endsWith("*") ? pathname.startsWith(line.slice(0, -1)) : pathname === line;
+    } else if (matches) {
+      const colon = line.indexOf(":");
+      out.push([line.slice(0, colon).trim(), line.slice(colon + 1).trim()]);
+    }
+  }
+  return out;
+}
+
 /** Netlify `_headers`: the security headers on every path; the long cache on the hashed build files as well. */
 export function headersFile(inputs: HeaderInputs): string {
   return [
