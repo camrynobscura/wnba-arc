@@ -46,10 +46,16 @@ export function PlayerLayout() {
   const [failedId, setFailedId] = useState<string | null>(null);
   const detail = id == null ? null : (cachedPlayer(id) ?? (fetched?.id === id ? fetched.detail : null));
   const detailFailed = detail == null && id != null && failedId === id;
+  // Coming back to a player whose load failed shows "Loading…" while it's fetched again, not the old error.
+  // Adjusted during render (React's pattern for state that follows a prop), not in the fetch effect.
+  const [shownId, setShownId] = useState(id);
+  if (shownId !== id) {
+    setShownId(id);
+    if (failedId === id) setFailedId(null);
+  }
 
   useEffect(() => {
     if (id == null || cachedPlayer(id) != null) return;
-    setFailedId((f) => (f === id ? null : f)); // a retry shows "Loading…", not the last error
     let cancelled = false;
     getPlayer(id)
       .then((d) => !cancelled && setFetched({ id, detail: d }))

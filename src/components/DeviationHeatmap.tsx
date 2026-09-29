@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { PlayerDetail, SeasonPlayed } from "../data/api";
 import { STATS } from "../data/stats";
 import {
@@ -78,6 +78,16 @@ export function DeviationHeatmap({ player, league, positions, playerPosition, mo
   // the pointer's preview. Open = pinned, else hovered.
   const [pinned, setPinned] = useState<Coord | null>(null);
   const [hovered, setHovered] = useState<Coord | null>(null);
+  // A different player or reference resets the popover and the focus position (the grid's contents changed
+  // under them). Adjusted during render, React's pattern for state that follows a prop, so no render shows the
+  // old coordinates on the new grid.
+  const [shownFor, setShownFor] = useState({ player, effMode });
+  if (shownFor.player !== player || shownFor.effMode !== effMode) {
+    setShownFor({ player, effMode });
+    setPinned(null);
+    setHovered(null);
+    setActive({ r: 0, c: 0 });
+  }
   const cellRefs = useRef(new Map<string, HTMLButtonElement | null>());
   const popoverRef = useRef<HTMLDivElement | null>(null);
   const overPopover = useRef(false);
@@ -103,30 +113,25 @@ export function DeviationHeatmap({ player, league, positions, playerPosition, mo
   const nCols = STATS.length;
 
   const openCoord = pinned ?? hovered;
-  const openCell = openCoord ? grid.rows[openCoord.r][openCoord.c] : null;
-
-  // A different player or reference resets everything (the grid's contents changed under it).
-  useEffect(() => {
-    setPinned(null);
-    setHovered(null);
-    setActive({ r: 0, c: 0 });
-  }, [player, effMode]);
+  // Optional: the render that resets the state above still runs once with the previous player's coordinates
+  // (React then discards it), and they can point past the new grid.
+  const openCell = openCoord ? (grid.rows[openCoord.r]?.[openCoord.c] ?? null) : null;
 
   const focusAt = ({ r, c }: Coord) =>
     (r === HEADER_ROW ? headerRefs.current.get(c) : cellRefs.current.get(`${r}-${c}`))?.focus();
-  const close = () => {
+  const close = useCallback(() => {
     setPinned(null);
     setHovered(null);
     // The popover can close under the pointer (Escape, its own link), and WebKit and Firefox send no
     // pointerleave for a removed element: the flag stayed set, and the next hover preview never closed
     // when the pointer left the grid.
     overPopover.current = false;
-  };
+  }, []);
   // Esc's close: also holds hover-opening at the pointer's current spot (see `escapedAt`).
-  const dismiss = () => {
+  const dismiss = useCallback(() => {
     close();
     escapedAt.current = lastPointer.current;
-  };
+  }, [close]);
   const onCellHover = (here: Coord, x: number, y: number) => {
     const held = escapedAt.current;
     if (held && Math.abs(held.x - x) < 1 && Math.abs(held.y - y) < 1) return;
@@ -189,7 +194,7 @@ export function DeviationHeatmap({ player, league, positions, playerPosition, mo
       document.removeEventListener("pointerdown", onPointerDown);
       document.removeEventListener("keydown", onKey);
     };
-  }, [isOpen, pinned]);
+  }, [isOpen, pinned, close, dismiss]);
 
   const noun = scaleNoun(effMode, playerPosition);
   const refPhrase = referencePhrase(effMode, playerPosition);
@@ -371,7 +376,8 @@ export function DeviationHeatmap({ player, league, positions, playerPosition, mo
       {openCell && openCoord && (
         <CellPopover
           cell={openCell}
-          anchor={cellRefs.current.get(`${openCoord.r}-${openCoord.c}`) ?? null}
+          anchorKey={`${openCoord.r}-${openCoord.c}`}
+          cellRefs={cellRefs}
           noun={noun}
           rank={cellRank(openCell)}
           rankNote={cellRankNote(openCell)}
@@ -397,7 +403,10 @@ export function DeviationHeatmap({ player, league, positions, playerPosition, mo
 
 interface CellPopoverProps {
   cell: HeatmapCell;
-  anchor: HTMLElement | null;
+  /** The open cell's key in `cellRefs` ("row-column"). The element is looked up after render: refs aren't read
+      while rendering. */
+  anchorKey: string;
+  cellRefs: React.RefObject<Map<string, HTMLButtonElement | null>>;
   noun: string;
   rank: { rank: number; pool: number } | null;
   /** "players" / "forwards": the crowd the rank is among ("34th of 187 players"). */
@@ -422,7 +431,8 @@ const VIEWPORT_PAD = 8; // px the popover keeps from the viewport edges
  */
 function CellPopover({
   cell,
-  anchor,
+  anchorKey,
+  cellRefs,
   noun,
   rank,
   rankNote,
@@ -436,6 +446,7 @@ function CellPopover({
   const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
 
   useLayoutEffect(() => {
+    const anchor = cellRefs.current.get(anchorKey) ?? null;
     const place = () => {
       const el = popoverRef.current;
       if (!anchor || !el) return;
@@ -472,7 +483,7 @@ function CellPopover({
       window.removeEventListener("scroll", place, true);
       window.removeEventListener("resize", place);
     };
-  }, [anchor, cell, popoverRef]);
+  }, [anchorKey, cellRefs, cell, popoverRef]);
 
   const stat = statName(cell.statKey);
   return (
