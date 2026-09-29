@@ -33,7 +33,10 @@ export function PlayerLayout() {
 
   // The player's database id, once the ESPN id resolves and the list (which maps one to the other) is in.
   // Null for a bad slug, a list still loading, or no such player.
-  const id = useMemo(() => (espn == null || players == null ? null : (players.find((p) => p.espn === espn)?.id ?? null)), [espn, players]);
+  const id = useMemo(
+    () => (espn == null || players == null ? null : (players.find((p) => p.espn === espn)?.id ?? null)),
+    [espn, players],
+  );
 
   // The player on screen. One fetched earlier this visit is read from memory during the first render
   // (`cachedPlayer`), so coming back (Back, a search) shows the page at once, with no "Loading…" frame.

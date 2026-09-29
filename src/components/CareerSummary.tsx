@@ -24,11 +24,23 @@ export function CareerSummary({ summary: s, unit, unitShort, rankAmong }: Career
   const plates: { k: string; said?: string; v: string; u?: string; q?: string; n: string }[] = [
     { k: "High", v: s.high.fmt, u: unit, n: String(s.high.year) },
     { k: "Low", v: s.low.fmt, u: unit, n: String(s.low.year) },
-    { k: "Career avg", said: "Career average", v: s.careerAvg, u: unit, n: `${s.seasons} season${s.seasons === 1 ? "" : "s"}` },
+    {
+      k: "Career avg",
+      said: "Career average",
+      v: s.careerAvg,
+      u: unit,
+      n: `${s.seasons} season${s.seasons === 1 ? "" : "s"}`,
+    },
   ];
   // "WNBA 2026" / "Forwards 2026": a plate is ~100px wide and a longer form wrapped. The crowd is named
   // because the rank follows the comparison mode.
-  if (s.bestRank) plates.push({ k: "Best rank", v: ordinal(s.bestRank.rank), q: `of ${s.bestRank.pool}`, n: `${rankAmong} ${s.bestRank.year}` });
+  if (s.bestRank)
+    plates.push({
+      k: "Best rank",
+      v: ordinal(s.bestRank.rank),
+      q: `of ${s.bestRank.pool}`,
+      n: `${rankAmong} ${s.bestRank.year}`,
+    });
 
   return (
     <>
@@ -59,7 +71,9 @@ export function CareerSummary({ summary: s, unit, unitShort, rankAmong }: Career
                       <span className="cs-q">{p.u}</span>
                     ) : (
                       <>
-                        <span className="cs-q" aria-hidden="true">{unitShort}</span>
+                        <span className="cs-q" aria-hidden="true">
+                          {unitShort}
+                        </span>
                         <span className="sr-only">{p.u}</span>
                       </>
                     )}

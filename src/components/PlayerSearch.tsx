@@ -139,7 +139,14 @@ export function PlayerSearch({ players, listFailed, onPick, variant = "hero" }: 
   // The results listbox (or a loading / no-match message), positioned by the caller.
   const listbox = (posStyle: React.CSSProperties) => {
     if (!(showDrop || searchPending || noMatches)) return null;
-    const boxStyle: React.CSSProperties = { position: "absolute", zIndex: 20, background: "var(--color-surface)", border: "1px solid var(--color-divider)", overflowY: "auto", ...posStyle };
+    const boxStyle: React.CSSProperties = {
+      position: "absolute",
+      zIndex: 20,
+      background: "var(--color-surface)",
+      border: "1px solid var(--color-divider)",
+      overflowY: "auto",
+      ...posStyle,
+    };
     // A message isn't a list: "Loading players…" or "No players match" is drawn in the same box but not
     // as a listbox, since one with no options is an ARIA error (axe's aria-required-children). The
     // status line below announces it.
@@ -147,11 +154,22 @@ export function PlayerSearch({ players, listFailed, onPick, variant = "hero" }: 
       return (
         <div className="elev-md" style={boxStyle}>
           {searchPending ? (
-            <div className="text-muted" style={{ padding: "var(--space-3) var(--space-4)", fontSize: "var(--fs-sm)", display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
+            <div
+              className="text-muted"
+              style={{
+                padding: "var(--space-3) var(--space-4)",
+                fontSize: "var(--fs-sm)",
+                display: "flex",
+                alignItems: "center",
+                gap: "var(--space-2)",
+              }}
+            >
               <Spinner small /> Loading players…
             </div>
           ) : (
-            <div className="text-muted" style={{ padding: "var(--space-3) var(--space-4)", fontSize: "var(--fs-sm)" }}>No players match “{query}”.</div>
+            <div className="text-muted" style={{ padding: "var(--space-3) var(--space-4)", fontSize: "var(--fs-sm)" }}>
+              No players match “{query}”.
+            </div>
           )}
         </div>
       );
@@ -171,10 +189,20 @@ export function PlayerSearch({ players, listFailed, onPick, variant = "hero" }: 
             onClick={() => pick(p.espn)}
           >
             {/* The name never wraps; if the row is still tight, the team and position truncate. */}
-            <span className="text-heading" style={{ fontSize: "var(--fs-base)", whiteSpace: "nowrap", flexShrink: 0 }}>{p.name}</span>
+            <span className="text-heading" style={{ fontSize: "var(--fs-base)", whiteSpace: "nowrap", flexShrink: 0 }}>
+              {p.name}
+            </span>
             <span
               className="text-muted"
-              style={{ fontFamily: "var(--font-body)", fontSize: "var(--fs-xs)", marginLeft: "auto", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", minWidth: 0 }}
+              style={{
+                fontFamily: "var(--font-body)",
+                fontSize: "var(--fs-xs)",
+                marginLeft: "auto",
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                minWidth: 0,
+              }}
             >
               <MetaLine text={playerMeta(p)} />
             </span>
@@ -184,20 +212,41 @@ export function PlayerSearch({ players, listFailed, onPick, variant = "hero" }: 
     );
   };
 
-  const srStatus = <p role="status" aria-live="polite" className="sr-only">{searchStatus}</p>;
+  const srStatus = (
+    <p role="status" aria-live="polite" className="sr-only">
+      {searchStatus}
+    </p>
+  );
 
   // ── Compact: the underline input on player pages ──
   if (!hero) {
     return (
       <div ref={rootRef} style={{ position: "relative", width: 200, maxWidth: "100%" }}>
-        <span aria-hidden="true" style={{ position: "absolute", left: 2, top: "50%", transform: "translateY(-50%)", color: "var(--color-neutral-600)", display: "flex", pointerEvents: "none" }}>
+        <span
+          aria-hidden="true"
+          style={{
+            position: "absolute",
+            left: 2,
+            top: "50%",
+            transform: "translateY(-50%)",
+            color: "var(--color-neutral-600)",
+            display: "flex",
+            pointerEvents: "none",
+          }}
+        >
           <Magnifier size={15} />
         </span>
         <input
           {...comboProps}
           className="search-underline"
           // Font size lives in .search-underline (theme.css) so the touch-device rule there can win.
-          style={{ width: "100%", height: 30, paddingLeft: "var(--space-6)", color: "var(--color-text)", fontFamily: "var(--font-body)" }}
+          style={{
+            width: "100%",
+            height: 30,
+            paddingLeft: "var(--space-6)",
+            color: "var(--color-text)",
+            fontFamily: "var(--font-body)",
+          }}
           // No "Loading players…" placeholder while the list loads: it flashed by too fast to read.
           // Someone who types before it arrives still gets the dropdown's message.
           placeholder={listFailed ? "Search unavailable" : "Search players…"}
@@ -214,7 +263,17 @@ export function PlayerSearch({ players, listFailed, onPick, variant = "hero" }: 
   return (
     <>
       <div ref={rootRef} style={{ position: "relative" }}>
-        <div aria-hidden="true" style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "var(--color-neutral-600)", display: "flex" }}>
+        <div
+          aria-hidden="true"
+          style={{
+            position: "absolute",
+            left: 12,
+            top: "50%",
+            transform: "translateY(-50%)",
+            color: "var(--color-neutral-600)",
+            display: "flex",
+          }}
+        >
           <Magnifier size={18} />
         </div>
         <input

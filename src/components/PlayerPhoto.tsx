@@ -58,10 +58,7 @@ export function PlayerPhoto({ espn, name, size, tint }: PlayerPhotoProps) {
           onError={() => setFailed((f) => ({ espn, count: (f.espn === espn ? f.count : 0) + 1 }))}
         />
       ) : (
-        <span
-          className="text-heading player-photo-initials"
-          style={{ fontSize: size * 0.36 }}
-        >
+        <span className="text-heading player-photo-initials" style={{ fontSize: size * 0.36 }}>
           {initials}
         </span>
       )}

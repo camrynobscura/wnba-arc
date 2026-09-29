@@ -34,7 +34,12 @@ export function TitleSelect({ ariaLabel, value, options, onChange }: TitleSelect
       <span aria-hidden="true" className="select-title-label" style={TITLE_FONT}>
         {currentLabel}
       </span>
-      <select aria-label={ariaLabel} className="select-reset select-title" value={value} onChange={(e) => onChange(e.target.value)}>
+      <select
+        aria-label={ariaLabel}
+        className="select-reset select-title"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+      >
         {options.map((o) => (
           <option key={o.value} value={o.value}>
             {o.label}

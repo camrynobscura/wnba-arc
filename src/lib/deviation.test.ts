@@ -89,7 +89,6 @@ function playedSeason(year: number, gp: number, stats: Partial<SeasonPlayed> = {
   };
 }
 
-
 /** A league lookup where every listed year has the same 40-game schedule and spread, so a test can
     predict them (pts step = 5). */
 function league(years: number[]): League {
@@ -132,12 +131,45 @@ function positions(years: number[]): PositionLookup {
   for (const year of years) {
     // Distinct per-position pts so a test can tell which group was read. Centers get a pts step of 4
     // (≠ the league's 5), so a position-mode test can prove it used the position's spread.
-    rows.push({ year, position: "G", pts: 15, reb: 3, ast: 5, stl: 1, blk: 0.3, fgp: 0.43, tpp: 0.36, tsPct: 0.54,
-      stdev: { pts: 5, reb: 1.5, ast: 2, stl: 0.5, blk: 0.2 } });
-    rows.push({ year, position: "F", pts: 12, reb: 5, ast: 2, stl: 1, blk: 0.7, fgp: 0.46, tpp: 0.34, tsPct: 0.56,
-      stdev: { pts: 4.5, reb: 2, ast: 1.2, stl: 0.4, blk: 0.4 } });
-    rows.push({ year, position: "C", pts: 10, reb: 7, ast: 1, stl: 0.7, blk: 1.5, fgp: 0.52, tpp: 0.2, tsPct: 0.58,
-      stdev: { pts: 4, reb: 2.5, ast: 1, stl: 0.3, blk: 0.6 } });
+    rows.push({
+      year,
+      position: "G",
+      pts: 15,
+      reb: 3,
+      ast: 5,
+      stl: 1,
+      blk: 0.3,
+      fgp: 0.43,
+      tpp: 0.36,
+      tsPct: 0.54,
+      stdev: { pts: 5, reb: 1.5, ast: 2, stl: 0.5, blk: 0.2 },
+    });
+    rows.push({
+      year,
+      position: "F",
+      pts: 12,
+      reb: 5,
+      ast: 2,
+      stl: 1,
+      blk: 0.7,
+      fgp: 0.46,
+      tpp: 0.34,
+      tsPct: 0.56,
+      stdev: { pts: 4.5, reb: 2, ast: 1.2, stl: 0.4, blk: 0.4 },
+    });
+    rows.push({
+      year,
+      position: "C",
+      pts: 10,
+      reb: 7,
+      ast: 1,
+      stl: 0.7,
+      blk: 1.5,
+      fgp: 0.52,
+      tpp: 0.2,
+      tsPct: 0.58,
+      stdev: { pts: 4, reb: 2.5, ast: 1, stl: 0.3, blk: 0.6 },
+    });
   }
   return makePositionLookup(rows);
 }
@@ -160,7 +192,12 @@ describe("games tiers — a quarter of the team's games to be colored, 20 of 44 
   });
 
   it("both bars scale with the team's games: 11/20 of 44, 7/13 of 28 (1997), 6/10 of 22 (the 2020 bubble)", () => {
-    for (const [year, games, color, rank] of [[2026, 44, 11, 20], [1997, 28, 7, 13], [2020, 22, 6, 10], [2023, 40, 10, 19]] as const) {
+    for (const [year, games, color, rank] of [
+      [2026, 44, 11, 20],
+      [1997, 28, 7, 13],
+      [2020, 22, 6, 10],
+      [2023, 40, 10, 19],
+    ] as const) {
       const at = (gp: number) => playedSeason(year, gp, { teamGames: games });
       expect(gamesTier(at(color - 1))).toBe("small");
       expect(gamesTier(at(color))).toBe("partial");
@@ -173,7 +210,9 @@ describe("games tiers — a quarter of the team's games to be colored, 20 of 44 
   it("the player's own team decides: 15 games is partial of 34, full of 33 (the 2018 Aces, one game forfeited)", () => {
     expect(gamesTier(playedSeason(2018, 15, { teamGames: 34 }))).toBe("partial");
     expect(gamesTier(playedSeason(2018, 15, { teamGames: 33 }))).toBe("full");
-    expect(sampleNote(playedSeason(2018, 12, { teamGames: 33 }), "pts", "league", "G")).toBe("Partial season: 12 of 33 games");
+    expect(sampleNote(playedSeason(2018, 12, { teamGames: 33 }), "pts", "league", "G")).toBe(
+      "Partial season: 12 of 33 games",
+    );
     expect(smallSampleReason(playedSeason(2018, 8, { teamGames: 33 }), "pts")).toBe("Small sample: 8 of 33 games");
     expect(gamesToRank(playedSeason(2018, 12, { teamGames: 33 }))).toBe(15);
   });
@@ -181,26 +220,48 @@ describe("games tiers — a quarter of the team's games to be colored, 20 of 44 
   it("sampleNote says how many games or shots the caveat is about, and what the grey means in this mode", () => {
     const lg = "Not compared with league average.";
     expect(sampleNote(playedSeason(2022, 8), "pts", "league", "G")).toBe(`Small sample: 8 of 40 games. ${lg}`);
-    expect(sampleNote(playedSeason(2022, 8, { fg3Att: 200 }), "tpp", "league", "G")).toBe(`Small sample: 8 of 40 games. ${lg}`); // games first
-    expect(sampleNote(playedSeason(2022, 40, { fg3Att: 29, fg3Made: 9 }), "tpp", "league", "G")).toBe(`Small sample: 29 attempts from three. ${lg}`);
-    expect(sampleNote(playedSeason(2022, 40, { fgAtt: 80, fgMade: 30 }), "fgp", "league", "G")).toBe(`Small sample: 80 FG attempts. ${lg}`);
-    expect(sampleNote(playedSeason(2022, 40, { fgAtt: 80, ftAtt: 40 }), "tsPct", "league", "G")).toBe(`Small sample: 97 TS attempts. ${lg}`); // 97.6 rounded DOWN
-    expect(sampleNote(playedSeason(2022, 40, { fgAtt: 99, ftAtt: 2 }), "tsPct", "league", "G")).toBe(`Small sample: 99 TS attempts. ${lg}`); // 99.88: never "100" beside a floor of 100
-    expect(sampleNote(playedSeason(2022, 40, { fg3Att: 1, fg3Made: 1 }), "tpp", "league", "G")).toBe(`Small sample: 1 attempt from three. ${lg}`); // singular
+    expect(sampleNote(playedSeason(2022, 8, { fg3Att: 200 }), "tpp", "league", "G")).toBe(
+      `Small sample: 8 of 40 games. ${lg}`,
+    ); // games first
+    expect(sampleNote(playedSeason(2022, 40, { fg3Att: 29, fg3Made: 9 }), "tpp", "league", "G")).toBe(
+      `Small sample: 29 attempts from three. ${lg}`,
+    );
+    expect(sampleNote(playedSeason(2022, 40, { fgAtt: 80, fgMade: 30 }), "fgp", "league", "G")).toBe(
+      `Small sample: 80 FG attempts. ${lg}`,
+    );
+    expect(sampleNote(playedSeason(2022, 40, { fgAtt: 80, ftAtt: 40 }), "tsPct", "league", "G")).toBe(
+      `Small sample: 97 TS attempts. ${lg}`,
+    ); // 97.6 rounded DOWN
+    expect(sampleNote(playedSeason(2022, 40, { fgAtt: 99, ftAtt: 2 }), "tsPct", "league", "G")).toBe(
+      `Small sample: 99 TS attempts. ${lg}`,
+    ); // 99.88: never "100" beside a floor of 100
+    expect(sampleNote(playedSeason(2022, 40, { fg3Att: 1, fg3Made: 1 }), "tpp", "league", "G")).toBe(
+      `Small sample: 1 attempt from three. ${lg}`,
+    ); // singular
     expect(sampleNote(playedSeason(2022, 15), "pts", "league", "G")).toBe("Partial season: 15 of 40 games");
-    expect(sampleNote(playedSeason(2022, 15, { fg3Att: 29 }), "tpp", "league", "G")).toBe(`Small sample: 29 attempts from three. ${lg}`); // the shot floor wins over partial
+    expect(sampleNote(playedSeason(2022, 15, { fg3Att: 29 }), "tpp", "league", "G")).toBe(
+      `Small sample: 29 attempts from three. ${lg}`,
+    ); // the shot floor wins over partial
     expect(sampleNote(playedSeason(2022, 40), "pts", "league", "G")).toBeNull();
     expect(sampleNote(playedSeason(2022, 40), "tpp", "league", "G")).toBeNull();
     // The second sentence follows the mode: self → the career average; position → that position's average.
-    expect(sampleNote(playedSeason(2022, 8), "pts", "self", "G")).toBe("Small sample: 8 of 40 games. Left out of career average.");
-    expect(sampleNote(playedSeason(2022, 8), "pts", "position", "C")).toBe("Small sample: 8 of 40 games. Not compared with center average.");
-    expect(sampleNote(playedSeason(2022, 8), "pts", "position", "F")).toBe("Small sample: 8 of 40 games. Not compared with forward average.");
+    expect(sampleNote(playedSeason(2022, 8), "pts", "self", "G")).toBe(
+      "Small sample: 8 of 40 games. Left out of career average.",
+    );
+    expect(sampleNote(playedSeason(2022, 8), "pts", "position", "C")).toBe(
+      "Small sample: 8 of 40 games. Not compared with center average.",
+    );
+    expect(sampleNote(playedSeason(2022, 8), "pts", "position", "F")).toBe(
+      "Small sample: 8 of 40 games. Not compared with forward average.",
+    );
     expect(sampleNote(playedSeason(2022, 15), "pts", "self", "G")).toBe("Partial season: 15 of 40 games"); // partial: same in every mode
   });
 
   it("smallSampleReason is the note's first sentence, and non-null exactly when the (season, stat) is a small sample", () => {
     expect(smallSampleReason(playedSeason(2022, 8), "pts")).toBe("Small sample: 8 of 40 games");
-    expect(smallSampleReason(playedSeason(2022, 40, { fg3Att: 29, fg3Made: 9 }), "tpp")).toBe("Small sample: 29 attempts from three");
+    expect(smallSampleReason(playedSeason(2022, 40, { fg3Att: 29, fg3Made: 9 }), "tpp")).toBe(
+      "Small sample: 29 attempts from three",
+    );
     expect(smallSampleReason(playedSeason(2022, 15), "pts")).toBeNull(); // partial is not a small sample
     const cases = [
       playedSeason(2022, 8),
@@ -215,7 +276,8 @@ describe("games tiers — a quarter of the team's games to be colored, 20 of 44 
       for (const key of ["pts", "reb", "fgp", "tpp", "tsPct"] as const) {
         const reason = smallSampleReason(season, key);
         expect(reason != null).toBe(isStatSmallSample(season, key));
-        if (reason != null) expect(sampleNote(season, key, "league", "G")).toBe(`${reason}. Not compared with league average.`);
+        if (reason != null)
+          expect(sampleNote(season, key, "league", "G")).toBe(`${reason}. Not compared with league average.`);
       }
     }
   });
@@ -238,19 +300,55 @@ describe("games tiers — a quarter of the team's games to be colored, 20 of 44 
     ]);
     const g = buildHeatmapGrid(p, "league", L3, POS, "F");
     const c21 = g.rows.find((r) => r[0].year === 2021)![0];
-    expect(c21).toMatchObject({ statKey: "pts", partial: true, smallSample: false, selectable: true, note: "Partial season: 15 of 40 games" });
+    expect(c21).toMatchObject({
+      statKey: "pts",
+      partial: true,
+      smallSample: false,
+      selectable: true,
+      note: "Partial season: 15 of 40 games",
+    });
     // A grey cell's note names this mode's crowd.
     const q = player([playedSeason(2020, 40), playedSeason(2021, 5), playedSeason(2022, 40)]);
-    expect(buildHeatmapGrid(q, "league", L3, POS, "F").rows.find((r) => r[0].year === 2021)![0].note).toBe("Small sample: 5 of 40 games. Not compared with league average.");
-    expect(buildHeatmapGrid(q, "self", L3, POS, "F").rows.find((r) => r[0].year === 2021)![0].note).toBe("Small sample: 5 of 40 games. Left out of career average.");
+    expect(buildHeatmapGrid(q, "league", L3, POS, "F").rows.find((r) => r[0].year === 2021)![0].note).toBe(
+      "Small sample: 5 of 40 games. Not compared with league average.",
+    );
+    expect(buildHeatmapGrid(q, "self", L3, POS, "F").rows.find((r) => r[0].year === 2021)![0].note).toBe(
+      "Small sample: 5 of 40 games. Left out of career average.",
+    );
     expect(c21.colorT).not.toBeNull(); // tinted
     const full = g.rows.find((r) => r[0].year === 2022)![0];
     expect(full).toMatchObject({ partial: false, note: null });
-    const d = buildStatDetail(p, STATS.find((s) => s.key === "pts")!, "league", L3, POS, "F");
-    expect(d.tableRows.find((r) => r.year === 2021)).toMatchObject({ partial: true, smallSample: false, rank: null, pool: 120, unranked: "Needs 19 games to rank", note: null });
+    const d = buildStatDetail(
+      p,
+      STATS.find((s) => s.key === "pts")!,
+      "league",
+      L3,
+      POS,
+      "F",
+    );
+    expect(d.tableRows.find((r) => r.year === 2021)).toMatchObject({
+      partial: true,
+      smallSample: false,
+      rank: null,
+      pool: 120,
+      unranked: "Needs 19 games to rank",
+      note: null,
+    });
     // A small-sample row's rank dash says why instead, in the footnote's words (no mode tail).
-    const dq = buildStatDetail(q, STATS.find((s) => s.key === "pts")!, "league", L3, POS, "F");
-    expect(dq.tableRows.find((r) => r.year === 2021)).toMatchObject({ smallSample: true, rank: null, unranked: null, note: "Small sample: 5 of 40 games" });
+    const dq = buildStatDetail(
+      q,
+      STATS.find((s) => s.key === "pts")!,
+      "league",
+      L3,
+      POS,
+      "F",
+    );
+    expect(dq.tableRows.find((r) => r.year === 2021)).toMatchObject({
+      smallSample: true,
+      rank: null,
+      unranked: null,
+      note: "Small sample: 5 of 40 games",
+    });
     expect(dq.tableRows.find((r) => r.year === 2022)).toMatchObject({ smallSample: false, note: null });
     expect(d.summary!.careerAvg).toBe("14.0"); // (10 + 20 + 12) / 3 — the partial season counts
     expect(d.summary!.seasons).toBe(3); // and is charted
@@ -261,7 +359,10 @@ describe("games tiers — a quarter of the team's games to be colored, 20 of 44 
   });
 
   it("careerBasis: the seasons over the COLOR bar (partial ones count), or every season when fewer than two are", () => {
-    const a = playedSeason(2019, 40), b = playedSeason(2020, 5), c = playedSeason(2021, 40), d = playedSeason(2022, 15);
+    const a = playedSeason(2019, 40),
+      b = playedSeason(2020, 5),
+      c = playedSeason(2021, 40),
+      d = playedSeason(2022, 15);
     expect(careerBasis([a, b, c, d])).toEqual([a, c, d]);
     expect(careerBasis([a, b])).toEqual([a, b]); // one counted season → every season
   });
@@ -275,7 +376,8 @@ describe("positionNoun", () => {
   });
 
   it("falls back for an unknown, missing or inherited-key position", () => {
-    for (const p of [null, "X", "__proto__", "constructor", "toString"]) expect(positionNoun(p)).toBe("players at the same position");
+    for (const p of [null, "X", "__proto__", "constructor", "toString"])
+      expect(positionNoun(p)).toBe("players at the same position");
   });
 });
 
@@ -330,7 +432,6 @@ describe("ownStatAverage — pooled rate averages (still used by the Career Tren
 });
 
 describe("isStatSmallSample — per-stat gate (games, OR the tint floor for a shooting %)", () => {
-
   it("flags a full-games season as small sample for a shooting % under its tint floor", () => {
     const s = playedSeason(2021, 40, { fg3Made: 4, fg3Att: 10 }); // full games, a 4-of-10
     expect(isSmallSample(s)).toBe(false); // games gate: a full season
@@ -363,7 +464,12 @@ describe("rankNote — why a compared shooting-% season has no rank", () => {
   // Fixture seasons carry teamGames 40 ⇒ 3P% needs ceil(60 × 40 / 44) = 55 attempts or ceil(20 × 40 / 44) = 19 made.
 
   it("league mode: under the rank floor → says how many attempts (or makes) it needed; ranked → null", () => {
-    const under = playedSeason(2022, 40, { fg3Made: 9, fg3Att: 45, rank: ranks(), ratePool: { fgp: 70, tpp: 65, tsPct: 98 } });
+    const under = playedSeason(2022, 40, {
+      fg3Made: 9,
+      fg3Att: 45,
+      rank: ranks(),
+      ratePool: { fgp: 70, tpp: 65, tsPct: 98 },
+    });
     expect(rankNote(under, "tpp", "league", "G")).toBe("Needs 55 attempts from three or 19 made to rank");
     expect(rankNote(under, "fgp", "league", "G")).toBe("Needs 182 FG attempts or 78 made to rank"); // ceil(200 × 40 / 44), ceil(85 × 40 / 44)
     expect(rankNote(under, "tsPct", "league", "G")).toBe("Needs 114 TS attempts to rank"); // ceil(125 × 40 / 44); TS% has no makes route
@@ -373,16 +479,26 @@ describe("rankNote — why a compared shooting-% season has no rank", () => {
 
   it("never for a counting stat, a games-small season, or a year with no pool", () => {
     expect(rankNote(playedSeason(2022, 40, { rank: ranks() }), "pts", "league", "G")).toBeNull();
-    expect(rankNote(playedSeason(2022, 5, { ratePool: { fgp: 70, tpp: 65, tsPct: 98 } }), "tpp", "league", "G")).toBeNull();
+    expect(
+      rankNote(playedSeason(2022, 5, { ratePool: { fgp: 70, tpp: 65, tsPct: 98 } }), "tpp", "league", "G"),
+    ).toBeNull();
     expect(rankNote(playedSeason(2022, 40), "tpp", "league", "G")).toBeNull(); // ratePool null
   });
 
   it("position mode: no bucket → null (a counting stat's blank); a thin bucket → says so; else the floor", () => {
     const noBucket = playedSeason(2022, 40, { posPool: null, posRatePool: null });
     expect(rankNote(noBucket, "tpp", "position", "C")).toBeNull();
-    const thin = playedSeason(2022, 40, { posPool: 20, posRank: ranks(), posRatePool: { fgp: 20, tpp: null, tsPct: 20 } });
+    const thin = playedSeason(2022, 40, {
+      posPool: 20,
+      posRank: ranks(),
+      posRatePool: { fgp: 20, tpp: null, tsPct: 20 },
+    });
     expect(rankNote(thin, "tpp", "position", "C")).toBe("Fewer than 8 centers made enough to rank");
-    const under = playedSeason(2022, 40, { posPool: 20, posRank: ranks(), posRatePool: { fgp: 20, tpp: 12, tsPct: 20 } });
+    const under = playedSeason(2022, 40, {
+      posPool: 20,
+      posRank: ranks(),
+      posRatePool: { fgp: 20, tpp: 12, tsPct: 20 },
+    });
     expect(rankNote(under, "tpp", "position", "C")).toBe("Needs 55 attempts from three or 19 made to rank");
   });
 });
@@ -491,7 +607,19 @@ describe("buildHeatmapGrid — the switchable-reference heatmap", () => {
 
   it("peer mode falls back to relative-% color when the league spread is absent (pre-004 data)", () => {
     const Lnull = makeLeague([
-      { year: 2022, scheduledGames: SLATE, pts: 12, reb: 5, ast: 3, stl: 1, blk: 0.8, fgp: 0.43, tpp: 0.33, tsPct: 0.52, stdev: null },
+      {
+        year: 2022,
+        scheduledGames: SLATE,
+        pts: 12,
+        reb: 5,
+        ast: 3,
+        stl: 1,
+        blk: 0.8,
+        fgp: 0.43,
+        tpp: 0.33,
+        tsPct: 0.52,
+        stdev: null,
+      },
     ]);
     const p = player([playedSeason(2022, 40, { pts: 18 })]);
     const c = cell(buildHeatmapGrid(p, "league", Lnull, POS, "F"), 2022, "pts");
@@ -533,7 +661,6 @@ describe("buildHeatmapGrid — the switchable-reference heatmap", () => {
   });
 });
 
-
 describe("ordinal", () => {
   it("handles 1/2/3 endings and the teens", () => {
     expect(ordinal(1)).toBe("1st");
@@ -565,9 +692,13 @@ describe("buildStatDetail — the reference follows the page's mode", () => {
     expect(row(d, 2022).deltaFmt).toBe("+6.0");
   });
 
-  it("draws a difference with no direction in the muted grey: a \"0.0\" or a \"—\"", () => {
+  it('draws a difference with no direction in the muted grey: a "0.0" or a "—"', () => {
     const L = league([2020, 2021, 2022]); // league pts avg 12.0
-    const p = player([playedSeason(2020, 5, { pts: 30 }), playedSeason(2021, 40, { pts: 12.03 }), playedSeason(2022, 40, { pts: 18 })]);
+    const p = player([
+      playedSeason(2020, 5, { pts: 30 }),
+      playedSeason(2021, 40, { pts: 12.03 }),
+      playedSeason(2022, 40, { pts: 18 }),
+    ]);
     const d = buildStatDetail(p, pts, "league", L, POS, "F");
     expect(row(d, 2021).deltaFmt).toBe("0.0");
     expect(row(d, 2021).deltaColor).toBe("var(--color-text-muted)");
@@ -610,7 +741,6 @@ describe("buildStatDetail — the reference follows the page's mode", () => {
   });
 });
 
-
 describe("buildStatDetail — career summary plates", () => {
   const pts = STATS.find((s) => s.key === "pts")!;
   const tpp = STATS.find((s) => s.key === "tpp")!;
@@ -636,13 +766,25 @@ describe("buildStatDetail — career summary plates", () => {
     // Gabby Williams' rebounds, measured 2026-09-21: 18th of 65 (top 28%) vs 27th of 106 (top 25%).
     const L = league([2018, 2022]);
     const p = player([playedSeason(2018, 40, { ...rk(18, 65) }), playedSeason(2022, 40, { ...rk(27, 106) })]);
-    expect(buildStatDetail(p, pts, "league", L, POS, "F").summary!.bestRank).toEqual({ rank: 27, pool: 106, year: 2022 });
+    expect(buildStatDetail(p, pts, "league", L, POS, "F").summary!.bestRank).toEqual({
+      rank: 27,
+      pool: 106,
+      year: 2022,
+    });
     // Even a 1st place loses to a smaller share of a much larger pool: 1/65 = 1.5% vs 2/158 = 1.3%.
     const q = player([playedSeason(2018, 40, { ...rk(1, 65) }), playedSeason(2022, 40, { ...rk(2, 158) })]);
-    expect(buildStatDetail(q, pts, "league", L, POS, "F").summary!.bestRank).toEqual({ rank: 2, pool: 158, year: 2022 });
+    expect(buildStatDetail(q, pts, "league", L, POS, "F").summary!.bestRank).toEqual({
+      rank: 2,
+      pool: 158,
+      year: 2022,
+    });
     // Exactly equal shares (5/50 = 10/100) → the larger pool.
     const e = player([playedSeason(2018, 40, { ...rk(5, 50) }), playedSeason(2022, 40, { ...rk(10, 100) })]);
-    expect(buildStatDetail(e, pts, "league", L, POS, "F").summary!.bestRank).toEqual({ rank: 10, pool: 100, year: 2022 });
+    expect(buildStatDetail(e, pts, "league", L, POS, "F").summary!.bestRank).toEqual({
+      rank: 10,
+      pool: 100,
+      year: 2022,
+    });
   });
 
   it("a tied best rank goes to the larger pool, then the later year", () => {
@@ -652,7 +794,11 @@ describe("buildStatDetail — career summary plates", () => {
       playedSeason(2025, 40, { ...rk(1, 158) }),
       playedSeason(2026, 40, { ...rk(1, 158) }),
     ]);
-    expect(buildStatDetail(p, pts, "league", L, POS, "F").summary!.bestRank).toEqual({ rank: 1, pool: 158, year: 2026 });
+    expect(buildStatDetail(p, pts, "league", L, POS, "F").summary!.bestRank).toEqual({
+      rank: 1,
+      pool: 158,
+      year: 2026,
+    });
   });
 
   it("position mode ranks among the position; league and self modes among the league", () => {
@@ -669,7 +815,10 @@ describe("buildStatDetail — career summary plates", () => {
     }
     // No position bucket that year → no position rank, even though the league rank exists.
     const q = player([playedSeason(2021, 40), playedSeason(2022, 40, { ...both, posRank: null, posPool: null })], "F");
-    expect(buildStatDetail(q, pts, "position", L, POS, "F").tableRows.find((r) => r.year === 2022)).toMatchObject({ rank: null, pool: null });
+    expect(buildStatDetail(q, pts, "position", L, POS, "F").tableRows.find((r) => r.year === 2022)).toMatchObject({
+      rank: null,
+      pool: null,
+    });
   });
 
   it("shooting %s rank in their own pool, with whole-percent plate numbers; no full season → no summary", () => {
@@ -677,7 +826,14 @@ describe("buildStatDetail — career summary plates", () => {
     // tpp is read from the season (the fixture default is .35), so set it to match the makes/attempts.
     const rp = { fgp: 70, tpp: 65, tsPct: 98 };
     const p = player([
-      playedSeason(2021, 40, { tpp: 0.35, fg3Made: 35, fg3Att: 100, rank: ranks({ tpp: 30 }), pool: 122, ratePool: rp }),
+      playedSeason(2021, 40, {
+        tpp: 0.35,
+        fg3Made: 35,
+        fg3Att: 100,
+        rank: ranks({ tpp: 30 }),
+        pool: 122,
+        ratePool: rp,
+      }),
       playedSeason(2022, 40, { tpp: 0.44, fg3Made: 44, fg3Att: 100, rank: ranks({ tpp: 4 }), pool: 122, ratePool: rp }),
     ]);
     const d = buildStatDetail(p, tpp, "league", L, POS, "F");
@@ -694,11 +850,22 @@ describe("buildStatDetail — career summary plates", () => {
     const L = league([2021, 2022]);
     const rp = { fgp: 70, tpp: 65, tsPct: 98 };
     const p = player([
-      playedSeason(2021, 40, { tpp: 0.35, fg3Made: 35, fg3Att: 100, rank: ranks({ tpp: 30 }), pool: 122, ratePool: rp }),
+      playedSeason(2021, 40, {
+        tpp: 0.35,
+        fg3Made: 35,
+        fg3Att: 100,
+        rank: ranks({ tpp: 30 }),
+        pool: 122,
+        ratePool: rp,
+      }),
       playedSeason(2022, 40, { tpp: 0.3, fg3Made: 15, fg3Att: 50, rank: ranks(), pool: 122, ratePool: rp }), // 50 att < 55 and 15 made < 19
     ]);
     const d = buildStatDetail(p, tpp, "league", L, POS, "F");
-    expect(d.tableRows.find((r) => r.year === 2022)).toMatchObject({ rank: null, pool: 65, unranked: "Needs 55 attempts from three or 19 made to rank" });
+    expect(d.tableRows.find((r) => r.year === 2022)).toMatchObject({
+      rank: null,
+      pool: 65,
+      unranked: "Needs 55 attempts from three or 19 made to rank",
+    });
     expect(d.bars.find((b) => b.year === 2022)!.kind).toBe("full"); // 50 attempts clear the tint floor
     expect(d.summary!.bestRank).toEqual({ rank: 30, pool: 65, year: 2021 });
   });
@@ -715,7 +882,11 @@ describe("buildStatDetail — career summary plates", () => {
     expect(d.summary!.careerAvg).toBe("40"); // pooled 81/205 = 39.5% → 40 (the 2-of-5 adds two makes, not a 40% season)
     expect(d.bars.find((b) => b.year === 2022)!.kind).toBe("small");
     // A games-small season IS left out of the pool, as for every stat.
-    const q = player([playedSeason(2021, 40, { fg3Made: 35, fg3Att: 100 }), playedSeason(2022, 5, { fg3Made: 20, fg3Att: 20 }), playedSeason(2023, 40, { fg3Made: 44, fg3Att: 100 })]);
+    const q = player([
+      playedSeason(2021, 40, { fg3Made: 35, fg3Att: 100 }),
+      playedSeason(2022, 5, { fg3Made: 20, fg3Att: 20 }),
+      playedSeason(2023, 40, { fg3Made: 44, fg3Att: 100 }),
+    ]);
     expect(buildStatDetail(q, tpp, "league", L, POS, "F").summary!.careerAvg).toBe("40"); // 79/200, not 99/220
   });
 });
@@ -733,7 +904,12 @@ describe("buildStatDetail — chart drops thin seasons; table keeps the full rec
       playedSeason(2022, 40, { fg3Made: 27, fg3Att: 60 }), // 45% on 60 attempts — charted
     ];
     const detail = buildStatDetail(player(seasons), tppStat, "league", L, POS, "F");
-    expect(detail.bars.map((b) => `${b.year}:${b.kind}`)).toEqual(["2019:missed", "2020:full", "2021:small", "2022:full"]);
+    expect(detail.bars.map((b) => `${b.year}:${b.kind}`)).toEqual([
+      "2019:missed",
+      "2020:full",
+      "2021:small",
+      "2022:full",
+    ]);
     expect(detail.chartFallback).toBeNull();
     expect(detail.bars.filter((b) => b.kind === "full").every((b) => b.baseFmt != null)).toBe(true);
     expect(detail.tableRows.map((r) => r.year)).toEqual([2022, 2021, 2020, 2019]);
@@ -783,9 +959,21 @@ describe("buildStatDetail — every season on the timeline is a chart column", (
 
   it("draws a full season, a small sample (hollow, no reference) and a missed year (empty), in order", () => {
     const L = league([2018, 2019, 2020, 2021, 2022]);
-    const p = player([playedSeason(2018, 40), playedSeason(2019, 4, { pts: 30 }), playedSeason(2020, 40), missed(2021), playedSeason(2022, 40)]);
+    const p = player([
+      playedSeason(2018, 40),
+      playedSeason(2019, 4, { pts: 30 }),
+      playedSeason(2020, 40),
+      missed(2021),
+      playedSeason(2022, 40),
+    ]);
     const d = buildStatDetail(p, pts, "league", L, POS, "F");
-    expect(d.bars.map((b) => `${b.year}:${b.kind}`)).toEqual(["2018:full", "2019:small", "2020:full", "2021:missed", "2022:full"]);
+    expect(d.bars.map((b) => `${b.year}:${b.kind}`)).toEqual([
+      "2018:full",
+      "2019:small",
+      "2020:full",
+      "2021:missed",
+      "2022:full",
+    ]);
     const small = d.bars[1];
     expect(small.baseFmt).toBeNull();
     expect(small.basePct).toBeNull();
@@ -800,16 +988,22 @@ describe("buildStatDetail — every season on the timeline is a chart column", (
     // Full seasons 10 and 14 (league avg 12) → axis 14 × 1.2 = 16.8. A 50-ppg season on 4 games
     // would lift it to 60 if it counted; it doesn't.
     const L = league([2018, 2019, 2020]);
-    const p = player([playedSeason(2018, 40, { pts: 10 }), playedSeason(2019, 4, { pts: 50 }), playedSeason(2020, 40, { pts: 14 })]);
+    const p = player([
+      playedSeason(2018, 40, { pts: 10 }),
+      playedSeason(2019, 4, { pts: 50 }),
+      playedSeason(2020, 40, { pts: 14 }),
+    ]);
     const d = buildStatDetail(p, pts, "league", L, POS, "F");
     expect(d.axisTicks[2].label).toBe("16.8");
     expect(d.bars[1].hPct).toBe(88); // 50 is above the top → clamped under the label headroom
   });
 
-
   it("the fallback still replaces the plot with fewer than two full seasons", () => {
     const L = league([2021, 2022]);
-    const p = player([playedSeason(2021, 40, { tpp: 1, fg3Made: 1, fg3Att: 1 }), playedSeason(2022, 40, { tpp: 0.5, fg3Made: 1, fg3Att: 2 })]);
+    const p = player([
+      playedSeason(2021, 40, { tpp: 1, fg3Made: 1, fg3Att: 1 }),
+      playedSeason(2022, 40, { tpp: 0.5, fg3Made: 1, fg3Att: 2 }),
+    ]);
     expect(buildStatDetail(p, tpp, "league", L, POS, "F").chartFallback).not.toBeNull();
   });
 });
@@ -860,11 +1054,16 @@ describe("buildStatDetail — the chart's vertical scale by stat type", () => {
 
   it("a shooting % is drawn on the fitted axis: whole-percent ticks, dots placed within it", () => {
     const L = league([2021, 2022]);
-    const p = player([playedSeason(2021, 40, { tpp: 0.31, fg3Made: 31, fg3Att: 100 }), playedSeason(2022, 40, { tpp: 0.44, fg3Made: 44, fg3Att: 100 })]);
+    const p = player([
+      playedSeason(2021, 40, { tpp: 0.31, fg3Made: 31, fg3Att: 100 }),
+      playedSeason(2022, 40, { tpp: 0.44, fg3Made: 44, fg3Att: 100 }),
+    ]);
     const d = buildStatDetail(p, tpp, "league", L, POS, "F");
     const refs = d.bars.map((b) => parseFloat(b.baseFmt!) / 100);
     const a = pctAxis([0.31, 0.44, ...refs]);
-    expect(d.axisTicks.map((t) => t.label)).toEqual([a.lo, (a.lo + a.hi) / 2, a.hi].map((v) => `${Math.round(v * 100)}%`));
+    expect(d.axisTicks.map((t) => t.label)).toEqual(
+      [a.lo, (a.lo + a.hi) / 2, a.hi].map((v) => `${Math.round(v * 100)}%`),
+    );
     expect(d.axisTicks[0].label).not.toBe("0%"); // a fitted axis, not zero
     expect(d.bars[1].hPct).toBeCloseTo(((0.44 - a.lo) / (a.hi - a.lo)) * 100, 1);
     expect(d.bars.map((b) => b.labelFmt)).toEqual(["31%", "44%"]); // beside the dot: the glance form, no tenth
@@ -879,7 +1078,6 @@ describe("buildStatDetail — the chart's vertical scale by stat type", () => {
     expect(d.bars.map((b) => b.labelFmt)).toEqual(["10.0", "18.0"]); // a counting stat keeps its tenth
   });
 });
-
 
 describe("compareSegments", () => {
   it("offers all three modes to a multi-season player with a position and the lookup loaded", () => {
@@ -896,10 +1094,20 @@ describe("compareSegments", () => {
     expect(one[2]).toMatchObject({ value: "position", label: "Guards", disabled: false });
 
     const noPos = compareSegments(true, null, true);
-    expect(noPos[2]).toMatchObject({ value: "position", label: "Position", disabled: true, reason: "No position on record" });
+    expect(noPos[2]).toMatchObject({
+      value: "position",
+      label: "Position",
+      disabled: true,
+      reason: "No position on record",
+    });
 
     const noLookup = compareSegments(true, "F", false);
-    expect(noLookup[2]).toMatchObject({ value: "position", label: "Forwards", disabled: true, reason: "Position averages unavailable" });
+    expect(noLookup[2]).toMatchObject({
+      value: "position",
+      label: "Forwards",
+      disabled: true,
+      reason: "Position averages unavailable",
+    });
   });
 
   it("never disables the league mode", () => {

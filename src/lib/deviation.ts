@@ -61,7 +61,6 @@ export function isCountingStat(key: StatKey): key is CountingKey {
   return (COUNTING_KEYS as readonly string[]).includes(key);
 }
 
-
 /**
  * Per-year league lookups from the API's /league data. (The games bars don't come from here: each season
  * carries its own team's games, SeasonPlayed.teamGames.)
@@ -193,10 +192,18 @@ export function gamesToRank(season: SeasonPlayed): number {
     games greys every stat), then the stat's shot floor, then the partial tier. A small sample's second
     sentence says what the grey means in the current mode: left out of the career average (self), or not
     compared with that crowd's average (league, position). */
-export function sampleNote(season: SeasonPlayed, statKey: StatKey, mode: HeatmapMode, playerPosition: string | null): string | null {
+export function sampleNote(
+  season: SeasonPlayed,
+  statKey: StatKey,
+  mode: HeatmapMode,
+  playerPosition: string | null,
+): string | null {
   const small = smallSampleReason(season, statKey);
   if (small != null) {
-    const tail = mode === "self" ? "Left out of career average." : `Not compared with ${mode === "league" ? "league" : positionSingular(playerPosition)} average.`;
+    const tail =
+      mode === "self"
+        ? "Left out of career average."
+        : `Not compared with ${mode === "league" ? "league" : positionSingular(playerPosition)} average.`;
     return `${small}. ${tail}`;
   }
   if (isPartialSeason(season)) return `Partial season: ${season.gp} of ${season.teamGames} games`;
@@ -253,7 +260,12 @@ function rateAttempts(season: SeasonPlayed, statKey: StatKey): number | null {
     means the same as a counting stat's (no position group that year, or under the games bar). League and
     self modes: the season is under the rank floor. Position mode: the same, or fewer than eight of the
     position cleared it. */
-export function rankNote(s: SeasonPlayed, key: StatKey, mode: HeatmapMode, playerPosition: string | null): string | null {
+export function rankNote(
+  s: SeasonPlayed,
+  key: StatKey,
+  mode: HeatmapMode,
+  playerPosition: string | null,
+): string | null {
   if (isSmallSample(s)) return null;
   // A partial season is compared but not in the crowd, so it has no rank for any stat. (No note when the
   // mode has no crowd that year either.)
@@ -438,7 +450,24 @@ export function buildHeatmapGrid(
     STATS.map((st): HeatmapCell => {
       const shell = { year: s.year, statKey: st.key, pct: st.pct } as const;
       if (!s.played) {
-        return { ...shell, played: false, value: null, valueFmt: "—", cellFmt: "—", refValue: null, refFmt: "—", delta: null, deltaFmt: "—", colorT: null, up: false, flat: false, smallSample: false, partial: false, note: null, selectable: false };
+        return {
+          ...shell,
+          played: false,
+          value: null,
+          valueFmt: "—",
+          cellFmt: "—",
+          refValue: null,
+          refFmt: "—",
+          delta: null,
+          deltaFmt: "—",
+          colorT: null,
+          up: false,
+          flat: false,
+          smallSample: false,
+          partial: false,
+          note: null,
+          selectable: false,
+        };
       }
       const value = s[st.key];
       const small = isStatSmallSample(s, st.key);
@@ -446,7 +475,9 @@ export function buildHeatmapGrid(
         mode === "self"
           ? selfAgg.get(st.key)!.avg
           : mode === "position"
-            ? (playerPosition != null && positions != null ? positions.avg(s.year, playerPosition, st.key) : null)
+            ? playerPosition != null && positions != null
+              ? positions.avg(s.year, playerPosition, st.key)
+              : null
             : league.avg(s.year, st.key);
 
       const scored = value != null && avg != null && !small;
@@ -457,7 +488,9 @@ export function buildHeatmapGrid(
           colorT = clamp((value - avg) / selfAgg.get(st.key)!.maxDev, -1, 1);
         } else {
           const spread = isCountingStat(st.key)
-            ? (mode === "position" ? positions!.stdev(s.year, playerPosition!, st.key) : league.stdev(s.year, st.key))
+            ? mode === "position"
+              ? positions!.stdev(s.year, playerPosition!, st.key)
+              : league.stdev(s.year, st.key)
             : null;
           // The geometry's signed size, read back as a −1…1 color strength.
           const geo = stepGeometry(value, avg, spread) ?? barGeometry(value, avg);
@@ -494,7 +527,6 @@ export function ordinal(n: number): string {
   return `${n}${s[(v - 20) % 10] || s[v] || s[0]}`;
 }
 
-
 // ── Stat detail ───────────────────────────────────────────────────────────────
 // One stat's season-by-season history under the heatmap: the chart (each season's value against its
 // reference), a career summary and the yearly table. It follows the heatmap's reference switch, so the
@@ -522,7 +554,6 @@ export interface StatBar {
   /** Above (true) or below (false) the reference; null with no reference → a neutral dot. */
   up: boolean | null;
 }
-
 
 export interface StatTableRow {
   year: number;
@@ -633,7 +664,8 @@ export interface CompareSegment {
 export function compareSegments(canSelf: boolean, position: string | null, positionsLoaded: boolean): CompareSegment[] {
   const noun = positionNoun(position);
   const positionLabel = position == null ? "Position" : upperFirst(noun);
-  const positionReason = position == null ? "No position on record" : positionsLoaded ? null : "Position averages unavailable";
+  const positionReason =
+    position == null ? "No position on record" : positionsLoaded ? null : "Position averages unavailable";
   return [
     // "Self", not "Career", which read as career totals.
     { value: "self", label: "Self", disabled: !canSelf, reason: canSelf ? null : "Needs two or more seasons" },
@@ -702,12 +734,24 @@ export function buildStatDetail(
 
   const posOk = playerPosition != null && positions != null;
   const refFor = (year: number): number | null =>
-    mode === "self" ? careerAvg : mode === "position" ? (posOk ? positions.avg(year, playerPosition, key) : null) : league.avg(year, key);
+    mode === "self"
+      ? careerAvg
+      : mode === "position"
+        ? posOk
+          ? positions.avg(year, playerPosition, key)
+          : null
+        : league.avg(year, key);
   // The rank and pool of the mode's crowd: the position in position mode, otherwise the league (self mode
   // has no crowd, so it shows the league rank). A shooting % ranks in its own, smaller pool.
   const rankOf = (s: SeasonPlayed): number | null => (mode === "position" ? s.posRank?.[key] : s.rank?.[key]) ?? null;
   const poolOf = (s: SeasonPlayed): number | null =>
-    (isRateStat(key) ? (mode === "position" ? s.posRatePool?.[key] : s.ratePool?.[key]) : mode === "position" ? s.posPool : s.pool) ?? null;
+    (isRateStat(key)
+      ? mode === "position"
+        ? s.posRatePool?.[key]
+        : s.ratePool?.[key]
+      : mode === "position"
+        ? s.posPool
+        : s.pool) ?? null;
 
   // The scale covers everything the plot draws, values and references, so nothing clips. A counting stat
   // runs from zero to 1.2× the top; a shooting % gets a fitted axis (pctAxis).
@@ -718,10 +762,31 @@ export function buildStatDetail(
 
   const bars: StatBar[] = player.seasons.map((s) => {
     const yy = String(s.year).slice(2);
-    if (!s.played) return { year: s.year, yy, kind: "missed", valFmt: "—", labelFmt: "", baseFmt: null, hPct: null, basePct: null, up: null };
+    if (!s.played)
+      return {
+        year: s.year,
+        yy,
+        kind: "missed",
+        valFmt: "—",
+        labelFmt: "",
+        baseFmt: null,
+        hPct: null,
+        basePct: null,
+        up: null,
+      };
     const v = s[key];
     if (v == null || small(s)) {
-      return { year: s.year, yy, kind: "small", valFmt: fmtV(v, stat.pct), labelFmt: v == null ? "" : fmtCell(v, stat.pct), baseFmt: null, hPct: v == null ? null : clamp(pctOf(v)), basePct: null, up: null };
+      return {
+        year: s.year,
+        yy,
+        kind: "small",
+        valFmt: fmtV(v, stat.pct),
+        labelFmt: v == null ? "" : fmtCell(v, stat.pct),
+        baseFmt: null,
+        hPct: v == null ? null : clamp(pctOf(v)),
+        basePct: null,
+        up: null,
+      };
     }
     const b = refFor(s.year);
     return {
@@ -743,7 +808,22 @@ export function buildStatDetail(
 
   const tableRows: StatTableRow[] = player.seasons.map((x) => {
     if (!x.played) {
-      return { year: x.year, min: null, valFmt: "—", gp: null, deltaFmt: "—", deltaColor: "var(--color-neutral-700)", rank: null, pool: null, unranked: null, missed: true, smallSample: false, note: null, partial: false, reason: x.reason };
+      return {
+        year: x.year,
+        min: null,
+        valFmt: "—",
+        gp: null,
+        deltaFmt: "—",
+        deltaColor: "var(--color-neutral-700)",
+        rank: null,
+        pool: null,
+        unranked: null,
+        missed: true,
+        smallSample: false,
+        note: null,
+        partial: false,
+        reason: x.reason,
+      };
     }
     const v = x[key];
     const b = refFor(x.year);
@@ -757,7 +837,12 @@ export function buildStatDetail(
       gp: x.gp,
       deltaFmt: hasDelta ? fmtRaw(v - b, stat.pct) : "—",
       // Grey when there's no direction to show: a "—" or a "0.0".
-      deltaColor: !hasDelta || roundsToZero(v - b, stat.pct) ? "var(--color-text-muted)" : v - b > 0 ? "var(--hm-above-text)" : "var(--hm-below-text)",
+      deltaColor:
+        !hasDelta || roundsToZero(v - b, stat.pct)
+          ? "var(--color-text-muted)"
+          : v - b > 0
+            ? "var(--hm-above-text)"
+            : "var(--hm-below-text)",
       rank: sm ? null : rankOf(x),
       pool: poolOf(x),
       unranked: sm ? null : rankNote(x, key, mode, playerPosition),
@@ -770,7 +855,8 @@ export function buildStatDetail(
 
   // Plate numbers: one decimal for a counting stat, a whole percent for a shooting % (the % sign is the
   // word after it). The chart and table keep one decimal.
-  const plateFmt = (v: number | null): string => (v == null ? "—" : stat.pct ? String(Math.round(v * 100)) : v.toFixed(1));
+  const plateFmt = (v: number | null): string =>
+    v == null ? "—" : stat.pct ? String(Math.round(v * 100)) : v.toFixed(1);
   let summary: CareerSummary | null = null;
   if (chartable.length > 0) {
     const val = (s: SeasonPlayed) => s[key] as number;
@@ -781,9 +867,12 @@ export function buildStatDetail(
     // are exactly equal. Ties go to the larger pool, then the later year.
     const best = ranked.reduce<SeasonPlayed | null>((a, s) => {
       if (a == null) return s;
-      const r = rankOf(s) as number, ra = rankOf(a) as number;
-      const p = poolOf(s) as number, pa = poolOf(a) as number;
-      const lhs = r * pa, rhs = ra * p;
+      const r = rankOf(s) as number,
+        ra = rankOf(a) as number;
+      const p = poolOf(s) as number,
+        pa = poolOf(a) as number;
+      const lhs = r * pa,
+        rhs = ra * p;
       return lhs < rhs || (lhs === rhs && (p > pa || (p === pa && s.year > a.year))) ? s : a;
     }, null);
     summary = {

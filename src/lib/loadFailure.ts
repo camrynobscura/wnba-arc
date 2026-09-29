@@ -22,5 +22,9 @@ function subscribe(onChange: () => void) {
 /** False while the browser reports no connection. Live, so an error's line switches from the offline
     one to the general one when the connection comes back. */
 export function useOnline(): boolean {
-  return useSyncExternalStore(subscribe, () => navigator.onLine, () => true);
+  return useSyncExternalStore(
+    subscribe,
+    () => navigator.onLine,
+    () => true,
+  );
 }

@@ -26,8 +26,18 @@ describe("careerSpan", () => {
 
 describe("playerMeta", () => {
   it("an active player: team · position · number, and only the parts that exist", () => {
-    const wilson = summary({ team: "Las Vegas Aces", teamAbbr: "LV", pos: "C", jersey: 22, firstYear: 2018, lastYear: 2026 });
-    expect(playerMeta(wilson, true)).toEqual({ shown: "Las Vegas Aces · C · #22", spoken: "Las Vegas Aces, center, #22" });
+    const wilson = summary({
+      team: "Las Vegas Aces",
+      teamAbbr: "LV",
+      pos: "C",
+      jersey: 22,
+      firstYear: 2018,
+      lastYear: 2026,
+    });
+    expect(playerMeta(wilson, true)).toEqual({
+      shown: "Las Vegas Aces · C · #22",
+      spoken: "Las Vegas Aces, center, #22",
+    });
     expect(playerMeta(wilson).shown).toBe("Las Vegas Aces · C"); // search rows carry no number
     // Off-roster (international duty): no team, no dangling separator.
     expect(playerMeta(summary({ pos: "G", jersey: 12 }), true)).toEqual({ shown: "G · #12", spoken: "guard, #12" });
@@ -56,7 +66,10 @@ describe("the spoken line", () => {
 
   it("puts commas where the dots are, and drops a missing part with its separator both ways", () => {
     // The featured list's line: team + position, no number.
-    expect(joinMeta(["Chicago Sky", positionPart("C")])).toEqual({ shown: "Chicago Sky · C", spoken: "Chicago Sky, center" });
+    expect(joinMeta(["Chicago Sky", positionPart("C")])).toEqual({
+      shown: "Chicago Sky · C",
+      spoken: "Chicago Sky, center",
+    });
     expect(joinMeta([null, positionPart("G"), null])).toEqual({ shown: "G", spoken: "guard" });
     expect(joinMeta(["Chicago Sky", null])).toEqual({ shown: "Chicago Sky", spoken: "Chicago Sky" });
   });

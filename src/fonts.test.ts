@@ -64,7 +64,9 @@ describe("loadLaterFonts", () => {
 
 describe("the headings' stand-in", () => {
   // Every CSS rule that sets the heading face, and every inline style that does.
-  const cssRules = [...themeCss.matchAll(/[^{}]*\{([^}]*font-family:\s*var\(--font-heading\)[^}]*)\}/g)].map((m) => m[1]!);
+  const cssRules = [...themeCss.matchAll(/[^{}]*\{([^}]*font-family:\s*var\(--font-heading\)[^}]*)\}/g)].map(
+    (m) => m[1]!,
+  );
   const tsx = import.meta.glob<string>("./**/*.tsx", { query: "?raw", import: "default", eager: true });
   const inline = Object.entries(tsx).flatMap(([path, src]) =>
     [...src.matchAll(/\{[^{}]*fontFamily:\s*"var\(--font-heading\)"[^{}]*\}/g)].map((m) => ({ path, style: m[0] })),

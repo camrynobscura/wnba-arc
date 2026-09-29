@@ -1,7 +1,27 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { PlayerDetail, SeasonPlayed } from "../data/api";
 import { STATS } from "../data/stats";
-import { buildHeatmapGrid, compareSentence, firstName, isCountingStat, isRateStat, lowerFirst, type HeatmapCell, type HeatmapMode, type League, ordinal, type PositionLookup, positionNoun, rankNote, referencePhrase, scaleNoun, selfModeAvailable, spokenValue, type StatKey, upperFirst } from "../lib/deviation";
+import {
+  buildHeatmapGrid,
+  compareSentence,
+  firstName,
+  isCountingStat,
+  isRateStat,
+  lowerFirst,
+  type HeatmapCell,
+  type HeatmapMode,
+  type League,
+  ordinal,
+  type PositionLookup,
+  positionNoun,
+  rankNote,
+  referencePhrase,
+  scaleNoun,
+  selfModeAvailable,
+  spokenValue,
+  type StatKey,
+  upperFirst,
+} from "../lib/deviation";
 import { type GridCoord, gridMove, HEADER_ROW } from "../lib/gridNav";
 import { InfoTip } from "./InfoTip";
 import { ScaleKey } from "./ScaleKey";
@@ -40,14 +60,7 @@ const HINT_ID = "hm-grid-hint";
  * value, gap, reference and rank, so nothing is pointer-only; the Enter instruction is said once, as the
  * grid's description. The popover comes right after the grid in DOM order, so Tab reaches its link.
  */
-export function DeviationHeatmap({
-  player,
-  league,
-  positions,
-  playerPosition,
-  mode,
-  onDrill,
-}: DeviationHeatmapProps) {
+export function DeviationHeatmap({ player, league, positions, playerPosition, mode, onDrill }: DeviationHeatmapProps) {
   // Self mode needs two or more seasons; a one-season player who arrives in self mode gets league.
   const canSelf = selfModeAvailable(player);
   const effMode: HeatmapMode = mode === "self" && !canSelf ? "league" : mode;
@@ -192,7 +205,13 @@ export function DeviationHeatmap({
     if (!s) return null;
     const k = cell.statKey;
     const rank = effMode === "position" ? s.posRank?.[k] : s.rank?.[k];
-    const pool = isRateStat(k) ? (effMode === "position" ? s.posRatePool?.[k] : s.ratePool?.[k]) : effMode === "position" ? s.posPool : s.pool;
+    const pool = isRateStat(k)
+      ? effMode === "position"
+        ? s.posRatePool?.[k]
+        : s.ratePool?.[k]
+      : effMode === "position"
+        ? s.posPool
+        : s.pool;
     return rank != null && pool != null ? { rank, pool } : null;
   };
   const cellRankNote = (cell: HeatmapCell): string | null => {
@@ -217,10 +236,23 @@ export function DeviationHeatmap({
       {/* Visually hidden: the section keeps its name and its place in the heading outline, but a visible
           label would say nothing the grid doesn't show. First in the section, so heading navigation
           lands before everything in it. */}
-      <h2 id="heatmap-title" className="sr-only">Season-by-season heatmap</h2>
+      <h2 id="heatmap-title" className="sr-only">
+        Season-by-season heatmap
+      </h2>
       {/* What's compared, in a sentence that follows the mode, for a reader arriving cold; then the one
           interaction hint. Both sit right above the color key, so sentence, key and grid read as one. */}
-      <div className="text-muted" style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", columnGap: "var(--space-4)", rowGap: "var(--space-1)", fontSize: "var(--fs-sm)", marginBottom: "var(--space-3)" }}>
+      <div
+        className="text-muted"
+        style={{
+          display: "flex",
+          flexWrap: "wrap",
+          justifyContent: "space-between",
+          columnGap: "var(--space-4)",
+          rowGap: "var(--space-1)",
+          fontSize: "var(--fs-sm)",
+          marginBottom: "var(--space-3)",
+        }}
+      >
         <p style={{ margin: 0 }}>{compareSentence(effMode, firstName(player.name), playerPosition)}</p>
         <p style={{ margin: 0 }}>Tap or hover over a cell for details.</p>
       </div>
@@ -237,94 +269,103 @@ export function DeviationHeatmap({
 
       {/* The popover is rendered outside this scroller and positioned fixed, so the scroller can't clip it. */}
       <div className="hm-scroll">
-      <div
-        role="grid"
-        aria-label={`${firstName(player.name)}'s seasons vs. ${refPhrase}`}
-        aria-describedby={HINT_ID}
-        className="heatmap"
-        style={{ gridTemplateColumns: `var(--hm-yearcol) repeat(${nCols}, minmax(var(--hm-cellmin), 1fr))` }}
-        onKeyDown={onGridKeyDown}
-        onMouseLeave={() => {
-          // Leaving the grid ends the hover preview, unless the pointer went onto the popover (WCAG
-          // 1.4.13: hover content must stay hoverable). A pinned popover is unaffected.
-          if (!overPopover.current) setHovered(null);
-        }}
-      >
-        {/* Header row: a corner, then the stat labels (full name in a tooltip). Headers only explain
+        <div
+          role="grid"
+          aria-label={`${firstName(player.name)}'s seasons vs. ${refPhrase}`}
+          aria-describedby={HINT_ID}
+          className="heatmap"
+          style={{ gridTemplateColumns: `var(--hm-yearcol) repeat(${nCols}, minmax(var(--hm-cellmin), 1fr))` }}
+          onKeyDown={onGridKeyDown}
+          onMouseLeave={() => {
+            // Leaving the grid ends the hover preview, unless the pointer went onto the popover (WCAG
+            // 1.4.13: hover content must stay hoverable). A pinned popover is unaffected.
+            if (!overPopover.current) setHovered(null);
+          }}
+        >
+          {/* Header row: a corner, then the stat labels (full name in a tooltip). Headers only explain
             themselves; they're part of the grid's arrow-key focus (row HEADER_ROW), not Tab stops. */}
-        <div role="row" style={{ display: "contents" }}>
-          {/* Hidden text, not aria-label, so it isn't an empty header (axe's empty-table-header rule);
+          <div role="row" style={{ display: "contents" }}>
+            {/* Hidden text, not aria-label, so it isn't an empty header (axe's empty-table-header rule);
               "Season" won't fit visibly. */}
-          <div role="columnheader" className="hm-colhead"><span className="sr-only">Season</span></div>
-          {STATS.map((st, c) => (
-            <div role="columnheader" key={`h-${st.key}`} className="hm-colhead" onFocus={() => setActive({ r: HEADER_ROW, c })}>
-              <InfoTip
-                label={st.short}
-                tip={st.desc}
-                tabIndex={active.r === HEADER_ROW && active.c === c ? 0 : -1}
-                triggerRef={(el) => headerRefs.current.set(c, el)}
-              />
+            <div role="columnheader" className="hm-colhead">
+              <span className="sr-only">Season</span>
+            </div>
+            {STATS.map((st, c) => (
+              <div
+                role="columnheader"
+                key={`h-${st.key}`}
+                className="hm-colhead"
+                onFocus={() => setActive({ r: HEADER_ROW, c })}
+              >
+                <InfoTip
+                  label={st.short}
+                  tip={st.desc}
+                  tabIndex={active.r === HEADER_ROW && active.c === c ? 0 : -1}
+                  triggerRef={(el) => headerRefs.current.set(c, el)}
+                />
+              </div>
+            ))}
+          </div>
+
+          {grid.rows.map((row, r) => (
+            <div role="row" style={{ display: "contents" }} key={grid.years[r]}>
+              <div role="rowheader" className="hm-rowhead">
+                {/* Drawn as "2024", or "'24" on a phone (CSS shows one); a screen reader always gets the
+                  full year. */}
+                <span className="hm-year-full" aria-hidden="true">
+                  {grid.years[r]}
+                </span>
+                <span className="hm-year-short" aria-hidden="true">{`'${String(grid.years[r]).slice(2)}`}</span>
+                <span className="sr-only">{grid.years[r]}</span>
+              </div>
+              {row.map((cell, c) => {
+                const here = { r, c };
+                return (
+                  <Cell
+                    key={`${cell.year}-${cell.statKey}`}
+                    cell={cell}
+                    rank={cellRank(cell)}
+                    rankNote={cellRankNote(cell)}
+                    rankNoun={rankNoun}
+                    noun={noun}
+                    refPhrase={refPhrase}
+                    tabbable={active.r === r && active.c === c}
+                    expanded={sameCoord(openCoord, here)}
+                    setRef={(el) => cellRefs.current.set(`${r}-${c}`, el)}
+                    onFocus={() => {
+                      setActive(here);
+                      // Arriving by keyboard opens the details, unless this is Esc handing focus back
+                      // to the cell, which must not reopen what it just closed.
+                      if (suppressFocusOpen.current) {
+                        suppressFocusOpen.current = false;
+                        return;
+                      }
+                      setPinned(here);
+                    }}
+                    onHover={(x, y) => onCellHover(here, x, y)}
+                    onPress={() => {
+                      pressWasPinned.current = sameCoord(pinned, here);
+                    }}
+                    // Tap/click: a second tap on the open cell closes it, otherwise pin. Decided from
+                    // the pointerdown snapshot (focus has already pinned by the time click fires).
+                    onTap={() => {
+                      const wasPinned = pressWasPinned.current;
+                      pressWasPinned.current = false; // a keyboard "click" (Space) has no pointerdown
+                      if (wasPinned) {
+                        // A deliberate close must close: touch browsers synthesize mouseenter on tap
+                        // and never mouseleave, so the hover preview would keep the popover open.
+                        setPinned(null);
+                        setHovered(null);
+                      } else {
+                        setPinned(here);
+                      }
+                    }}
+                  />
+                );
+              })}
             </div>
           ))}
         </div>
-
-        {grid.rows.map((row, r) => (
-          <div role="row" style={{ display: "contents" }} key={grid.years[r]}>
-            <div role="rowheader" className="hm-rowhead">
-              {/* Drawn as "2024", or "'24" on a phone (CSS shows one); a screen reader always gets the
-                  full year. */}
-              <span className="hm-year-full" aria-hidden="true">{grid.years[r]}</span>
-              <span className="hm-year-short" aria-hidden="true">{`'${String(grid.years[r]).slice(2)}`}</span>
-              <span className="sr-only">{grid.years[r]}</span>
-            </div>
-            {row.map((cell, c) => {
-              const here = { r, c };
-              return (
-                <Cell
-                  key={`${cell.year}-${cell.statKey}`}
-                  cell={cell}
-                  rank={cellRank(cell)}
-                  rankNote={cellRankNote(cell)}
-                  rankNoun={rankNoun}
-                  noun={noun}
-                  refPhrase={refPhrase}
-                  tabbable={active.r === r && active.c === c}
-                  expanded={sameCoord(openCoord, here)}
-                  setRef={(el) => cellRefs.current.set(`${r}-${c}`, el)}
-                  onFocus={() => {
-                    setActive(here);
-                    // Arriving by keyboard opens the details, unless this is Esc handing focus back
-                    // to the cell, which must not reopen what it just closed.
-                    if (suppressFocusOpen.current) {
-                      suppressFocusOpen.current = false;
-                      return;
-                    }
-                    setPinned(here);
-                  }}
-                  onHover={(x, y) => onCellHover(here, x, y)}
-                  onPress={() => {
-                    pressWasPinned.current = sameCoord(pinned, here);
-                  }}
-                  // Tap/click: a second tap on the open cell closes it, otherwise pin. Decided from
-                  // the pointerdown snapshot (focus has already pinned by the time click fires).
-                  onTap={() => {
-                    const wasPinned = pressWasPinned.current;
-                    pressWasPinned.current = false; // a keyboard "click" (Space) has no pointerdown
-                    if (wasPinned) {
-                      // A deliberate close must close: touch browsers synthesize mouseenter on tap
-                      // and never mouseleave, so the hover preview would keep the popover open.
-                      setPinned(null);
-                      setHovered(null);
-                    } else {
-                      setPinned(here);
-                    }
-                  }}
-                />
-              );
-            })}
-          </div>
-        ))}
-      </div>
       </div>
 
       {openCell && openCoord && (
@@ -379,7 +420,19 @@ const VIEWPORT_PAD = 8; // px the popover keeps from the viewport edges
  * viewport. Re-measured on scroll and resize (including the grid's own sideways scroll) so it tracks
  * the cell.
  */
-function CellPopover({ cell, anchor, noun, rank, rankNote, rankNoun, pinned, popoverRef, onPointerEnter, onPointerLeave, onDrill }: CellPopoverProps) {
+function CellPopover({
+  cell,
+  anchor,
+  noun,
+  rank,
+  rankNote,
+  rankNoun,
+  pinned,
+  popoverRef,
+  onPointerEnter,
+  onPointerLeave,
+  onDrill,
+}: CellPopoverProps) {
   const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
 
   useLayoutEffect(() => {
@@ -395,7 +448,11 @@ function CellPopover({ cell, anchor, noun, rank, rankNote, rankNoun, pinned, pop
       // popover that points at nothing. It reappears when the cell scrolls back.
       const box = (anchor.closest(".hm-scroll") as HTMLElement | null)?.getBoundingClientRect();
       const offscreen =
-        a.bottom < 0 || a.top > vh || a.right < 0 || a.left > vw || (box != null && (a.right < box.left || a.left > box.right));
+        a.bottom < 0 ||
+        a.top > vh ||
+        a.right < 0 ||
+        a.left > vw ||
+        (box != null && (a.right < box.left || a.left > box.right));
       if (offscreen) {
         setPos(null);
         return;
@@ -446,7 +503,16 @@ function CellPopover({ cell, anchor, noun, rank, rankNote, rankNoun, pinned, pop
         {cell.delta != null && (
           <>
             <dt>Difference</dt>
-            <dd className="hm-popover-delta" style={{ color: cell.flat ? "var(--color-text-muted)" : cell.up ? "var(--hm-above-text)" : "var(--hm-below-text)" }}>
+            <dd
+              className="hm-popover-delta"
+              style={{
+                color: cell.flat
+                  ? "var(--color-text-muted)"
+                  : cell.up
+                    ? "var(--hm-above-text)"
+                    : "var(--hm-below-text)",
+              }}
+            >
               {cell.deltaFmt}
             </dd>
           </>
@@ -455,7 +521,10 @@ function CellPopover({ cell, anchor, noun, rank, rankNote, rankNoun, pinned, pop
           <>
             <dt>Rank</dt>
             <dd>
-              {ordinal(rank.rank)} <span className="text-muted">of {rank.pool} {rankNoun}</span>
+              {ordinal(rank.rank)}{" "}
+              <span className="text-muted">
+                of {rank.pool} {rankNoun}
+              </span>
             </dd>
           </>
         )}
@@ -475,7 +544,9 @@ function CellPopover({ cell, anchor, noun, rank, rankNote, rankNoun, pinned, pop
           <em>* {cell.note}</em>
         </div>
       )}
-      {cell.played && !cell.smallSample && cell.delta == null && <div className="text-muted hm-popover-note">No {noun} that season</div>}
+      {cell.played && !cell.smallSample && cell.delta == null && (
+        <div className="text-muted hm-popover-note">No {noun} that season</div>
+      )}
       <button type="button" className="btn btn-ghost hm-popover-link" onClick={onDrill}>
         {/* The arrow is decoration, hidden or it's read out ("down arrow"). One wrapping span: `.btn` is
             a flex box, and the arrow as its own flex item would sit a 6px gap away, not a space. */}
@@ -506,7 +577,21 @@ interface CellProps {
   onTap: () => void;
 }
 
-function Cell({ cell, rank, rankNote, rankNoun, noun, refPhrase, tabbable, expanded, setRef, onFocus, onHover, onPress, onTap }: CellProps) {
+function Cell({
+  cell,
+  rank,
+  rankNote,
+  rankNoun,
+  noun,
+  refPhrase,
+  tabbable,
+  expanded,
+  setRef,
+  onFocus,
+  onHover,
+  onPress,
+  onTap,
+}: CellProps) {
   // The heat color for a scored cell; the neutral base for a played cell with no reference; none for a
   // small sample (its class draws it hollow) or a missed season.
   const bg =
@@ -534,7 +619,11 @@ function Cell({ cell, rank, rankNote, rankNoun, noun, refPhrase, tabbable, expan
         ? `${stat} ${cell.year}: ${shown}, no ${noun} that season`
         : `${stat} ${cell.year}: ${shown}, ${cell.deltaFmt}${isCountingStat(cell.statKey) ? "" : " percentage points"} vs ${refPhrase}${ref ? ` of ${ref}` : ""}` +
           (cell.note ? `, ${lowerFirst(cell.note)}` : "") +
-          (rank ? `, ranked ${ordinal(rank.rank)} of ${rank.pool} ${rankNoun}` : rankNote ? `, not ranked: ${lowerFirst(rankNote)}` : "");
+          (rank
+            ? `, ranked ${ordinal(rank.rank)} of ${rank.pool} ${rankNoun}`
+            : rankNote
+              ? `, not ranked: ${lowerFirst(rankNote)}`
+              : "");
 
   return (
     <button

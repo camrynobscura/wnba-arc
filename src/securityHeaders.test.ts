@@ -11,10 +11,9 @@ describe("inlineScripts", () => {
   });
 
   it("returns each body exactly, whitespace included (the hash covers every character)", () => {
-    expect(inlineScripts('<script>\n  a();\n</script><script type="module" src="/x.js"></script><SCRIPT>b()</SCRIPT>')).toEqual([
-      "\n  a();\n",
-      "b()",
-    ]);
+    expect(
+      inlineScripts('<script>\n  a();\n</script><script type="module" src="/x.js"></script><SCRIPT>b()</SCRIPT>'),
+    ).toEqual(["\n  a();\n", "b()"]);
   });
 });
 
@@ -59,6 +58,10 @@ describe("headersFile", () => {
   it("caches the hashed build files for a year without a re-check, and nothing else", () => {
     expect([...blocks(file).keys()]).toEqual(["/*", "/assets/*"]);
     expect(blocks(file).get("/assets/*")).toEqual(["  Cache-Control: public, max-age=31536000, immutable"]);
-    expect(blocks(file).get("/*")!.some((l) => l.includes("Cache-Control"))).toBe(false);
+    expect(
+      blocks(file)
+        .get("/*")!
+        .some((l) => l.includes("Cache-Control")),
+    ).toBe(false);
   });
 });

@@ -13,14 +13,56 @@ export interface StatDef {
 
 export const STATS: StatDef[] = [
   { key: "pts", short: "PTS", label: "Points", pct: false, desc: "Points — how many the player scores per game" },
-  { key: "reb", short: "REB", label: "Rebounds", pct: false, desc: "Rebounds — securing the ball after a miss, per game (offense + defense)" },
-  { key: "ast", short: "AST", label: "Assists", pct: false, desc: "Assists — passes that lead directly to a teammate's basket, per game" },
-  { key: "stl", short: "STL", label: "Steals", pct: false, desc: "Steals — taking the ball away from the offense, per game" },
-  { key: "blk", short: "BLK", label: "Blocks", pct: false, desc: "Blocks — deflecting an opponent's shot attempt, per game" },
-  { key: "fgp", short: "FG%", label: "Field Goal %", pct: true, desc: "Field goal % — how often the player's shots from the floor go in" },
-  { key: "tpp", short: "3P%", label: "3-Point %", pct: true, desc: "Three-point % — how often the player's three-point attempts go in" },
+  {
+    key: "reb",
+    short: "REB",
+    label: "Rebounds",
+    pct: false,
+    desc: "Rebounds — securing the ball after a miss, per game (offense + defense)",
+  },
+  {
+    key: "ast",
+    short: "AST",
+    label: "Assists",
+    pct: false,
+    desc: "Assists — passes that lead directly to a teammate's basket, per game",
+  },
+  {
+    key: "stl",
+    short: "STL",
+    label: "Steals",
+    pct: false,
+    desc: "Steals — taking the ball away from the offense, per game",
+  },
+  {
+    key: "blk",
+    short: "BLK",
+    label: "Blocks",
+    pct: false,
+    desc: "Blocks — deflecting an opponent's shot attempt, per game",
+  },
+  {
+    key: "fgp",
+    short: "FG%",
+    label: "Field Goal %",
+    pct: true,
+    desc: "Field goal % — how often the player's shots from the floor go in",
+  },
+  {
+    key: "tpp",
+    short: "3P%",
+    label: "3-Point %",
+    pct: true,
+    desc: "Three-point % — how often the player's three-point attempts go in",
+  },
   // The one advanced stat shown: higher is better and it has a league average, so it works in every mode.
-  { key: "tsPct", short: "TS%", label: "True Shooting %", pct: true, desc: "True shooting % — overall scoring efficiency across twos, threes, and free throws" },
+  {
+    key: "tsPct",
+    short: "TS%",
+    label: "True Shooting %",
+    pct: true,
+    desc: "True shooting % — overall scoring efficiency across twos, threes, and free throws",
+  },
 ];
 
 /**

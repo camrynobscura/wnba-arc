@@ -38,16 +38,25 @@ export function AboutView({ onBack }: AboutViewProps) {
         </span>
       </button>
 
-      <h1 ref={headingRef} tabIndex={-1} className="page-heading" style={{ fontSize: "var(--fs-3xl)", marginBottom: "var(--space-4)" }}>
+      <h1
+        ref={headingRef}
+        tabIndex={-1}
+        className="page-heading"
+        style={{ fontSize: "var(--fs-3xl)", marginBottom: "var(--space-4)" }}
+      >
         About Arc
       </h1>
       <p>
-        Is a WNBA player averaging 15 points per game having a good season? Well, it depends on the player. For a superstar they could be slumping, but for a bench player they could be having a breakout season. Arc lets you compare a player's season
-        with different averages: their own career, the whole league that year, or players at their same position. This lets you see how well they're doing in the current season (or other years) compared to the rest of their career, and compared to the rest of the league.
+        Is a WNBA player averaging 15 points per game having a good season? Well, it depends on the player. For a
+        superstar they could be slumping, but for a bench player they could be having a breakout season. Arc lets you
+        compare a player's season with different averages: their own career, the whole league that year, or players at
+        their same position. This lets you see how well they're doing in the current season (or other years) compared to
+        the rest of their career, and compared to the rest of the league.
       </p>
       <p style={{ margin: 0 }}>
-        Each player page shows their career heatmap, with each cell representing a season's average for a stat, like 15.2 points per game. The color
-        shows if the year's stat is above or below average: the more red, the more above average, and the more blue, the more below average.
+        Each player page shows their career heatmap, with each cell representing a season's average for a stat, like
+        15.2 points per game. The color shows if the year's stat is above or below average: the more red, the more above
+        average, and the more blue, the more below average.
       </p>
 
       <section style={sectionStyle}>
@@ -56,8 +65,8 @@ export function AboutView({ onBack }: AboutViewProps) {
           <li>
             <strong>How strong the colors are:</strong> comparing with the league or a position, the color depends on
             how unusual the number is. Most players are close together on blocks, so one block above average shows up
-            much stronger than one point above average. Comparing with the player's own career, the colors follow
-            their own ups and downs, so their best and worst years stand out.
+            much stronger than one point above average. Comparing with the player's own career, the colors follow their
+            own ups and downs, so their best and worst years stand out.
           </li>
           <li>
             <strong>Outlined, no color:</strong> they didn't play enough games, or take enough shots, to compare fairly.
@@ -106,7 +115,10 @@ export function AboutView({ onBack }: AboutViewProps) {
             averages.
           </li>
         </ul>
-        <p>Shorter seasons scale down, so for example in 1997 teams played 28 games, so if a player played 13 games that was enough to be ranked (in 2026 you'd need 20).</p>
+        <p>
+          Shorter seasons scale down, so for example in 1997 teams played 28 games, so if a player played 13 games that
+          was enough to be ranked (in 2026 you'd need 20).
+        </p>
       </section>
 
       <section style={sectionStyle}>
@@ -128,8 +140,8 @@ export function AboutView({ onBack }: AboutViewProps) {
       </section>
 
       <p className="text-muted" style={{ margin: "var(--space-10) 0 0", fontSize: "var(--fs-sm)", lineHeight: 1.5 }}>
-        WNBA Arc is an independent, unofficial project. It isn't affiliated with or endorsed by the WNBA or ESPN. Team and
-        player names and photos belong to their owners.
+        WNBA Arc is an independent, unofficial project. It isn't affiliated with or endorsed by the WNBA or ESPN. Team
+        and player names and photos belong to their owners.
       </p>
     </main>
   );

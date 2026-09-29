@@ -27,7 +27,12 @@ export function SelectView({ featured, players, listFailed, onPick }: SelectView
   useArrivalFocus(headingRef);
   return (
     <main id="main" className="view-main" style={{ padding: "var(--space-10) var(--space-5)" }}>
-      <h1 ref={headingRef} tabIndex={-1} className="page-heading" style={{ fontSize: "var(--fs-3xl)", marginBottom: "var(--space-3)" }}>
+      <h1
+        ref={headingRef}
+        tabIndex={-1}
+        className="page-heading"
+        style={{ fontSize: "var(--fs-3xl)", marginBottom: "var(--space-3)" }}
+      >
         WNBA Arc
       </h1>
       <p className="text-muted" style={{ fontSize: "var(--fs-base)", marginBottom: "var(--space-5)" }}>
@@ -40,7 +45,12 @@ export function SelectView({ featured, players, listFailed, onPick }: SelectView
       <div style={{ marginTop: "var(--space-5)" }}>
         <h2
           className="text-muted"
-          style={{ fontSize: "var(--fs-md)", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: "var(--space-2)" }}
+          style={{
+            fontSize: "var(--fs-md)",
+            letterSpacing: "0.08em",
+            textTransform: "uppercase",
+            marginBottom: "var(--space-2)",
+          }}
         >
           Featured players
         </h2>
@@ -75,12 +85,22 @@ export function SelectView({ featured, players, listFailed, onPick }: SelectView
               >
                 <PlayerPhoto espn={f.espn} name={f.name} size={40} tint={teamTintByName(f.team)} />
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div className="text-heading" style={{ fontSize: "var(--fs-lg)", lineHeight: 1.2 }}>{f.name}</div>
+                  <div className="text-heading" style={{ fontSize: "var(--fs-lg)", lineHeight: 1.2 }}>
+                    {f.name}
+                  </div>
                   <div className="text-muted" style={{ fontSize: "var(--fs-xs)" }}>
                     <MetaLine text={joinMeta([f.team, positionPart(f.pos)])} />
                   </div>
                 </div>
-                <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--color-neutral-600)" strokeWidth="1.75">
+                <svg
+                  aria-hidden="true"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="var(--color-neutral-600)"
+                  strokeWidth="1.75"
+                >
                   <path d="M9 18l6-6-6-6" />
                 </svg>
               </Link>

@@ -35,8 +35,22 @@ describe("teamTint — the per-team headshot overlay color", () => {
 
   it("covers the whole current league", () => {
     // The 15 abbreviations our API sends today (verified against /players, 2026-09-18).
-    expect(Object.keys(TEAMS).sort()).toEqual(
-      ["ATL", "CHI", "CON", "DAL", "GS", "IND", "LA", "LV", "MIN", "NY", "PHO", "POR", "SEA", "TOR", "WSH"],
-    );
+    expect(Object.keys(TEAMS).sort()).toEqual([
+      "ATL",
+      "CHI",
+      "CON",
+      "DAL",
+      "GS",
+      "IND",
+      "LA",
+      "LV",
+      "MIN",
+      "NY",
+      "PHO",
+      "POR",
+      "SEA",
+      "TOR",
+      "WSH",
+    ]);
   });
 });

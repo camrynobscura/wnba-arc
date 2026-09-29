@@ -8,7 +8,9 @@ describe("freshnessLine", () => {
   });
 
   it("falls back to the scrape time when the API has no game date (older builds, or none recorded)", () => {
-    expect(freshnessLine({ lastScrapedAt: "2026-09-24T09:00:00.000Z", statsThrough: null })?.lead).toBe("Data current as of");
+    expect(freshnessLine({ lastScrapedAt: "2026-09-24T09:00:00.000Z", statsThrough: null })?.lead).toBe(
+      "Data current as of",
+    );
     expect(freshnessLine({ lastScrapedAt: "2026-09-24T09:00:00.000Z" })?.lead).toBe("Data current as of");
   });
 

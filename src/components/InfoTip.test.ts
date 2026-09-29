@@ -13,7 +13,13 @@ describe("asSentence — every tooltip ends with a period", () => {
 
 // A 200 × 43 bubble (the CSS max-width and a two-line tip) on a 390px phone.
 const bubble = { width: 200, height: 43 };
-const trigger = (left: number, top: number, width = 18, height = 16) => ({ left, top, width, height, bottom: top + height });
+const trigger = (left: number, top: number, width = 18, height = 16) => ({
+  left,
+  top,
+  width,
+  height,
+  bottom: top + height,
+});
 
 describe("placeBubble (the no-anchor-positioning fallback)", () => {
   it("sits 6px above the trigger, centered on it", () => {

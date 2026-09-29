@@ -15,7 +15,9 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
-const fontFiles = ["BarlowCondensed-SemiBold.ttf", "Barlow-Medium.ttf"].map((f) => path.join(root, "assets/brand/fonts", f));
+const fontFiles = ["BarlowCondensed-SemiBold.ttf", "Barlow-Medium.ttf"].map((f) =>
+  path.join(root, "assets/brand/fonts", f),
+);
 for (const f of fontFiles) if (!fs.existsSync(f)) throw new Error(`missing font: ${f}`);
 
 // The app's light-theme tokens (src/styles/theme.css :root).
@@ -40,9 +42,13 @@ const CELLS = [
 ];
 
 function card() {
-  const W = 1200, H = 630;
-  const cell = 46, gap = 6, pitch = cell + gap;
-  const gridW = STATS.length * pitch - gap, gridH = CELLS.length * pitch - gap;
+  const W = 1200,
+    H = 630;
+  const cell = 46,
+    gap = 6,
+    pitch = cell + gap;
+  const gridW = STATS.length * pitch - gap,
+    gridH = CELLS.length * pitch - gap;
   const labelH = 34; // the stat names above the grid
   const gx = W - 80 - gridW;
   const gy = (H - (labelH + gridH)) / 2 + labelH;
@@ -53,7 +59,8 @@ function card() {
   );
   const cells = CELLS.flatMap((row, r) =>
     row.map((fill, c) => {
-      const x = gx + c * pitch, y = gy + r * pitch;
+      const x = gx + c * pitch,
+        y = gy + r * pitch;
       // Hollow (.hm-muted): no fill, a 1.5px inside outline in the text color at 25%.
       return fill
         ? `<rect x="${x}" y="${y}" width="${cell}" height="${cell}" rx="4" fill="${fill}"/>`

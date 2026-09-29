@@ -25,7 +25,12 @@ export function Notice({ title, detail, error = false }: NoticeProps) {
       aria-live={error ? "assertive" : "polite"}
       style={{ textAlign: "center", paddingTop: "var(--space-8)" }}
     >
-      <h1 ref={headingRef} tabIndex={-1} className="page-heading" style={{ fontSize: "var(--fs-lg)", margin: "0 0 var(--space-2)" }}>
+      <h1
+        ref={headingRef}
+        tabIndex={-1}
+        className="page-heading"
+        style={{ fontSize: "var(--fs-lg)", margin: "0 0 var(--space-2)" }}
+      >
         {title}
       </h1>
       {!error && (

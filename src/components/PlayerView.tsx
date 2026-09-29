@@ -67,7 +67,12 @@ export function PlayerView({
         {/* The name comes first in the markup and the team line second, so a screen reader that jumps to
             the heading reads on into "Las Vegas Aces, center, #22"; `order: -1` draws the line above the name. */}
         <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
-          <h1 ref={headingRef} tabIndex={-1} className="page-heading" style={{ fontSize: "var(--fs-2xl)", margin: 0, lineHeight: 1 }}>
+          <h1
+            ref={headingRef}
+            tabIndex={-1}
+            className="page-heading"
+            style={{ fontSize: "var(--fs-2xl)", margin: 0, lineHeight: 1 }}
+          >
             {player.name}
           </h1>
           <div className="kicker" style={{ marginBottom: "var(--space-1)", order: -1 }}>

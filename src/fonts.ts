@@ -28,7 +28,11 @@ export function fontPackage(font: AppFont): string {
 }
 
 /** The face's file in its package, e.g. `barlow-condensed-latin-600-normal.woff2`. */
-export function fontFile(font: AppFont, subset: "latin" | "latin-ext" | "vietnamese", format: "woff2" | "woff"): string {
+export function fontFile(
+  font: AppFont,
+  subset: "latin" | "latin-ext" | "vietnamese",
+  format: "woff2" | "woff",
+): string {
   return `${fontPackage(font)}-${subset}-${font.weight}-normal.${format}`;
 }
 

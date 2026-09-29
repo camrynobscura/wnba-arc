@@ -10,7 +10,7 @@ describe("theme-color matches the page background", () => {
 
   it("THEME_COLOR equals theme.css --color-bg in each theme", () => {
     expect(THEME_COLOR.light).toBe(bg(/:root\s*\{[^}]*?--color-bg:\s*(#[0-9a-f]{6})/i));
-    expect(THEME_COLOR.dark).toBe(bg(/:root\[data-theme='dark'\]\s*\{[^}]*?--color-bg:\s*(#[0-9a-f]{6})/i));
+    expect(THEME_COLOR.dark).toBe(bg(/:root\[data-theme=["']dark["']\]\s*\{[^}]*?--color-bg:\s*(#[0-9a-f]{6})/i));
   });
 
   it("index.html's meta and pre-paint script use the same two values", () => {

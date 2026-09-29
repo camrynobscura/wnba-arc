@@ -62,7 +62,10 @@ export function StatDrilldownView({ player, stat, statKey, desc, mode, onStatCha
     if (!row) return;
     const r = row.getBoundingClientRect();
     if (r.top >= 0 && r.bottom <= window.innerHeight) return;
-    row.scrollIntoView({ block: "center", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+    row.scrollIntoView({
+      block: "center",
+      behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
+    });
   }, [selectedYear]);
   const colX = (i: number) => ((i + 0.5) / n) * 100; // column center, % from left
   // The rank column shows when any season has a rank, or a compared season has a reason it has none. A
@@ -81,7 +84,8 @@ export function StatDrilldownView({ player, stat, statKey, desc, mode, onStatCha
   // Where a column's value label sits relative to its dot (see the column render below). Also needed
   // here for the last column: a label to the right of the last dot reaches past the plot's edge, which a
   // phone's scroller clips, so the plot keeps a right margin in that one case.
-  const sideFor = (b: (typeof bars)[number]): "above" | "below" | "right" => (b.up !== false ? "above" : b.hPct != null && b.hPct < FLOOR_LABEL_ZONE ? "right" : "below");
+  const sideFor = (b: (typeof bars)[number]): "above" | "below" | "right" =>
+    b.up !== false ? "above" : b.hPct != null && b.hPct < FLOOR_LABEL_ZONE ? "right" : "below";
   const lastLabelRight = n > 0 && bars[n - 1].kind !== "missed" && sideFor(bars[n - 1]) === "right";
 
   const renderRow = (r: StatTableRow) => (
@@ -162,7 +166,9 @@ export function StatDrilldownView({ player, stat, statKey, desc, mode, onStatCha
         </div>
       </div>
 
-      {stat.summary && <CareerSummary summary={stat.summary} unit={stat.unit} unitShort={stat.unitShort} rankAmong={rankAmong} />}
+      {stat.summary && (
+        <CareerSummary summary={stat.summary} unit={stat.unit} unitShort={stat.unitShort} rankAmong={rankAmong} />
+      )}
 
       {/* The chart's legend, hidden from screen readers along with the chart: the table has every number. */}
       <div aria-hidden="true" style={{ margin: "var(--space-5) 0 var(--space-3)" }}>
@@ -192,7 +198,10 @@ export function StatDrilldownView({ player, stat, statKey, desc, mode, onStatCha
           then the plot in a scroller; on a phone a long career scrolls sideways under the axis labels. */}
       <div className="card dd-card" aria-hidden="true">
         {stat.chartFallback ? (
-          <div className="text-muted" style={{ padding: "var(--space-12) var(--space-2)", textAlign: "center", fontSize: "var(--fs-sm)" }}>
+          <div
+            className="text-muted"
+            style={{ padding: "var(--space-12) var(--space-2)", textAlign: "center", fontSize: "var(--fs-sm)" }}
+          >
             {stat.chartFallback}
           </div>
         ) : (
@@ -213,7 +222,16 @@ export function StatDrilldownView({ player, stat, statKey, desc, mode, onStatCha
                 <div style={{ position: "relative", height: PLOT_H }}>
                   {/* Gridlines */}
                   {stat.axisTicks.map((t) => (
-                    <div key={t.label + t.yPct} style={{ position: "absolute", left: 0, right: 0, top: `${100 - t.yPct}%`, borderTop: "1px solid var(--color-divider)" }} />
+                    <div
+                      key={t.label + t.yPct}
+                      style={{
+                        position: "absolute",
+                        left: 0,
+                        right: 0,
+                        top: `${100 - t.yPct}%`,
+                        borderTop: "1px solid var(--color-divider)",
+                      }}
+                    />
                   ))}
 
                   {/* Column dividers between seasons */}
@@ -221,7 +239,14 @@ export function StatDrilldownView({ player, stat, statKey, desc, mode, onStatCha
                     i > 0 ? (
                       <div
                         key={`vg-${i}`}
-                        style={{ position: "absolute", top: 0, bottom: 0, left: `${(i / n) * 100}%`, borderLeft: "1px solid var(--color-divider)", zIndex: 2 }}
+                        style={{
+                          position: "absolute",
+                          top: 0,
+                          bottom: 0,
+                          left: `${(i / n) * 100}%`,
+                          borderLeft: "1px solid var(--color-divider)",
+                          zIndex: 2,
+                        }}
                       />
                     ) : null,
                   )}
@@ -230,11 +255,40 @@ export function StatDrilldownView({ player, stat, statKey, desc, mode, onStatCha
                       by a connector. A small sample: a hollow dot with its value. A missed year: a
                       hatched column. */}
                   {bars.map((b, i) => {
-                    const colStyle = { position: "absolute" as const, left: `${colX(i)}%`, top: 0, height: "100%", width: `${100 / n}%`, transform: "translateX(-50%)", zIndex: 3 };
-                    const colClass = "dd-col" + (b.year === selectedYear ? " is-selected" : "") + (b.kind === "missed" ? " dd-missed" : "");
+                    const colStyle = {
+                      position: "absolute" as const,
+                      left: `${colX(i)}%`,
+                      top: 0,
+                      height: "100%",
+                      width: `${100 / n}%`,
+                      transform: "translateX(-50%)",
+                      zIndex: 3,
+                    };
+                    const colClass =
+                      "dd-col" +
+                      (b.year === selectedYear ? " is-selected" : "") +
+                      (b.kind === "missed" ? " dd-missed" : "");
                     const onClick = () => toggleYear(b.year);
-                    if (b.kind === "missed") return <div key={b.year} className={colClass} title={`${b.year}: did not play`} style={colStyle} onClick={onClick} />;
-                    if (b.hPct == null) return <div key={b.year} className={colClass} title={`${b.year}: no value`} style={colStyle} onClick={onClick} />;
+                    if (b.kind === "missed")
+                      return (
+                        <div
+                          key={b.year}
+                          className={colClass}
+                          title={`${b.year}: did not play`}
+                          style={colStyle}
+                          onClick={onClick}
+                        />
+                      );
+                    if (b.hPct == null)
+                      return (
+                        <div
+                          key={b.year}
+                          className={colClass}
+                          title={`${b.year}: no value`}
+                          style={colStyle}
+                          onClick={onClick}
+                        />
+                      );
                     const yVal = 100 - b.hPct;
                     const yBase = b.basePct != null ? 100 - b.basePct : null;
                     const dot = 10;
@@ -244,7 +298,9 @@ export function StatDrilldownView({ player, stat, statKey, desc, mode, onStatCha
                     const labelSide = sideFor(b);
                     const notCompared = b.kind === "small" || b.up == null;
                     const title =
-                      b.kind === "small" ? `${b.year}: ${b.valFmt} · small sample — not compared` : `${b.year}: ${b.valFmt} · ${refNoun} ${b.baseFmt ?? "—"}`;
+                      b.kind === "small"
+                        ? `${b.year}: ${b.valFmt} · small sample — not compared`
+                        : `${b.year}: ${b.valFmt} · ${refNoun} ${b.baseFmt ?? "—"}`;
                     return (
                       <div key={b.year} className={colClass} title={title} style={colStyle} onClick={onClick}>
                         {yBase != null && (
@@ -294,10 +350,22 @@ export function StatDrilldownView({ player, stat, statKey, desc, mode, onStatCha
                           className="dd-value"
                           style={
                             labelSide === "above"
-                              ? { left: "50%", top: `calc(${yVal}% - ${LABEL_GAP}px)`, transform: "translate(-50%, -100%)" }
+                              ? {
+                                  left: "50%",
+                                  top: `calc(${yVal}% - ${LABEL_GAP}px)`,
+                                  transform: "translate(-50%, -100%)",
+                                }
                               : labelSide === "below"
-                                ? { left: "50%", top: `calc(${yVal}% + ${LABEL_GAP}px)`, transform: "translate(-50%, 0)" }
-                                : { left: `calc(50% + ${LABEL_GAP - 1}px)`, top: `${yVal}%`, transform: "translate(0, -50%)" }
+                                ? {
+                                    left: "50%",
+                                    top: `calc(${yVal}% + ${LABEL_GAP}px)`,
+                                    transform: "translate(-50%, 0)",
+                                  }
+                                : {
+                                    left: `calc(50% + ${LABEL_GAP - 1}px)`,
+                                    top: `${yVal}%`,
+                                    transform: "translate(0, -50%)",
+                                  }
                           }
                         >
                           {b.labelFmt}
@@ -311,7 +379,10 @@ export function StatDrilldownView({ player, stat, statKey, desc, mode, onStatCha
                 <div style={{ display: "flex", marginTop: "var(--space-2)" }}>
                   {bars.map((b) => (
                     <div key={b.year} style={{ flex: 1, textAlign: "center", minWidth: 0 }}>
-                      <span className="text-muted" style={{ fontSize: "var(--fs-3xs)", fontWeight: b.year === selectedYear ? 700 : 400 }}>
+                      <span
+                        className="text-muted"
+                        style={{ fontSize: "var(--fs-3xs)", fontWeight: b.year === selectedYear ? 700 : 400 }}
+                      >
                         '{b.yy}
                       </span>
                     </div>
@@ -360,7 +431,10 @@ export function StatDrilldownView({ player, stat, statKey, desc, mode, onStatCha
               <th scope="col">
                 {/* "Diff": "vs avg" wrapped to two lines in a phone column. A shooting %'s cells drop their
                     " pp" for the same reason, so the unit is in this tooltip. */}
-                <InfoTip label="Diff" tip={`How far above or below ${referencePhrase(mode, player.pos)} that season${stat.pct ? ", in percentage points" : ""}`} />
+                <InfoTip
+                  label="Diff"
+                  tip={`How far above or below ${referencePhrase(mode, player.pos)} that season${stat.pct ? ", in percentage points" : ""}`}
+                />
               </th>
             </tr>
           </thead>

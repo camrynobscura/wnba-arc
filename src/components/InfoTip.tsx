@@ -46,10 +46,17 @@ type Box = { top: number; bottom: number; left: number; width: number; height: n
  * centered on it; below it when the space above is less than the bubble + gap + edge margin;
  * slid sideways so it never comes within EDGE of a viewport side. Pure, unit-tested.
  */
-export function placeBubble(trigger: Box, bubble: { width: number; height: number }, viewportWidth: number): { top: number; left: number } {
+export function placeBubble(
+  trigger: Box,
+  bubble: { width: number; height: number },
+  viewportWidth: number,
+): { top: number; left: number } {
   let top = trigger.top - bubble.height - GAP;
   if (top < EDGE) top = trigger.bottom + GAP;
-  const left = Math.max(EDGE, Math.min(trigger.left + trigger.width / 2 - bubble.width / 2, viewportWidth - bubble.width - EDGE));
+  const left = Math.max(
+    EDGE,
+    Math.min(trigger.left + trigger.width / 2 - bubble.width / 2, viewportWidth - bubble.width - EDGE),
+  );
   return { top: Math.round(top), left: Math.round(left) };
 }
 
@@ -184,7 +191,9 @@ export function InfoTip({ label, name, tip, tabIndex = 0, triggerRef: exposeTrig
     >
       {label}
       {/* A portal: the bubble is inside the button in the React tree only, not the DOM (see above). */}
-      {typeof document !== "undefined" ? createPortal(bubble, document.getElementById("main") ?? document.body) : bubble}
+      {typeof document !== "undefined"
+        ? createPortal(bubble, document.getElementById("main") ?? document.body)
+        : bubble}
     </button>
   );
 }

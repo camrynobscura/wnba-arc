@@ -42,9 +42,9 @@
 
   /* Every rule that sets the heading face also sets `font-stretch: condensed` (fonts.test.ts checks):
      if Barlow hasn't loaded after 3 s, the system font stands in at its condensed width. */
-  --font-heading: 'Barlow Condensed', system-ui, sans-serif;
+  --font-heading: "Barlow Condensed", system-ui, sans-serif;
   --font-heading-weight: 600;
-  --font-body: 'Barlow', system-ui, sans-serif;
+  --font-body: "Barlow", system-ui, sans-serif;
 
   /* Type scale in rem, so text follows the reader's browser font size (px at a 16px root). */
   --fs-3xs: 0.625rem; /* 10 */
@@ -82,7 +82,7 @@
    setting), so one block covers dark mode. The neutral ramp runs in reverse: -100 is always nearest the
    background and -900 nearest the text, so a pairing like a -100 surface with -800 text works in both
    themes. */
-:root[data-theme='dark'] {
+:root[data-theme="dark"] {
   --color-bg: #17191e;
   --color-surface: #1c1f24;
   --color-text: #dfe1e7;
@@ -337,7 +337,7 @@ img {
   display: inline-block;
 }
 .select-wrap::after {
-  content: '';
+  content: "";
   position: absolute;
   right: 11px;
   top: 50%;
@@ -647,7 +647,7 @@ select.select-reset {
   overflow: hidden;
 }
 .duotone::after {
-  content: '';
+  content: "";
   position: absolute;
   inset: 0;
   pointer-events: none;
@@ -661,14 +661,14 @@ select.select-reset {
 .player-photo {
   background: var(--color-neutral-300);
 }
-:root[data-theme='dark'] .player-photo {
+:root[data-theme="dark"] .player-photo {
   background: var(--color-neutral-700);
 }
 /* The initials shown when a headshot fails: dark on the light backdrop in both themes. */
 .player-photo-initials {
   color: var(--color-neutral-700);
 }
-:root[data-theme='dark'] .player-photo-initials {
+:root[data-theme="dark"] .player-photo-initials {
   color: var(--color-neutral-300);
 }
 
@@ -727,7 +727,10 @@ select.select-reset {
    borders they stacked into darker dots where they crossed. */
 .table td:not(:last-child),
 .table tbody th:not(:last-child) {
-  background-image: linear-gradient(color-mix(in srgb, var(--color-text) 5%, transparent), color-mix(in srgb, var(--color-text) 5%, transparent));
+  background-image: linear-gradient(
+    color-mix(in srgb, var(--color-text) 5%, transparent),
+    color-mix(in srgb, var(--color-text) 5%, transparent)
+  );
   background-repeat: no-repeat;
   background-size: 1px calc(100% - 2px);
   background-position: right 1px;
@@ -901,7 +904,7 @@ select.select-reset {
 }
 /* The asterisk on a cell with a note. Kept light: a partial season has one on every cell. */
 .hm-ss::after {
-  content: '*';
+  content: "*";
   position: absolute;
   top: 2px;
   right: 5px;
@@ -918,12 +921,7 @@ select.select-reset {
 .scale-grad {
   height: 11px;
   border-radius: 3px;
-  background: linear-gradient(
-    to right,
-    var(--hm-below),
-    var(--hm-base),
-    var(--hm-above)
-  );
+  background: linear-gradient(to right, var(--hm-below), var(--hm-base), var(--hm-above));
   /* A hairline so the pale midpoint doesn't fade into the page, with the gradient clipped to the padding
      box so it doesn't bleed under the translucent border. */
   border: 1px solid var(--color-divider);
@@ -1289,7 +1287,11 @@ select.select-reset {
 /* A missed season: a faint hatch, which reads as texture rather than a value. A background-image, so the
    selection wash (a background-color) can sit under it. */
 .dd-col.dd-missed {
-  background-image: repeating-linear-gradient(-45deg, transparent 0 5px, color-mix(in srgb, var(--color-text) 10%, transparent) 5px 6px);
+  background-image: repeating-linear-gradient(
+    -45deg,
+    transparent 0 5px,
+    color-mix(in srgb, var(--color-text) 10%, transparent) 5px 6px
+  );
 }
 
 /* Each season's number beside its dot, in ink: small red or blue text on the band isn't readable. */
@@ -1305,7 +1307,6 @@ select.select-reset {
   white-space: nowrap;
   pointer-events: none;
 }
-
 
 /* — a <select> as a section title (components/TitleSelect.tsx): the visible title is a span, and the real
    select lies over it, invisible, so the browser's menu stays normal-sized (Safari sizes the menu by the

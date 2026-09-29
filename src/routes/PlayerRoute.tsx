@@ -28,10 +28,19 @@ export function PlayerRoute() {
   // or more seasons. Resolved once here, so the heatmap and the stat detail read the same mode.
   const requested = toMode(searchParams.get("vs"));
   const mode: HeatmapMode =
-    requested === "position" && !positionAvailable ? (canSelf ? "self" : "league") : requested === "self" && !canSelf ? "league" : requested;
+    requested === "position" && !positionAvailable
+      ? canSelf
+        ? "self"
+        : "league"
+      : requested === "self" && !canSelf
+        ? "league"
+        : requested;
   // The sticky bar's segments follow the same rules, so the bar never offers a mode the page would
   // immediately swap out.
-  const segments = useMemo(() => compareSegments(canSelf, detail.pos, positions != null), [canSelf, detail.pos, positions]);
+  const segments = useMemo(
+    () => compareSegments(canSelf, detail.pos, positions != null),
+    [canSelf, detail.pos, positions],
+  );
 
   // No :stat: the default. An unknown one: back to the bare player path (below).
   const statKey: StatKey | null = statParam == null ? DEFAULT_STAT : toStatKey(statParam);

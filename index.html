@@ -55,7 +55,9 @@
           }
         }
         document.documentElement.dataset.theme = t;
-        document.querySelector('meta[name="theme-color"]').setAttribute("content", t === "dark" ? "#17191e" : "#f2f2f3");
+        document
+          .querySelector('meta[name="theme-color"]')
+          .setAttribute("content", t === "dark" ? "#17191e" : "#f2f2f3");
       })();
     </script>
   </head>

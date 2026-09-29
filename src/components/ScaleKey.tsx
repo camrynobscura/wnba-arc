@@ -16,8 +16,12 @@ export function ScaleKey({ noun }: ScaleKeyProps) {
       <div className="scale-grad" />
       {/* The arrows point along the gradient: decoration. */}
       <div className="scale-ends text-muted">
-        <span>&larr; <b>below</b> {noun}</span>
-        <span><b>above</b> {noun} &rarr;</span>
+        <span>
+          &larr; <b>below</b> {noun}
+        </span>
+        <span>
+          <b>above</b> {noun} &rarr;
+        </span>
       </div>
     </div>
   );

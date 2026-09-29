@@ -19,7 +19,15 @@ export function PlayerTopBar({ players, listFailed, onPick }: PlayerTopBarProps)
     <div className="view-header">
       {/* A link, drawn as the ghost button (`.btn` resets the underline): it goes to a page. */}
       <Link to="/" className="btn btn-ghost" style={{ gap: "var(--space-2)" }}>
-        <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
+        <svg
+          aria-hidden="true"
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.75"
+        >
           <path d="M19 12H5M12 19l-7-7 7-7" />
         </svg>
         <span>All players</span>

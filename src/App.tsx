@@ -1,6 +1,15 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Navigate, Route, Routes, useLocation, useNavigationType } from "react-router-dom";
-import { getLeague, getMeta, getPlayers, getPositions, type LeagueSeason, type Meta, type PlayerSummary, type PositionSeason } from "./data/api";
+import {
+  getLeague,
+  getMeta,
+  getPlayers,
+  getPositions,
+  type LeagueSeason,
+  type Meta,
+  type PlayerSummary,
+  type PositionSeason,
+} from "./data/api";
 import { makeLeague, makePositionLookup } from "./lib/deviation";
 import { AppDataContext, type AppData } from "./appData";
 import { markPageChange } from "./pageArrival";
