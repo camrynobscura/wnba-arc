@@ -7,12 +7,12 @@ import { fold, rankPlayers } from "../lib/search";
 import { OFFLINE_HINT, RETRY_HINT, useOnline } from "../lib/loadFailure";
 
 interface PlayerSearchProps {
-  /** Full roster from the API — null until it loads. */
+  /** Every player from the API; null until it loads. */
   players: PlayerSummary[] | null;
   /** The roster fetch failed; search is then unavailable. */
   listFailed: boolean;
   onPick: (espn: string) => void;
-  /** "hero" = the big landing search box; "compact" = the quiet underline input on player pages. */
+  /** "hero": the big landing search box; "compact": the underline input on player pages. */
   variant?: "hero" | "compact";
 }
 
@@ -24,12 +24,10 @@ const Magnifier = ({ size }: { size: number }) => (
 );
 
 /**
- * Player/team autocomplete, shared by the landing hero and the compact in-row search on
- * player pages; the matching and ranking live in lib/search.ts. Implements the ARIA
- * combobox pattern: the input is the single tab stop, ↑/↓ move a highlight through the
- * results (wrapping), Enter opens the highlighted result (or the top match if none is
- * highlighted), Escape / an outside click closes the list. Mouse hover drives the same
- * highlight so keyboard and pointer stay in sync.
+ * Player and team search, on the landing page and at the top of player pages; the matching and ranking
+ * live in lib/search.ts. The ARIA combobox pattern: the input is the one Tab stop, ↑/↓ move a highlight
+ * through the results (wrapping), Enter opens the highlighted result (or the top match), and Escape or
+ * an outside click closes the list. Hover moves the same highlight, so keyboard and pointer agree.
  */
 export function PlayerSearch({ players, listFailed, onPick, variant = "hero" }: PlayerSearchProps) {
   const hero = variant === "hero";
@@ -41,8 +39,6 @@ export function PlayerSearch({ players, listFailed, onPick, variant = "hero" }: 
   const optionId = (i: number) => `${listId}-opt-${i}`;
   const online = useOnline(); // which line the landing's failure message says
 
-  // Matching + ranking live in lib/search (pure, tested): each typed word is its own check,
-  // word-start matches first, then team matches, mid-word matches last; current players first.
   const filtered = useMemo(() => (players ? rankPlayers(players, query) : []), [players, query]);
 
   const q = fold(query);
@@ -50,7 +46,7 @@ export function PlayerSearch({ players, listFailed, onPick, variant = "hero" }: 
   const searchPending = q.length > 0 && players == null && !listFailed;
   const noMatches = q.length > 0 && players != null && filtered.length === 0;
 
-  // Announced to screen readers as the search state changes (the dropdown is otherwise silent).
+  // Announced to screen readers as the search state changes.
   const searchStatus = searchPending
     ? "Loading players…"
     : showDrop
@@ -115,11 +111,10 @@ export function PlayerSearch({ players, listFailed, onPick, variant = "hero" }: 
 
   // Shared ARIA + handlers for the input, spread into either variant's <input>.
   const comboProps = {
-    // Keep Safari's contact AutoFill off this box (user, 2026-09-25: Safari offered saved names over
-    // our results, and a click meant for a player picked Apple's suggestion instead). Safari doesn't
-    // offer contacts in a search field; autocomplete off stops past-entry suggestions too; and a
-    // phone keyboard shouldn't "correct" or capitalize a name mid-search. The native search styling
-    // this brings (the clear "x", rounded chrome) is reset in theme.css.
+    // type="search" keeps Safari's contact AutoFill off this box: it offered saved names over our
+    // results, and a click meant for a player picked Apple's suggestion. autocomplete off stops
+    // past-entry suggestions, and a phone keyboard shouldn't correct or capitalize a name mid-search.
+    // theme.css resets the native search styling.
     type: "search" as const,
     autoComplete: "off",
     autoCorrect: "off",
@@ -145,9 +140,9 @@ export function PlayerSearch({ players, listFailed, onPick, variant = "hero" }: 
   const listbox = (posStyle: React.CSSProperties) => {
     if (!(showDrop || searchPending || noMatches)) return null;
     const boxStyle: React.CSSProperties = { position: "absolute", zIndex: 20, background: "var(--color-surface)", border: "1px solid var(--color-divider)", overflowY: "auto", ...posStyle };
-    // A message isn't a list: "Loading players…" / "No players match" is drawn in the same box but not as
-    // a listbox — one with no options is an ARIA error (axe aria-required-children; a11y review R1,
-    // 2026-09-27). The status line below announces it.
+    // A message isn't a list: "Loading players…" or "No players match" is drawn in the same box but not
+    // as a listbox, since one with no options is an ARIA error (axe's aria-required-children). The
+    // status line below announces it.
     if (!showDrop) {
       return (
         <div className="elev-md" style={boxStyle}>
@@ -175,8 +170,7 @@ export function PlayerSearch({ players, listFailed, onPick, variant = "hero" }: 
             onMouseEnter={() => setHighlight(i)}
             onClick={() => pick(p.espn)}
           >
-            {/* Name never wraps (flexShrink 0 + nowrap); if the row is still tight, the
-                secondary team/pos text truncates with an ellipsis instead. */}
+            {/* The name never wraps; if the row is still tight, the team and position truncate. */}
             <span className="text-heading" style={{ fontSize: "var(--fs-base)", whiteSpace: "nowrap", flexShrink: 0 }}>{p.name}</span>
             <span
               className="text-muted"
@@ -192,7 +186,7 @@ export function PlayerSearch({ players, listFailed, onPick, variant = "hero" }: 
 
   const srStatus = <p role="status" aria-live="polite" className="sr-only">{searchStatus}</p>;
 
-  // ── Compact: a quiet, always-visible underline-only input on player pages ──
+  // ── Compact: the underline input on player pages ──
   if (!hero) {
     return (
       <div ref={rootRef} style={{ position: "relative", width: 200, maxWidth: "100%" }}>
@@ -204,21 +198,19 @@ export function PlayerSearch({ players, listFailed, onPick, variant = "hero" }: 
           className="search-underline"
           // Font size lives in .search-underline (theme.css) so the touch-device rule there can win.
           style={{ width: "100%", height: 30, paddingLeft: "var(--space-6)", color: "var(--color-text)", fontFamily: "var(--font-body)" }}
-          // No "Loading players…" placeholder while the list loads (~0.2–0.7s, measured 2026-09-26): it
-          // flashed by too fast to read and read as confusing (user). Someone who types before it
-          // arrives still gets the dropdown's "Loading players…".
+          // No "Loading players…" placeholder while the list loads: it flashed by too fast to read.
+          // Someone who types before it arrives still gets the dropdown's message.
           placeholder={listFailed ? "Search unavailable" : "Search players…"}
           disabled={listFailed}
         />
-        {/* Fixed width (not min/max content-sizing) so the box doesn't shrink as you type and
-            the result set narrows — it stays locked at the max from the first keystroke. */}
+        {/* A fixed width, so the box doesn't shrink as typing narrows the results. */}
         {listbox({ top: 36, right: 0, width: "min(340px, calc(100vw - 32px))", maxHeight: 300 })}
         {srStatus}
       </div>
     );
   }
 
-  // ── Hero: the full landing search box ──
+  // ── Hero: the landing page's search box ──
   return (
     <>
       <div ref={rootRef} style={{ position: "relative" }}>
@@ -229,8 +221,7 @@ export function PlayerSearch({ players, listFailed, onPick, variant = "hero" }: 
           {...comboProps}
           className="input"
           style={{ paddingLeft: "var(--space-10)", height: 48, fontSize: "var(--fs-base)" }}
-          // Same as the compact box: no loading placeholder; "Search unavailable" if the list failed
-          // (it used to stay "Loading roster for search…" forever on a failure).
+          // As in the compact box: no loading placeholder, and "Search unavailable" if the list failed.
           placeholder={listFailed ? "Search unavailable" : "Search players or teams…"}
         />
         {listbox({ left: 0, right: 0, top: 54, maxHeight: 360 })}
@@ -238,11 +229,6 @@ export function PlayerSearch({ players, listFailed, onPick, variant = "hero" }: 
 
       {srStatus}
 
-      {/* No second loading line under the box: "Loading full roster…" sat here beside the dropdown's own
-          message, at the same moment (user, 2026-09-27: one message, "players" — the list is everyone
-          since 1997, not a roster). */}
-      {/* It said "…but featured players still work" until 2026-09-27 — they don't: a player page needs
-          the same list and league averages, and shows its error screen without them. */}
       {listFailed && (
         <p role="alert" className="text-muted" style={{ fontSize: "var(--fs-xs)", marginTop: "var(--space-2)" }}>
           {online ? `Couldn't load the player list. ${RETRY_HINT}` : OFFLINE_HINT}

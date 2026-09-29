@@ -11,11 +11,11 @@ import { joinMeta, positionPart } from "../lib/playerMeta";
 import { playerPath } from "../lib/routes";
 
 interface SelectViewProps {
-  /** Hand-curated players shown instantly from static data (no API wait). */
+  /** Hand-picked players, shown at once from static data (no API wait). */
   featured: FeaturedPlayer[];
-  /** Full roster from the API — null until it loads. Powers search + team names. */
+  /** Every player from the API; null until it loads. */
   players: PlayerSummary[] | null;
-  /** The roster fetch failed: search is unavailable (and so is every player page — it needs the same data). */
+  /** The player list failed to load: search is unavailable (and so is every player page, which needs it). */
   listFailed: boolean;
   /** A search result was chosen (the featured list is plain links). */
   onPick: (espn: string) => void;
@@ -30,9 +30,6 @@ export function SelectView({ featured, players, listFailed, onPick }: SelectView
       <h1 ref={headingRef} tabIndex={-1} className="page-heading" style={{ fontSize: "var(--fs-3xl)", marginBottom: "var(--space-3)" }}>
         WNBA Arc
       </h1>
-      {/* The search box sits as far from the text above and below it as the heading does from this
-          paragraph (user, 2026-09-27): ~24px as the eye sees it, the glyphs' line spacing included —
-          measured on the rendered page (heading → text 24, text → box 23.5, box → "Featured" 23). */}
       <p className="text-muted" style={{ fontSize: "var(--fs-base)", marginBottom: "var(--space-5)" }}>
         Breakout season or slump? Choose a player to see a heatmap of their stats over the years, measuring each season
         against the averages from their career, the league, or players at their position.
@@ -60,9 +57,8 @@ export function SelectView({ featured, players, listFailed, onPick }: SelectView
         >
           {featured.map((f) => (
             <li key={f.espn}>
-              {/* A link, not a button: it goes to a page, so it opens in a new tab, copies as a link and
-                  is announced as one (craftsmanship review 1.1, 2026-09-26). The path needs no roster —
-                  the roster only adds an id on a name collision, and none of the featured collide. */}
+              {/* The path needs no player list: the list only adds an id on a name clash, and none of the
+                  featured players clash. */}
               <Link
                 to={playerPath(f.name, f.espn, players)}
                 className="row-hover"
@@ -79,7 +75,6 @@ export function SelectView({ featured, players, listFailed, onPick }: SelectView
               >
                 <PlayerPhoto espn={f.espn} name={f.name} size={40} tint={teamTintByName(f.team)} />
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  {/* Line height 1.2, not the body's 1.55: the name sat 9px above its team line (user, 2026-09-27). */}
                   <div className="text-heading" style={{ fontSize: "var(--fs-lg)", lineHeight: 1.2 }}>{f.name}</div>
                   <div className="text-muted" style={{ fontSize: "var(--fs-xs)" }}>
                     <MetaLine text={joinMeta([f.team, positionPart(f.pos)])} />

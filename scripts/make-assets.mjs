@@ -4,10 +4,10 @@
  *   public/apple-touch-icon.png 180×180, the iPhone home-screen icon
  * Run after changing either: `npm run assets`. The PNGs are committed; the build doesn't run this.
  *
- * Fonts: the app bundles Barlow as .woff2 from @fontsource, but resvg's Node build reads only font FILES,
- * and only TrueType/OpenType — not .woff/.woff2 (tested 2026-09-28: nothing drew). So the two faces the
- * card uses are committed as .ttf (assets/brand/fonts, SIL OFL, from github.com/google/fonts). An unknown
- * font-family draws nothing either, with no error, so check the card after changing a name.
+ * Fonts: the app bundles Barlow as .woff2 from @fontsource, but resvg's Node build reads only TrueType and
+ * OpenType files (with .woff2, nothing drew). So the two faces the card uses are committed as .ttf
+ * (assets/brand/fonts, SIL OFL, from github.com/google/fonts). An unknown font-family draws nothing either,
+ * with no error, so check the card after changing a name.
  */
 import { Resvg } from "@resvg/resvg-js";
 import fs from "node:fs";
@@ -24,9 +24,9 @@ const TEXT = "#1d1f20"; // --color-text
 const MUTED = "#5d5d60"; // --color-text-muted (neutral-700)
 
 const STATS = ["PTS", "REB", "AST", "STL", "BLK", "FG%", "3P%", "TS%"];
-// A real heatmap, not a made-up pattern: A'ja Wilson's seasons, 2026 (top) to 2018, each compared with their
-// career average ("Self"), light theme — every cell's color as the app drew it (read from the page,
-// 2026-09-28). null = a hollow cell (too few 3-point attempts to color), drawn as the app draws it.
+// A real heatmap: A'ja Wilson's seasons, 2026 (top) to 2018, each compared with their career average
+// ("Self"), light theme, every cell's color as the app drew it on 2026-09-28. null = a hollow cell (too
+// few 3-point attempts to color).
 const CELLS = [
   ["#ee7b72", "#f4eaec", "#ed6a5f", "#f3d2d2", "#e9eef5", "#f1b9b6", "#f1b3af", "#ee857c"], // 2026
   ["#f2c6c4", "#f2c1bf", "#ee7b71", "#f1aca7", "#f1aba7", "#f5eef1", "#ee847b", "#f3d0cf"], // 2025

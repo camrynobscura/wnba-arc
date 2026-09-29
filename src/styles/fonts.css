@@ -1,17 +1,6 @@
-/* The app's typefaces: Barlow 400/500/600/700 and Barlow Condensed 500/600, served with the app from the
-   @fontsource packages' files. These are Fontsource 5.3's own rules for those six faces (same files, same
-   character sets: Vietnamese, Latin Extended, Latin) with one change: font-display is `block`, not `swap`.
-
-   Why block (2026-09-28): the app draws its text after the page's first paint, so with `swap` the browser drew
-   every line in the system font first and switched to Barlow when it arrived — a visible jump on first visits,
-   and on every refresh in Safari. With `block` a line waits, blank, for its face and then appears once, in
-   Barlow; after 3 s the browser gives up and shows the stand-in (the condensed one for headings, theme.css).
-   Measured in iPhone Safari: a page whose text is in the HTML already behaves like this under `swap` (Safari
-   holds its first paint); text added by script does not. The wait is normally zero: the three faces every page
-   draws first are preloaded from index.html and the other three are fetched as the app starts (src/fonts.ts),
-   and /assets/* is cached for a year (src/securityHeaders.ts).
-
-   The six faces must match APP_FONTS in src/fonts.ts (fonts.test.ts checks). A new weight goes in both. */
+/* Fontsource 5.3's rules for these six faces, with font-display: block instead of swap: the app's
+   text is drawn by script, so swap showed a visible jump from the system font. Must match APP_FONTS
+   in src/fonts.ts (fonts.test.ts checks). */
 
 /* barlow-vietnamese-400-normal */
 @font-face {

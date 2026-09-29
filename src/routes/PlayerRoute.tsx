@@ -7,15 +7,13 @@ import type { PlayerOutletCtx } from "./PlayerLayout";
 import { buildStatDetail, compareSegments, selfModeAvailable, type HeatmapMode, type StatKey } from "../lib/deviation";
 import { playerPath, statPath, toMode, toStatKey } from "../lib/routes";
 
-/** The drill-down stat shown when the URL has no `:stat` segment ("/player/aja-wilson"). */
+/** The stat shown when the URL has no `:stat` segment ("/player/aja-wilson"). */
 const DEFAULT_STAT: StatKey = "pts";
 
 /**
- * "/player/:slug" and "/player/:slug/:stat" — ONE page: the heatmap overview plus the drill-down
- * for one stat beneath it. The URL is the source of truth: `:stat` is the drill-down's stat and
- * `?vs=` the reference mode (self / league / position) that BOTH sections follow. (A `?year=`
- * subject season used to drive the drill-down; the cell popover carries per-season detail now,
- * so an old link with `?year=` simply ignores it.)
+ * "/player/:slug" and "/player/:slug/:stat": one page, the heatmap plus one stat's history beneath it.
+ * The URL holds the state: `:stat` is the stat, and `?vs=` the reference mode (self, league or position)
+ * both sections follow.
  */
 export function PlayerRoute() {
   const { detail, league, positions } = useOutletContext<PlayerOutletCtx>();
@@ -26,16 +24,16 @@ export function PlayerRoute() {
 
   const positionAvailable = detail.pos != null && positions != null;
   const canSelf = selfModeAvailable(detail);
-  // Honor a mode only where it's available: position needs the lookup and a known position; self
-  // needs ≥2 seasons. Resolved once here, so the heatmap and the drill-down read the same mode.
+  // Honor a mode only where it's available: position needs the lookup and a known position, self needs two
+  // or more seasons. Resolved once here, so the heatmap and the stat detail read the same mode.
   const requested = toMode(searchParams.get("vs"));
   const mode: HeatmapMode =
     requested === "position" && !positionAvailable ? (canSelf ? "self" : "league") : requested === "self" && !canSelf ? "league" : requested;
-  // The sticky bar's segments — the same availability rules as the resolution above, so the bar
-  // never offers a mode the page would immediately degrade.
+  // The sticky bar's segments follow the same rules, so the bar never offers a mode the page would
+  // immediately swap out.
   const segments = useMemo(() => compareSegments(canSelf, detail.pos, positions != null), [canSelf, detail.pos, positions]);
 
-  // No :stat → the default; an unknown segment → bounce to the bare player path (below).
+  // No :stat: the default. An unknown one: back to the bare player path (below).
   const statKey: StatKey | null = statParam == null ? DEFAULT_STAT : toStatKey(statParam);
   const statDef = useMemo(() => (statKey ? (STATS.find((s) => s.key === statKey) ?? null) : null), [statKey]);
   const statDetail = useMemo(
@@ -43,8 +41,8 @@ export function PlayerRoute() {
     [detail, statDef, mode, league, positions],
   );
 
-  // Mode / stat are view modifiers, not navigations → `replace`, so flipping through them doesn't
-  // stack a dozen back-button steps. Self is the default mode, so it drops the param.
+  // Mode and stat changes replace the history entry, so flipping through them doesn't stack a dozen
+  // back-button steps. Self is the default mode, so it drops the param.
   const setMode = (m: HeatmapMode) =>
     setSearchParams(
       (prev) => {
@@ -58,9 +56,9 @@ export function PlayerRoute() {
     const qs = searchParams.toString();
     navigate(`${statPath(detail.name, detail.espn, key, players)}${qs ? `?${qs}` : ""}`, { replace: true });
   };
-  // A heatmap cell's "See … history" link / Enter: select the stat AND bring the section into
-  // view, landing focus on its heading so keyboard + screen-reader users arrive there too. The
-  // section is always mounted (both routes render this page), so scrolling needn't wait.
+  // A heatmap cell's "See … history" link, or Enter: select the stat and bring the section into view,
+  // with focus on its heading so keyboard and screen-reader users arrive there too. The section is always
+  // mounted, so scrolling needn't wait.
   const drill = (key: StatKey) => {
     selectStat(key);
     const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
@@ -68,7 +66,7 @@ export function PlayerRoute() {
     document.getElementById("drilldown-title")?.focus({ preventScroll: true });
   };
 
-  // Unknown stat segment (or nothing to render) → back to this player's bare page.
+  // An unknown stat (or nothing to render): back to this player's bare page.
   if (statKey == null || statDef == null || statDetail == null) {
     return <Navigate to={playerPath(detail.name, detail.espn, players)} replace />;
   }

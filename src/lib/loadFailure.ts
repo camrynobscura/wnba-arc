@@ -1,12 +1,10 @@
 import { useSyncExternalStore } from "react";
 
 /**
- * What a visitor can do about a failed load, in their words. The pages used to print the raw error
- * ("TypeError: Failed to fetch", "API /players/412 failed: 500 Internal Server Error"); it goes to
- * the console now, and the page says what to do (user, 2026-09-27).
+ * What a visitor can do about a failed load, in their words. The raw error goes to the console.
  *
  * The offline line is used only when the browser is sure it's offline: `navigator.onLine` false is
- * reliable, true isn't — to `fetch`, a server that's down looks the same as a dropped connection — so
+ * reliable, true isn't (to `fetch`, a server that's down looks the same as a dropped connection), so
  * every other failure gets the general line rather than a guess at the cause.
  */
 export const OFFLINE_HINT = "You're offline. Check your connection, then refresh the page.";

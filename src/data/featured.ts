@@ -1,21 +1,12 @@
 /**
- * Featured players — a small, hand-curated set shown on the select screen so it
- * paints INSTANTLY, before the full player list finishes loading from the API.
+ * Featured players: a small hand-picked set shown on the landing page at once, before the player list
+ * loads from the API. Every display field is static (ESPN id, name, position, team), so a card renders with
+ * nothing lagging behind. The ESPN id never changes; the rest can drift (a trade), so the daily data
+ * refresh sends an alert when a featured player's name, position or team changes, and this file is updated
+ * by hand.
  *
- * ALL display fields are static (espn, name, position, team) so the whole card
- * renders at once with no field lagging behind. None of it is truly immutable —
- * it's a spectrum: espn never changes (the stable anchor), name/position change
- * rarely, team changes most often (trades). We accept that this can drift and keep
- * it current two ways:
- *   - by hand (edit this file) — the espn ids never move, so only the display text
- *     needs touching;
- *   - (planned) a scraper notification that pings when a featured player's
- *     name/position/team changes, so we know when to update.
- * team values below were pulled from the DB, current as of the last scrape.
- *
- * Keyed on `espn` (the permanent external id), NOT the DB `id` — surrogate ids get
- * reassigned on a rebuild, so they must never be hardcoded. At click time we map
- * espn → current id from the loaded /players list.
+ * Keyed on the ESPN id, not the database id, which can change on a rebuild. The player page maps one to
+ * the other from the loaded /players list.
  */
 
 export interface FeaturedPlayer {

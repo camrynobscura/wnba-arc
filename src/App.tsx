@@ -10,12 +10,11 @@ import { PlayerLayout } from "./routes/PlayerLayout";
 import { PlayerRoute } from "./routes/PlayerRoute";
 
 /**
- * App shell: loads the app-wide data (roster + per-year league/position averages + freshness)
- * ONCE, shares it via context, and renders the route table. The URL is now the source of truth —
- * which player, which stat's history, and the compare mode all live in the address bar, not in state.
+ * The app shell: loads the app-wide data (the player list, per-year league and position averages,
+ * freshness) once, shares it through context, and renders the routes. The URL holds the view state:
+ * which player, which stat's history and the comparison mode.
  */
 export default function App() {
-  // Loaded once on startup: the player list + per-year league data.
   const [players, setPlayers] = useState<PlayerSummary[] | null>(null);
   const [leagueData, setLeagueData] = useState<LeagueSeason[] | null>(null);
   const [positionData, setPositionData] = useState<PositionSeason[] | null>(null);
@@ -34,9 +33,8 @@ export default function App() {
       });
   }, []);
 
-  // Freshness + position averages are fetched separately so a missing/failed endpoint (e.g.
-  // before the deployed API exposes it) never blanks the app — the footer just hides, and the
-  // position baseline simply isn't offered.
+  // Freshness and position averages are fetched separately, so a failure there never blanks the app:
+  // the footer's freshness line hides, and the position mode isn't offered.
   useEffect(() => {
     getMeta()
       .then((m) => setMeta(m))
@@ -58,22 +56,18 @@ export default function App() {
 
   return (
     <div style={{ minHeight: "100%", display: "flex", flexDirection: "column" }}>
-      {/* No app-wide top bar: the landing page is home, the player page's sticky CompareBar is the
-          way back, and About + the theme switch live in the footer of every page. The skip link is the
-          player page's (PlayerLayout) — the only page with something ahead of its main content. */}
+      {/* The skip link is the player page's (PlayerLayout): the only page with something ahead of its
+          main content. */}
       <ScrollManager />
       <AppDataContext.Provider value={appData}>
         <Routes>
           <Route path="/" element={<SelectRoute />} />
           <Route path="/about" element={<AboutRoute />} />
-          {/* One page for both: the bare path shows the default drill-down stat, ":stat" picks one.
-              (They were two routes — summary + a separate drill-down page — until the drill-down
-              moved inline beneath the heatmap.) */}
+          {/* One page for both: the bare path shows the default stat's history, ":stat" picks one. */}
           <Route path="/player/:slug" element={<PlayerLayout />}>
             <Route index element={<PlayerRoute />} />
             <Route path=":stat" element={<PlayerRoute />} />
           </Route>
-          {/* Anything unrecognized → the landing page. */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </AppDataContext.Provider>
@@ -84,20 +78,20 @@ export default function App() {
 /** The "/player/<slug>" prefix of a pathname, or null off the player page. */
 const playerBase = (p: string): string | null => p.match(/^\/player\/[^/]+/)?.[0] ?? null;
 
-/** How far down each history entry was scrolled, by location key — in memory (a reload starts at
- *  the top anyway). */
+/** How far down each history entry was scrolled, by location key, in memory (a reload starts at the
+ *  top anyway). */
 const scrollByKey = new Map<string, number>();
 
-/** Scroll on navigation (user, 2026-09-26): **Back/Forward returns you to where you were** on that
- *  page — About's "← Back" is a history back too; **opening a new page starts at the top**; and a
- *  change that stays on the same player (the drill-down stat, the compare mode — history *replace*s)
- *  doesn't move the page, which would fight the "See … history" scroll into the section.
+/** Scroll on navigation: Back and Forward return to where you were on that page (About's "← Back" is a
+ *  history back too); a new page starts at the top; and a change that stays on the same player (the
+ *  stat, the comparison mode, both history replaces) doesn't move the page, which would fight the
+ *  "See … history" scroll into the section.
  *
- *  Restoring works because a page you come back to renders in the same pass: the player page reads
- *  the player from memory (`cachedPlayer`), the rest is static. The browser's own restoration is
- *  switched off — it restores before a client-rendered route has painted, and fights this. A layout
- *  effect, so the position is set before paint and the entry key flips before any scroll event
- *  (e.g. the browser clamping to a shorter page) can be recorded against the wrong entry. */
+ *  Restoring works because a page you come back to renders in the same pass (the player page reads the
+ *  player from memory, `cachedPlayer`). The browser's own restoration is off: it restores before a
+ *  client-rendered route has painted. A layout effect, so the position is set before paint and the entry
+ *  key flips before any scroll event (the browser clamping to a shorter page, say) is recorded against
+ *  the wrong entry. */
 function ScrollManager() {
   const location = useLocation();
   const navType = useNavigationType();
@@ -111,7 +105,6 @@ function ScrollManager() {
     if ("scrollRestoration" in history) history.scrollRestoration = "manual";
   }, []);
 
-  // Record the current entry's position as the reader scrolls (once per frame).
   useEffect(() => {
     let frame = 0;
     const onScroll = () => {
@@ -135,8 +128,8 @@ function ScrollManager() {
     else if (!samePlayer) window.scrollTo(0, 0);
     // Record the landing position too: a replace (a stat change) makes a new entry without a scroll.
     scrollByKey.set(location.key, window.scrollY);
-    // A new page — not the one the visit opened on, not a stat / comparison change on the same player:
-    // its heading takes focus (pageArrival.ts).
+    // A new page (not the one the visit opened on, and not a stat or comparison change on the same
+    // player): its heading takes focus (pageArrival.ts).
     if (!firstPage && !samePlayer && markedKey.current !== location.key) markPageChange();
     markedKey.current = location.key;
   }, [location.key, location.pathname, navType]);

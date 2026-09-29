@@ -7,14 +7,12 @@ import { APP_FONTS, fontFile, fontPackage } from "./src/fonts";
 import { headersFile, inlineScripts } from "./src/securityHeaders";
 
 /**
- * Puts `<link rel="preload" as="fetch" …>` for the player list into index.html, so the browser starts that
- * download while it reads the page instead of after the app's code has downloaded and run. On a player link
- * opened directly the page needs the list before it can ask for that player's stats, so the list is on the
- * critical path (measured 2026-09-28, player page opened directly, Lighthouse's simulated phone, 5-run medians:
- * score 83 → 88, LCP 4.27 → 3.55 s). A visit that starts on the home page already has the list by the first click.
- * The app's own fetch then takes the preloaded response: the URL comes from the same rule and path as
- * api.ts (apiUrls.ts), and `crossorigin` (anonymous) matches fetch's default credentials mode. The URL is
- * `import.meta.env.VITE_API_BASE`'s value — `config.env` — so dev (`/api`, proxied) and Netlify agree too.
+ * Adds `<link rel="preload" as="fetch">` for the player list to index.html, so the browser starts that
+ * download while it reads the page instead of after the app's code has run. A player link opened directly
+ * needs the list before it can ask for that player, so the list is on the critical path (Lighthouse,
+ * simulated phone, median of 5 runs: score 83 → 88, LCP 4.27 → 3.55 s). The app's fetch reuses the
+ * preloaded response: the URL comes from the same rule as api.ts (apiUrls.ts, with VITE_API_BASE from
+ * `config.env`), and `crossorigin` (anonymous) matches fetch's default credentials mode.
  */
 function preloadPlayerList(): Plugin {
   let href = "";
@@ -30,13 +28,12 @@ function preloadPlayerList(): Plugin {
 }
 
 /**
- * Puts `<link rel="preload" as="font" …>` into index.html for the faces every page's first screen draws (src/fonts.ts,
- * `preload`), so they download alongside the app's code instead of after it has drawn its text — the app draws
- * after the first paint, so the browser can't find a font any sooner on its own. Only the Latin file: the
- * others (Latin Extended, Vietnamese) download only for a character in their range, and no player's name has one
- * (0 of 1,218, 2026-09-28). The files are found in the bundle by the path they came from, since their names carry
- * a hash; a face that isn't in the bundle fails the build rather than ship a preload for nothing. `crossorigin`
- * because fonts are always fetched in CORS mode, so a preload without it isn't used (MDN, rel=preload).
+ * Adds `<link rel="preload" as="font">` for the faces every page's first screen draws (src/fonts.ts,
+ * `preload`), so they download alongside the app's code: the app draws its text after the first paint, so
+ * the browser can't find a font sooner on its own. Only the Latin files: the others download only for a
+ * character in their range, and no player's name has one. The files are found in the bundle by their
+ * source path (their names carry a hash); a face missing from the bundle fails the build. `crossorigin`
+ * because fonts are always fetched in CORS mode, so a preload without it goes unused (MDN, rel=preload).
  */
 function preloadFonts(): Plugin {
   let base = "/";
@@ -66,10 +63,9 @@ function preloadFonts(): Plugin {
 }
 
 /**
- * Writes Netlify's `_headers` (the security headers, src/securityHeaders.ts) into dist, computed from the finished
- * index.html: the CSP lists each inline script by its SHA-256 and the API by the same VITE_API_BASE the app calls,
- * so editing either can't leave a stale header behind. Runs after Vite has written index.html into the bundle
- * (`enforce: "post"`).
+ * Writes Netlify's `_headers` (src/securityHeaders.ts) into dist from the finished index.html: the CSP lists
+ * each inline script by its SHA-256 and the API by the same VITE_API_BASE the app calls, so editing either
+ * can't leave a stale header behind.
  */
 function securityHeaders(): Plugin {
   let apiOrigin: string | null = null;
@@ -92,20 +88,11 @@ function securityHeaders(): Plugin {
 }
 
 /**
- * Dev-only API proxy. With `VITE_API_BASE` unset the app fetches the API at the same-origin
- * path `/api` (src/data/api.ts); this forwards those requests to the wnba-data server on
- * localhost:3001 (its default port), stripping the prefix because its routes are unprefixed
- * (/players, /league, /positions, /meta).
- *
- * Why a proxy instead of an absolute `http://localhost:3001` in the client: the browser then
- * never makes a cross-origin request in dev, so (a) CORS is out of the picture entirely — no
- * allow-list to keep in step with whichever port Vite lands on — and (b) the app works from
- * any device that can reach the dev server, e.g. a phone on the same wifi
- * (`npm run dev -- --host`), where "localhost" would have meant the phone itself.
- *
- * Production is untouched: `VITE_API_BASE` is baked in at build time (Netlify env) and the
- * client calls the deployed API directly. `preview` gets the same proxy so a local
- * `npm run build && npm run preview` without a .env still has data.
+ * Dev-only API proxy: with `VITE_API_BASE` unset, the app fetches the same-origin path `/api`, forwarded
+ * here to the wnba-data server on localhost:3001 without the prefix. Same-origin, so dev needs no CORS
+ * setup, and a phone on the same wifi works (`npm run dev -- --host`), where "localhost" would mean the
+ * phone. Production calls the deployed API directly (VITE_API_BASE, set at build time); `preview` gets
+ * the proxy too.
  */
 const apiProxy = {
   "^/api/": {
@@ -115,11 +102,10 @@ const apiProxy = {
 };
 
 /**
- * Files the dev server must never hand out. It serves the whole project folder, and the project's
- * working docs (DECISIONS.md, CLAUDE.md, TRIAGE.md …) are private: they're kept out of git, yet with
- * `--host` anyone on the same network could fetch them (measured 2026-09-28). No app code imports a
- * .md file. Setting `deny` REPLACES Vite's defaults, so they're repeated first — copied from Vite
- * 8.2's docs (node_modules/vite/dist/node/index.d.ts, `deny?`); re-check them when Vite upgrades.
+ * Files the dev server must never serve. It serves the whole project folder, and private notes (.md files
+ * kept out of git) could be fetched by anyone on the network under `--host`; no app code imports a .md
+ * file. Setting `deny` replaces Vite's defaults, so they're repeated first, copied from Vite 8.2's docs
+ * (node_modules/vite/dist/node/index.d.ts, `deny?`); re-check them when Vite upgrades.
  */
 const DEV_SERVER_DENY = [
   ".env",
@@ -135,8 +121,7 @@ export default defineConfig({
   plugins: [react(), preloadPlayerList(), preloadFonts(), securityHeaders()],
   server: { proxy: apiProxy, fs: { deny: DEV_SERVER_DENY } },
   preview: { proxy: apiProxy },
-  // Vitest stubs CSS imports to "" — even `?raw` — unless the file is listed here. theme.test.ts reads
-  // theme.css's --color-bg values to check the browser bar's theme-color against them; fonts.test.ts reads both
-  // stylesheets (the faces in fonts.css, the heading rules' stand-in in theme.css).
+  // Vitest stubs CSS imports to "", even `?raw`, unless the file is listed here. theme.test.ts and
+  // fonts.test.ts read the stylesheets.
   test: { css: { include: [/src\/styles\/(theme|fonts)\.css/] } },
 });

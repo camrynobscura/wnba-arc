@@ -6,8 +6,8 @@ interface TitleSelectProps {
   onChange: (value: string) => void;
 }
 
-/** The title's type: the section-heading face and size (as the drill-down's h2 would be), inline
-    because a class would lose to the `font: inherit` the select styles need. */
+/** The title's type: the section-heading face and size, inline because a class would lose to the
+    `font: inherit` the select styles need. */
 const TITLE_FONT: React.CSSProperties = {
   fontFamily: "var(--font-heading)",
   fontStretch: "condensed", // the stand-in's width, as in every heading rule (theme.css, --font-heading)
@@ -17,19 +17,15 @@ const TITLE_FONT: React.CSSProperties = {
 };
 
 /**
- * A native `<select>` that is also a section's title — the drill-down's stat picker ("Points ▾"),
- * its only use. (It was `LabeledSelect`, built for the Season / Comparison window / Baseline
- * pickers; those are gone, and with them the visible label, the field look and disabled options —
- * craftsmanship review 4.2, 2026-09-26.)
+ * A native `<select>` that is also a section's title: the stat detail's stat picker ("Points ▾").
  *
- * The VISIBLE title is a plain span in the heading face, and the native select lies over it,
- * invisible (opacity 0) and at the normal 14px. Two reasons over styling the select itself big:
- * (1) Safari renders the popup menu in the select's own font size and ignores any styling on
- * <option>, so a 28px select opened a 28px menu ("freaking huge"); (2) a native select is as wide
- * as its WIDEST option, so a short label had the chevron floating ~100px away — the span is
- * exactly as wide as its text. The select stays the real control: clicks on the title open the
- * native picker, and keyboard and screen readers get a select named by `ariaLabel`; the wrapper
- * draws the focus ring (:has(select:focus-visible)) and the chevron (theme.css `.select-wrap`).
+ * The visible title is a span in the heading face, and the native select lies over it, invisible, at the
+ * normal 14px. Two reasons not to style the select itself big: Safari renders the popup menu in the
+ * select's own font size and ignores styling on <option>, so a 28px select opened a 28px menu; and a
+ * native select is as wide as its widest option, so a short label had the chevron floating ~100px away.
+ * The select stays the real control: a click on the title opens the native picker, keyboard and screen
+ * readers get a select named by `ariaLabel`, and the wrapper draws the focus ring and the chevron
+ * (theme.css `.select-wrap`).
  */
 export function TitleSelect({ ariaLabel, value, options, onChange }: TitleSelectProps) {
   const currentLabel = options.find((o) => o.value === value)?.label ?? "";

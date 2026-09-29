@@ -47,7 +47,7 @@ describe("matchTier", () => {
     expect(matchTier(roster[5], ["sab"])).toBe(0);
     expect(matchTier(roster[5], ["sabrina", "io"])).toBe(0);
     expect(matchTier(roster[5], ["ionescu", "sab"])).toBe(0);
-    expect(matchTier(roster[0], ["aja"])).toBe(0); // the apostrophe case is a word start now
+    expect(matchTier(roster[0], ["aja"])).toBe(0); // the apostrophe case is a word start
   });
   it("1 when a word matches only via the team", () => {
     expect(matchTier(byName("Tina Charles"), ["sun"])).toBe(1);

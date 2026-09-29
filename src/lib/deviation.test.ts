@@ -36,9 +36,9 @@ import { STATS } from "../data/stats";
 import type { LeagueSeason, PlayerDetail, PositionSeason, Season, SeasonPlayed, SeasonRanks } from "../data/api";
 
 /**
- * Tests for the comparison logic in deviation.ts — the pure "brain" behind the heatmap and the
- * drill-down: which seasons count, what each season is measured against (their career, the
- * league, or their position that year), and the drill-down's chart, table, and career summary.
+ * Tests for the comparison logic in deviation.ts behind the heatmap and the stat detail: which seasons
+ * count, what each season is measured against (their career, the league, or their position that year),
+ * and the stat detail's chart, table and career summary.
  */
 
 // A 40-game slate ⇒ the color bar is 25% = 10 GP (under it: grey) and the rank bar is
@@ -74,8 +74,8 @@ function playedSeason(year: number, gp: number, stats: Partial<SeasonPlayed> = {
     blk: 1,
     fgp: 0.45,
     tpp: 0.35,
-    // Makes/attempts consistent with fgp/tpp (90/200 = .45, 35/100 = .35) and well above the
-    // 10-attempt gate, so a default fixture season is a normal (not attempt-thin) sample.
+    // Makes and attempts consistent with fgp/tpp (90/200 = .45, 35/100 = .35) and over the tint floors,
+    // so a default fixture season is a normal sample.
     fgMade: 90,
     fgAtt: 200,
     fg3Made: 35,
@@ -90,9 +90,8 @@ function playedSeason(year: number, gp: number, stats: Partial<SeasonPlayed> = {
 }
 
 
-/** A league lookup where every listed year has the same 40-game slate. Spread + decile ladders
-    are uniform across years so a step-bar/percentile test can predict them: pts step = 5, and
-    the pts ladder runs 0→40 (so pts 18 → 45th percentile). */
+/** A league lookup where every listed year has the same 40-game schedule and spread, so a test can
+    predict them (pts step = 5). */
 function league(years: number[]): League {
   const seasons: LeagueSeason[] = years.map((year) => ({
     year,
@@ -131,9 +130,8 @@ function player(seasons: Season[], pos: string | null = "F"): PlayerDetail {
 function positions(years: number[]): PositionLookup {
   const rows: PositionSeason[] = [];
   for (const year of years) {
-    // Distinct per-position pts so a test can tell which bucket was read. Centers get a pts step
-    // of 4 (≠ the league's 5) and a pts ladder 0→20 (so a center with pts 16 → 80th percentile),
-    // so a position-mode test can prove it used the POSITION's spread, not the league's.
+    // Distinct per-position pts so a test can tell which group was read. Centers get a pts step of 4
+    // (≠ the league's 5), so a position-mode test can prove it used the position's spread.
     rows.push({ year, position: "G", pts: 15, reb: 3, ast: 5, stl: 1, blk: 0.3, fgp: 0.43, tpp: 0.36, tsPct: 0.54,
       stdev: { pts: 5, reb: 1.5, ast: 2, stl: 0.5, blk: 0.2 } });
     rows.push({ year, position: "F", pts: 12, reb: 5, ast: 2, stl: 1, blk: 0.7, fgp: 0.46, tpp: 0.34, tsPct: 0.56,
@@ -867,7 +865,7 @@ describe("buildStatDetail — the chart's vertical scale by stat type", () => {
     const refs = d.bars.map((b) => parseFloat(b.baseFmt!) / 100);
     const a = pctAxis([0.31, 0.44, ...refs]);
     expect(d.axisTicks.map((t) => t.label)).toEqual([a.lo, (a.lo + a.hi) / 2, a.hi].map((v) => `${Math.round(v * 100)}%`));
-    expect(d.axisTicks[0].label).not.toBe("0%"); // the point of the change
+    expect(d.axisTicks[0].label).not.toBe("0%"); // a fitted axis, not zero
     expect(d.bars[1].hPct).toBeCloseTo(((0.44 - a.lo) / (a.hi - a.lo)) * 100, 1);
     expect(d.bars.map((b) => b.labelFmt)).toEqual(["31%", "44%"]); // beside the dot: the glance form, no tenth
     for (const b of d.bars) for (const y of [b.hPct!, b.basePct!]) expect(y > 0 && y < 100).toBe(true);
@@ -928,9 +926,9 @@ describe("fmtRaw", () => {
     expect(fmtRaw(-0.0123, true)).toBe("−1.2");
   });
   it("prints a gap that rounds to zero without a sign", () => {
-    expect(fmtRaw(0, false)).toBe("0.0"); // was "±0.0"
-    expect(fmtRaw(0.03, false)).toBe("0.0"); // was "+0.0"
-    expect(fmtRaw(-0.049, false)).toBe("0.0"); // was "−0.0"
+    expect(fmtRaw(0, false)).toBe("0.0"); // not "±0.0"
+    expect(fmtRaw(0.03, false)).toBe("0.0"); // not "+0.0"
+    expect(fmtRaw(-0.049, false)).toBe("0.0"); // not "−0.0"
     expect(fmtRaw(0.0004, true)).toBe("0.0"); // 0.04 points
     expect(fmtRaw(-0.0004, true)).toBe("0.0");
     expect(roundsToZero(0.049, false)).toBe(true);

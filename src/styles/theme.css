@@ -1,12 +1,5 @@
-/* Industry — design-system tokens and component classes, ported from the
-   Claude Design "Industry" theme. Retune tokens here; component classes
-   below are built on top of them.
-   The fonts (Barlow 400/500/600/700, Barlow Condensed 400/500/600) are bundled from @fontsource, imported in
-   src/main.tsx — served with the app, not from Google Fonts (2026-09-28). */
-
 /* ══════════════════════════════════════════════════════════════════════════
-   DESIGN TOKENS — the whole system's variables. Retune here; everything below
-   is built on them. Light values on :root, dark values on the [data-theme] block.
+   DESIGN TOKENS. Light values on :root, dark values in the [data-theme='dark'] block.
    ══════════════════════════════════════════════════════════════════════ */
 
 :root {
@@ -15,9 +8,8 @@
   --color-text: #1d1f20;
   --color-divider: color-mix(in srgb, #1d1f20 16%, transparent);
 
-  /* Tonal ramp — generated in OKLCH on one shared lightness scale. (The Industry theme's
-     accent ramps were removed 2026-09-18: this UI is monochrome on purpose — color is
-     reserved for data and team identity — so an unused "accent" token would only mislead.) */
+  /* The UI is monochrome on purpose: color is reserved for data (the heatmap) and team identity
+     (the headshot tints). */
   --color-neutral-100: #f5f5f8;
   --color-neutral-200: #e7e7ea;
   --color-neutral-300: #d4d4d7;
@@ -28,65 +20,47 @@
   --color-neutral-800: #424244;
   --color-neutral-900: #2b2b2d;
 
-  /* Secondary text — ONE grey for every quieter line: hints, captions, the table and heatmap
-     headers, kickers, the plates' labels, a hollow cell's value. The ramp's -700, so it follows the
-     theme (the dark block redefines -700). Merged 2026-09-26 from three near-identical greys — 68%
-     and 72% ink mixes and -700 itself (user: "more consistent styling"). The search placeholders and the
-     missed-season dash joined it 2026-09-27 (text a reader needs); icons keep the fainter -600. */
+  /* One grey for every secondary line of text. */
   --color-text-muted: var(--color-neutral-700);
 
-  /* Career-heatmap + deviation-bar diverging scale — red = above the reference, blue =
-     below; each cell/bar mixes toward --hm-base by the deviation magnitude. The *-text
-     tokens are the readable shades for small delta text (≥4.5:1); the plain --hm-above /
-     --hm-below are the vivid graphic fills (bars/dots/cells, ≥3:1). Dark mode overrides
-     all of these for the dark ground. */
+  /* Heatmap scale: red above the reference, blue below; a cell mixes toward --hm-base by the size of
+     its gap. The -text shades are for small text (4.5:1); the plain ones are graphic fills (3:1). */
   --hm-above: #ea3a2a;
   --hm-above-text: #9e3a1f;
   --hm-below: #3d86ca;
   --hm-below-text: #3a6188;
   --hm-base: var(--color-neutral-100);
 
-  /* Headshot overlay strength. The photo tint is a `color` blend (.duotone::after) drawn at this
-     opacity: 1 recolors the photo fully; lower lets the photo's own colors show through under the
-     team hue. 0.5 was chosen on a preview of every team at 25/50/75/100, then halved to 0.25 once
-     the tints went on the landing list too — a quarter-strength wash keeps twenty cards from
-     fighting each other (DECISIONS, 2026-09-18). Same everywhere the photo appears, and the same in
-     both themes — the blend takes its lightness from the photo, not the overlay. */
+  /* Strength of the team tint over a headshot (.duotone::after). A quarter, so twenty tinted photos on
+     the landing page don't fight each other. */
   --duotone-alpha: 0.25;
-  /* The overlay color when no team is known — an off-roster player, or a team the table hasn't
-     caught up with. Any zero-saturation value gives the same result under the `color` blend, and
-     lightness comes from the photo, so one grey serves both themes. Not blue: blue means "below
-     the reference" in the heatmap, and color is reserved for data and team identity. */
+  /* The tint when no team is known. Grey, not blue (blue means "below" in the heatmap); the blend takes
+     its lightness from the photo, so one grey serves both themes. */
   --duotone-neutral: #98989b;
 
-  /* Max content width for every page. */
   --app-width: 600px;
 
-  /* Every rule that sets the heading face also sets `font-stretch: condensed` (fonts.test.ts checks). It changes
-     nothing while Barlow Condensed is drawn (one width only: 208px either way for "A'ja Wilson · All players" at
-     26px, 3 engines, 2026-09-28); it's for the stand-in, which shows only if Barlow hasn't arrived after 3 s
-     (fonts.css): on Apple devices the system font then takes its condensed width, 237px instead of 270px. */
+  /* Every rule that sets the heading face also sets `font-stretch: condensed` (fonts.test.ts checks):
+     if Barlow hasn't loaded after 3 s, the system font stands in at its condensed width. */
   --font-heading: 'Barlow Condensed', system-ui, sans-serif;
   --font-heading-weight: 600;
   --font-body: 'Barlow', system-ui, sans-serif;
 
-  /* Type scale — rem so it honors the reader's browser font-size (root stays at the browser
-     default; no 62.5% hack). px equivalents at a 16px root noted for reference. */
+  /* Type scale in rem, so text follows the reader's browser font size (px at a 16px root). */
   --fs-3xs: 0.625rem; /* 10 */
   --fs-2xs: 0.6875rem; /* 11 */
   --fs-xs: 0.75rem; /* 12 */
   --fs-sm: 0.8125rem; /* 13 */
   --fs-md: 0.875rem; /* 14 */
   --fs-base: 1rem; /* 16 */
-  --fs-lg: 1.125rem; /* 18 — stat labels */
-  --fs-xl: 1.4375rem; /* 23 — section headers */
-  --fs-2xl: 1.75rem; /* 28 — player / page name */
+  --fs-lg: 1.125rem; /* 18 */
+  --fs-xl: 1.4375rem; /* 23 */
+  --fs-2xl: 1.75rem; /* 28 */
   --fs-3xl: 2rem; /* 32 */
   --fs-4xl: 2.75rem; /* 44 */
 
-  /* Spacing scale — rem on a 4px grid (matches the type scale, honors the reader's font-size).
-     Inline layout spacing snaps to these, always rounding UP. Component geometry (viz dimensions,
-     control heights, hairline borders) stays raw px — this scale is for layout breathing room. */
+  /* Spacing scale in rem on a 4px grid, for layout. Component geometry (control heights, hairlines)
+     stays in px. */
   --space-1: 0.2rem; /* 3.2 */
   --space-2: 0.5rem; /* 8 */
   --space-3: 0.75rem; /* 12 */
@@ -101,23 +75,13 @@
   --radius-md: 4px;
   --radius-lg: 7px;
 
-  /* Elevation — the one shadow the floating pieces use (popover, tooltips, search results): a soft
-     ink-tinted shadow on the light ground, deeper ambient darkness on the dark one. */
   --shadow-md: 0 3px 10px color-mix(in srgb, #2b2b2d 16%, transparent);
 }
 
-/* — dark theme —
-   A blocking script in index.html stamps <html data-theme="light|dark"> before
-   first paint (from the stored choice, else the OS preference), so there's no
-   flash and no un-stamped state to design around — hence a single dark block,
-   not the media-query pair an artifact needs.
-
-   The neutral ramp is redefined in *reversed* lightness: the ramp's semantics
-   are "-100 = closest to the background, -900 = closest to the foreground", which
-   the light ramp already follows. Keeping that direction consistent means every
-   component that pairs e.g. a `-100` surface with `-800` text (tags, muted cells)
-   works in both themes with no per-component overrides. All values contrast-checked
-   ≥4.5:1 for text / ≥3:1 for graphics on their own ground. */
+/* A script in index.html sets data-theme before the first paint (the stored choice, else the OS
+   setting), so one block covers dark mode. The neutral ramp runs in reverse: -100 is always nearest the
+   background and -900 nearest the text, so a pairing like a -100 surface with -800 text works in both
+   themes. */
 :root[data-theme='dark'] {
   --color-bg: #17191e;
   --color-surface: #1c1f24;
@@ -129,28 +93,25 @@
   --color-neutral-300: #262a30;
   --color-neutral-400: #363b43;
   --color-neutral-500: #4e545e;
-  --color-neutral-600: #808791; /* muted text / icons (5.0:1 on bg) */
+  --color-neutral-600: #808791;
   --color-neutral-700: #9ca3ad;
   --color-neutral-800: #c1c6cd;
   --color-neutral-900: #e4e6ea; /* near foreground */
 
-  /* Heatmap + bar scale on the dark ground: brighter red/blue graphic fills, light readable
-     shades for delta text, and a lifted (non-black) base so low-deviation tiles stay
-     visible. The below-blue is nudged slightly deeper than light mode so cell numbers
-     (var(--color-text)) clear 4.5:1 at MAX_INTENSITY (worst blue cell ~5.1, verified). */
+  /* Brighter fills and lighter text shades for the dark ground, and a lifted base so faint cells stay
+     visible. The blue is a little deeper than in light mode so cell numbers clear 4.5:1 on the
+     strongest blue (about 5.1:1). */
   --hm-above: #d94e28;
   --hm-above-text: #e07a60;
   --hm-below: #3a72b4;
   --hm-below-text: #84b0e0;
   --hm-base: #1e2229;
 
-  /* Elevation on a dark ground: deeper, near-black ambient shadow. */
   --shadow-md: 0 3px 12px color-mix(in srgb, #000 48%, transparent);
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
-   BASE — global reset, element defaults, and cross-cutting utilities that
-   aren't tied to any one component. Plain CSS on plain HTML.
+   BASE: reset, element defaults and utilities.
    ══════════════════════════════════════════════════════════════════════ */
 
 *,
@@ -169,7 +130,6 @@ body {
   font-weight: 400;
 }
 
-/* — headings & text elements — */
 h1,
 h2,
 h3,
@@ -182,8 +142,7 @@ h6 {
   line-height: 1.12;
   letter-spacing: -0.015em;
   margin: 0 0 var(--space-2);
-  /* A word wider than the whole line breaks rather than run off the screen: "Ogwumike" at 200% text on
-     a 320px phone overflowed beside the photo (a11y review P8, 2026-09-27). Words that fit are untouched. */
+  /* A long name at 200% text on a 320px phone breaks instead of running off the screen. */
   overflow-wrap: break-word;
 }
 h1 {
@@ -211,7 +170,6 @@ h6 {
 p {
   margin: 0 0 var(--space-3);
 }
-/* The About page's lists (rewritten 2026-09-27: short lists instead of dense paragraphs). */
 .about-list {
   margin: 0 0 var(--space-4);
   padding-left: 1.25em;
@@ -220,8 +178,7 @@ p {
   margin-top: var(--space-2);
 }
 a {
-  /* Ink, not an accent: color is reserved for data (the red/blue heat) and identity (team tints).
-     The underline is what marks a link, so it never depends on color alone (WCAG 1.4.1). */
+  /* The underline marks a link, so it never relies on color (WCAG 1.4.1). */
   color: var(--color-text);
   text-decoration-color: var(--color-neutral-500);
   text-underline-offset: 3px;
@@ -234,21 +191,16 @@ img {
   max-width: 100%;
 }
 
-/* — text utilities — */
-/* The secondary-text grey (--color-text-muted) as a class. */
 .text-muted {
   color: var(--color-text-muted);
 }
-/* Condensed display face for ad-hoc titley labels/values that aren't <h*> elements
-   (headings already get this from the h1–h6 rule). Size stays at the call site; a
-   heavier weight (e.g. 700) can still be set inline to override. */
+/* The heading face for labels that aren't <h1>–<h6> elements. */
 .text-heading {
   font-family: var(--font-heading);
   font-stretch: condensed;
   font-weight: var(--font-heading-weight);
 }
-/* A kicker: the small tracked caps line above a title — the player's team · position · number, the
-   drill-down's "Stat detail". (Was `.card-kicker`, from the ported card styles; it's used on no card.) */
+/* The small tracked-caps line above a title. */
 .kicker {
   font-size: var(--fs-3xs);
   letter-spacing: 0.1em;
@@ -256,12 +208,10 @@ img {
   color: var(--color-text-muted);
 }
 
-/* — focus & selection — */
 :focus {
   outline: none;
 }
 :focus-visible {
-  /* The text color is the highest-contrast ring on either ground (non-text contrast, 1.4.11). */
   outline: 2px solid var(--color-text);
   outline-offset: 2px;
 }
@@ -269,8 +219,6 @@ img {
   background: color-mix(in srgb, var(--color-neutral-900) 22%, transparent);
 }
 
-/* — screen-reader-only — */
-/* Visually hidden but exposed to screen readers (used by live-region status text). */
 .sr-only {
   position: absolute;
   width: 1px;
@@ -285,32 +233,29 @@ img {
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
-   COMPONENTS — the UI pieces, built with the tokens above.
+   COMPONENTS
    ══════════════════════════════════════════════════════════════════════ */
 
-/* — view layout — shared by the three pages (landing, player, About) — */
-/* The centered page column every page's <main> uses (each page sets its own padding). */
+/* — page layout — */
 .view-main {
   max-width: var(--app-width);
   width: 100%;
   margin: 0 auto;
   padding: var(--space-5) var(--space-5) var(--space-4);
 }
-/* The player page's top row is its own <header> in the page column, ahead of <main> (so "Skip to main
-   content" skips it — a11y review O5, 2026-09-27): the column's padding is split between the two
-   boxes, which draws the page exactly as it was with the row inside <main>. */
+/* The player page's top row is a <header> ahead of <main>, so "Skip to main content" skips it. The
+   column's padding is split between the two. */
 .view-top {
   padding-bottom: 0;
 }
 .view-top + .view-main {
   padding-top: 0;
 }
-/* A page's main heading takes focus when the page arrives (src/pageArrival.ts) — only to mark where
-   reading and the next Tab start: it isn't a control, so no ring (user, 2026-09-27). */
+/* A page's heading takes focus when the page arrives (src/pageArrival.ts), to set where reading and the
+   next Tab start. It isn't a control, so it gets no ring. */
 .page-heading:focus-visible {
   outline: none;
 }
-/* The player page's top row: "All players" on the left, the player search on the right. */
 .view-header {
   display: flex;
   align-items: center;
@@ -319,7 +264,6 @@ img {
   gap: var(--space-3);
   margin-bottom: var(--space-5);
 }
-/* A colored swatch dot in a scale/color legend (the color is set inline per entry). */
 .legend-dot {
   width: 10px;
   height: 10px;
@@ -327,9 +271,6 @@ img {
 }
 
 /* — buttons — */
-/* The text face at medium weight, as the compare bar's buttons: every .btn is small UI text ("All
-   players", the popover's "See … history", About's "← Back"), and the condensed display face was
-   narrow and tight at 14px (user, 2026-09-27). */
 .btn {
   display: inline-flex;
   align-items: center;
@@ -358,9 +299,7 @@ img {
   color: var(--color-text);
   padding-inline: var(--space-1);
 }
-/* Hover underlines the words in the text color — the site's link look — instead of a tinted box,
-   which sat tight around them (user, 2026-09-26). Only where hovering exists: on a touch screen
-   :hover sticks after a tap. The keyboard focus ring is the global :focus-visible outline. */
+/* Hover styles only where hovering exists: on a touch screen :hover sticks after a tap. */
 @media (hover: hover) {
   .btn-ghost:hover {
     text-decoration: underline;
@@ -379,13 +318,10 @@ img {
   color: var(--color-text);
   caret-color: var(--color-text);
   background: var(--color-surface);
-  /* -600, not the hairline divider: the box's edge is what shows where to type, so it clears the 3:1
-     a control's boundary needs (1.4.11) — 3.82 light / 4.85 dark on the page; the divider was 1.38 / 1.50
-     (a11y review P6, 2026-09-27). */
+  /* -600, not the hairline divider: the edge shows where to type, so it needs 3:1 (WCAG 1.4.11). */
   border: 1px solid var(--color-neutral-600);
   border-radius: var(--radius-md);
 }
-/* Hover darkens the edge: -800, one step past the resting -600 (the old 45% ink mix would now read lighter). */
 .input:hover {
   border-color: var(--color-neutral-800);
 }
@@ -394,9 +330,8 @@ img {
   outline-offset: 0;
 }
 
-/* Custom <select> styling: native select chrome renders at inconsistent heights across
-   OS/browsers, so we drop the native appearance and draw our own chevron (components/TitleSelect.tsx).
-   Its one use today is the drill-down's stat picker, the title variant further down. */
+/* Native select chrome renders at different heights across browsers, so it's dropped for our own
+   chevron (components/TitleSelect.tsx). */
 .select-wrap {
   position: relative;
   display: inline-block;
@@ -439,17 +374,12 @@ select.select-reset {
   box-shadow: var(--shadow-md);
 }
 
-/* — compare bar — the player page's ONE sticky row (components/CompareBar.tsx): the page-wide
-   "Compare to" segmented control, centered (user's call, 09-23; it was left-aligned where the old
-   dropdown sat), and nothing else. It replaced the app-wide top bar (2026-09-23). Sticky on every width — a 61px band is worth it for the one control
-   that recolors both sections. z-index sits under the cell popover / InfoTip bubbles (20) and the
-   skip link (100), over the grid. — */
+/* — compare bar (components/CompareBar.tsx): the player page's one sticky row. Its z-index sits under
+   the cell popover and tooltips (20) and the skip link (100). — */
 .has-compare-bar {
-  /* 2px top rule + 0.75rem + the control (2rem buttons + their group's two 1px borders) + 0.75rem + 1px
-     hairline = 61px at the default text size. In rem, like the parts it adds up (the buttons became
-     rem-sized 2026-09-27). The fallback: CompareBar.tsx sets the bar's measured height here once it
-     renders, which also covers the bar wrapping onto more lines with enlarged text on a phone. Keep in
-     step with .compare-bar — the scroll-margin below reads it. */
+  /* 2px top rule + 0.75rem + 2rem buttons + their group's two 1px borders + 0.75rem + 1px hairline =
+     61px at the default text size. A fallback: CompareBar.tsx sets the measured height once the bar
+     renders, which also covers the bar wrapping with enlarged text. */
   --compare-bar-h: calc(3.5rem + 5px);
 }
 .compare-bar {
@@ -460,35 +390,27 @@ select.select-reset {
   align-items: center;
   justify-content: center;
   gap: var(--space-3);
-  padding: var(--space-3) 0; /* was 7px of air around the control — "claustrophobic" (user) */
+  padding: var(--space-3) 0;
   margin-bottom: var(--space-4);
   background: var(--color-bg);
-  /* The top rule is the player header's (it used to sit on the header itself); the bottom hairline
-     is what separates the stuck bar from whatever scrolls under it. */
   border-top: 2px solid var(--color-divider);
   border-bottom: 1px solid var(--color-divider);
-  /* A size container, so the buttons can change shape when the bar is too narrow for them (below). */
   container-type: inline-size;
 }
-/* Taller than a fifth of the window (enlarged text on a phone): it stays at the top of the page and
-   scrolls away instead of covering a quarter of the screen or more (set by CompareBar.tsx; user,
-   2026-09-27). */
+/* Taller than a fifth of the window (enlarged text on a phone), the bar scrolls away instead of covering
+   the screen. Set by CompareBar.tsx. */
 .compare-bar[data-unstuck] {
   position: relative;
 }
-/* Anything focused or scrolled-to inside the page stops clear of the stuck bar (WCAG 2.4.11 —
-   focus not obscured), including the "See … history" jump into the drill-down section. */
+/* Focused and scrolled-to elements stop clear of the stuck bar (WCAG 2.4.11). */
 .has-compare-bar * {
   scroll-margin-top: calc(var(--compare-bar-h) + var(--space-3));
 }
-/* …but not the bar's own contents: the bar is stuck in view, and the clearance made focusing one of its
-   buttons scroll the page 58px (a11y review O4, 2026-09-27). Same specificity, so it wins by coming after. */
+/* Except inside the bar, which is always in view: the clearance made focusing its buttons scroll the
+   page. Same specificity, so it wins by coming after. */
 .compare-bar * {
   scroll-margin-top: 0;
 }
-/* One row — until it doesn't fit (enlarged text on a phone): then "A'ja vs" takes a line of its own
-   above the buttons, both centered (user, 2026-09-27; it overflowed the screen and both ends were cut
-   off — a11y review P8). The bar's real height feeds the scroll clearance (CompareBar.tsx). */
 .seg-wrap {
   display: flex;
   align-items: center;
@@ -496,8 +418,6 @@ select.select-reset {
   justify-content: center;
   row-gap: var(--space-2);
 }
-/* "A'ja vs" ahead of the segments: the name in full ink, a little heavier; the "vs" muted, with
-   8px of air on each side (its own padding, not a flex gap, so the spacing belongs to the word). */
 .seg-lead {
   display: inline-flex;
   align-items: center;
@@ -509,8 +429,7 @@ select.select-reset {
   font-weight: 500;
 }
 .seg-vs {
-  padding: 0 10px 0 8px; /* user's tuning: a touch more air before the segments than after the name */
-  /* The secondary-text grey, not neutral-600: that grey failed 4.5:1 on the light ground. */
+  padding: 0 10px 0 8px;
   color: var(--color-text-muted);
 }
 .seg {
@@ -519,8 +438,6 @@ select.select-reset {
 }
 .seg-btn {
   position: relative;
-  /* 2rem (32px at the default size), so the button grows with the reader's text size — at 32px the text
-     ran out of it at 175% (a11y review P8, 2026-09-27). */
   height: 2rem;
   padding: 0 var(--space-3);
   font: inherit;
@@ -533,8 +450,8 @@ select.select-reset {
   border-radius: 0;
   cursor: pointer;
 }
-/* One segment: its button + (when unavailable) the reason bubble beside it — the bubble's anchor. A
-   flex box, so the button sits in it with no line box around it (the bar keeps its 32px height). */
+/* One segment: its button and, when unavailable, the reason bubble. Flex, so no line box adds height
+   around the button. */
 .seg-item {
   position: relative;
   display: flex;
@@ -545,14 +462,12 @@ select.select-reset {
 .seg-btn:hover {
   background: color-mix(in srgb, var(--color-neutral-900) 8%, transparent);
 }
-/* The current mode: the text color as a fill, the page color as ink — monochrome, like the rest
-   of the chrome (color is for data and team identity). */
 .seg-btn[aria-pressed="true"] {
   background: var(--color-text);
   color: var(--color-bg);
 }
-/* Unavailable for this player: shown, not hidden (the bar keeps its shape), and still focusable
-   so its reason (the tooltip) is reachable. Same dimming as `.btn:disabled`. */
+/* Unavailable for this player: shown, not hidden, so the bar keeps its shape, and still focusable so its
+   reason (the tooltip) is reachable. */
 .seg-btn[aria-disabled="true"] {
   opacity: 0.45;
   cursor: not-allowed;
@@ -563,12 +478,8 @@ select.select-reset {
 .seg-btn:focus-visible {
   z-index: 1; /* the ring draws over the neighbouring segments' borders */
 }
-/* Too narrow for the three buttons on one line — only with enlarged text on a phone (175%+ on a 390px
-   one, 150% on 320px): each becomes its own outlined box and they wrap, centered, with a little air
-   between them. Wrapped inside the one joined frame they left a gap and a stray divider. The width is
-   in em — the bar's text size — and the buttons are ~12em wide at any text size ("Forwards" 12.05em
-   measured), so this never matches at the default size, where even a 320px phone gives the bar 17.5em
-   (a11y review P8, 2026-09-27). */
+/* Too narrow for the three buttons in one row, which only happens with enlarged text on a phone: each
+   becomes its own outlined box and they wrap. The buttons are about 12em wide at any text size. */
 @container (max-width: 12.5em) {
   .seg {
     flex-wrap: wrap;
@@ -581,10 +492,9 @@ select.select-reset {
     border: 1px solid var(--color-divider);
   }
 }
-/* The reason bubble opens DOWNWARD: the bar is stuck to the viewport's top edge, so "above" (the
-   InfoTip default) would be off-screen. Anchored to the segment's right edge so it stays inside
-   the column on a phone. A sibling of the dimmed button, so it is drawn at full strength (inside
-   it, it inherited the 45% opacity — no child can undo a parent's). */
+/* The reason bubble opens downward (the bar is stuck to the top, so above would be off-screen) and is
+   anchored right so it stays on a phone's screen. It's the dimmed button's sibling, not its child, so
+   it isn't dimmed too. */
 .seg-item > .infotip-bubble.seg-tip {
   /* Three classes deep so it outranks `.infotip-bubble` wherever that rule lands in the cascade. */
   top: calc(100% + 8px);
@@ -601,8 +511,7 @@ select.select-reset {
   }
 }
 
-/* — footer — the freshness chip (a 34px hairline chip) on the left, About + the theme switch (bare
-   icons) on the right — */
+/* — footer — */
 .foot {
   width: 100%;
   max-width: var(--app-width);
@@ -615,9 +524,8 @@ select.select-reset {
   gap: var(--space-3);
 }
 .foot-chip {
-  /* The freshness chip. inline-block + line-height, not inline-flex: a flex box would drop the
-     space between the chip's text and its <time> child ("as ofSep 23"). 34px outer = 32px line + the
-     hairlines. */
+  /* inline-block, not inline-flex: a flex box drops the space between the text and its <time> child
+     ("as ofSep 23"). 34px tall: a 32px line plus the hairlines. */
   display: inline-block;
   line-height: 32px;
   padding: 0 var(--space-3);
@@ -626,26 +534,21 @@ select.select-reset {
   border: 1px solid var(--color-divider);
 }
 
-/* The compact, always-visible player-page search (see components/PlayerSearch.tsx):
-   underline only, no box. */
+/* — search — */
 .search-underline {
   border: 0;
-  /* The same -600 edge as the landing box, for the same reason (a11y review P6). */
   border-bottom: 1px solid var(--color-neutral-600);
   background: transparent;
   border-radius: 0;
   font-size: var(--fs-md);
 }
-/* iOS Safari zooms the page when a focused input's font-size is under 16px — the compact search
-   at 14px did exactly that ("zooms in the tiniest bit", user). On touch devices text inputs and
-   selects are 1rem; the hero search already is. */
+/* iOS Safari zooms the page when a focused input's text is under 16px. */
 @media (pointer: coarse) {
   .search-underline,
   .input {
     font-size: 1rem;
   }
-  /* The player page's top row: "All players" the same size as the search box beside it (user,
-     2026-09-27 — 14px beside 16px on a phone). */
+  /* "All players", to match the search box beside it. */
   .view-header .btn {
     font-size: 1rem;
   }
@@ -654,9 +557,8 @@ select.select-reset {
   outline: none;
   border-bottom-color: var(--color-neutral-900);
 }
-/* The player search boxes are type="search" (to keep Safari's contact AutoFill away — see
-   PlayerSearch.tsx). Drop the native search chrome so both look exactly as they did as plain text
-   inputs: no rounded WebKit field, no built-in clear "x", no decoration. */
+/* The search boxes are type="search" to keep Safari's contact AutoFill away (PlayerSearch.tsx); the
+   native search styling is removed so they look like plain text inputs. */
 .search-underline,
 .input[type="search"] {
   -webkit-appearance: none;
@@ -669,18 +571,13 @@ select.select-reset {
   -webkit-appearance: none;
   display: none;
 }
-/* Both search boxes' placeholder — their only visible label — in the secondary-text grey: it is text a
-   reader needs (1.4.3). It was -600 here (3.82:1 light) and the browser's own grey on the landing box
-   (3.80 / 3.59); a11y review P5, 2026-09-27. Opacity 1: Firefox's default dims placeholders further. */
+/* The placeholder is the boxes' only visible label, so it's text a reader needs (4.5:1). Opacity 1:
+   Firefox dims placeholders by default. */
 .search-underline::placeholder,
 .input::placeholder {
   color: var(--color-text-muted);
   opacity: 1;
 }
-/* One result row in either search's dropdown (a role="option" div): the name left, the team/position
-   right. Its own class — the rows used to borrow the button classes and undo half of them inline.
-   inline-flex at full width, as they rendered then. The highlighted row (arrow keys or hover) is the
-   one marked aria-selected. */
 .search-option {
   display: inline-flex;
   align-items: center;
@@ -697,14 +594,13 @@ select.select-reset {
   border-bottom: 1px solid var(--color-divider);
   cursor: pointer;
 }
-/* The highlighted result — the one Enter opens, moved by ↑/↓ or the pointer. The wash alone was 1.20 /
-   1.30:1 against the other rows; a 2px ink bar down its left edge marks it (user's pick, 2026-09-27 —
-   a11y review P3). Drawn as an inset shadow so the row's box doesn't move. */
+/* The highlighted result: the wash alone was too faint to tell apart, so a 2px bar marks its left edge,
+   drawn as an inset shadow so the row doesn't shift. */
 .search-option[aria-selected="true"] {
   background: color-mix(in srgb, var(--color-neutral-900) 10%, transparent);
   box-shadow: inset 2px 0 0 var(--color-text);
 }
-/* High Contrast drops both the wash and the shadow: the system highlight color, as an inset outline. */
+/* High Contrast drops both the wash and the shadow. */
 @media (forced-colors: active) {
   .search-option[aria-selected="true"] {
     outline: 2px solid Highlight;
@@ -712,12 +608,8 @@ select.select-reset {
   }
 }
 
-/* The footer's icon controls — the About link and the light/dark switch (was `.theme-toggle`, which
-   named only one of them): a bare icon in a 32 × 34px hit area (no border: the user, 2026-09-26 — a box
-   around a lone icon looked odd; 32 wide: 28 put the glyphs 11px apart and read as easy to mis-tap on
-   a phone, so 15px now; over the 24px minimum target of WCAG 2.5.8; 34 tall to sit level with the
-   freshness chip). The About link is an <a>, hence the text-decoration reset. The keyboard focus
-   ring is the global :focus-visible outline. */
+/* The footer's About link and theme switch: a bare icon in a 32 × 34px hit area, above WCAG 2.5.8's 24px
+   minimum and as tall as the freshness chip. */
 .icon-btn {
   text-decoration: none;
   display: inline-flex;
@@ -736,27 +628,20 @@ select.select-reset {
 .icon-btn svg {
   display: block;
 }
-/* Hover dims the icon slightly (user, 2026-09-26) to the mid grey — measured 5.87:1 light / 6.91:1
-   dark on the page (14.79 / 13.45 at rest), well over the 3:1 an icon needs. Hover devices only: a tapped icon on a phone would
-   otherwise stay dimmed and read as disabled. */
 @media (hover: hover) {
   .icon-btn:hover {
     color: var(--color-neutral-700);
   }
 }
 
-/* — landing: a featured player's row takes a faint wash under the pointer (it lived alone in app.css
-   until 2026-09-26) — */
 .row-hover:hover {
   background: color-mix(in srgb, var(--color-text) 4%, transparent);
 }
 
-/* — player photo / avatar (see components/PlayerPhoto.tsx) —
-   The overlay tint is `--duotone-color` when the component sets it (the player's team color,
-   data/teams.ts — by abbreviation on player pages, by team name on the landing list), else
-   `--duotone-neutral` (off-roster / unknown team).
-   `color` blend = hue + saturation from the tint, lightness from the photo; `--duotone-alpha`
-   sets how much of the photo's own color survives. */
+/* — player photo (components/PlayerPhoto.tsx) —
+   The tint is --duotone-color when the component sets it (the team's color, data/teams.ts), else
+   --duotone-neutral. The `color` blend takes hue and saturation from the tint and lightness from the
+   photo. */
 .duotone {
   position: relative;
   overflow: hidden;
@@ -771,18 +656,15 @@ select.select-reset {
   opacity: var(--duotone-alpha);
 }
 
-/* Avatar backdrop shown through ESPN's transparent cutout headshots. Kept light in
-   both themes — the default neutral-300 flips near-black in dark mode and swallowed
-   dark hair/uniforms; neutral-700 (a mid-light grey in the reversed dark ramp) keeps
-   the player readable. */
+/* The backdrop behind ESPN's transparent cutout headshots stays light in both themes: a dark one
+   swallowed dark hair and uniforms (-700 is a light grey in the reversed dark ramp). */
 .player-photo {
   background: var(--color-neutral-300);
 }
 :root[data-theme='dark'] .player-photo {
   background: var(--color-neutral-700);
 }
-/* Initials fallback (shown when the headshot 404s) — dark on the light backdrop in
-   both themes; neutral-700 alone would match the dark-mode backdrop and vanish. */
+/* The initials shown when a headshot fails: dark on the light backdrop in both themes. */
 .player-photo-initials {
   color: var(--color-neutral-700);
 }
@@ -795,31 +677,21 @@ select.select-reset {
   width: 100%;
   border-collapse: collapse;
   font-size: var(--fs-md);
-  /* auto, not fixed: a fixed layout keeps its column widths even when a cell's text is wider, and
-     the text runs into the next column. Auto never makes a column narrower than its widest cell;
-     the <col> widths keep the columns equal while they fit (StatDrilldownView). */
+  /* auto, not fixed: a fixed layout keeps its column widths even when a cell's text is wider, and the
+     text runs into the next column. The <col> widths keep the columns equal while they fit. */
   table-layout: auto;
 }
 .table th,
 .table td {
-  white-space: nowrap; /* a cell never wraps to squeeze in — the table scrolls instead */
+  white-space: nowrap; /* a cell never wraps to squeeze in; the table scrolls instead */
 }
-/* The table's own sideways scroller: only engages when the columns can't fit (a narrow phone, a
-   rare wide value), so the page itself never scrolls sideways. */
 .table-scroll {
   overflow-x: auto;
-  /* The containing block for the cells' visually hidden text (.sr-only is position: absolute): without
-     it that text was placed against the page, not this scroller, and in WebKit a table wider than the
-     phone pushed it past the screen's edge — the whole page scrolled sideways (51px at 200% text; a11y
-     review P8, 2026-09-27). */
+  /* The containing block for the cells' .sr-only text: without it, WebKit placed that text against the
+     page, and a wide table pushed it past the screen's edge, so the whole page scrolled sideways. */
   position: relative;
 }
-/* Headers — ONE face for the heatmap's stat headers and year labels and the drill-down table's
-   column headers, so a label reads the same everywhere (user, 2026-09-26). The "table style": 11px
-   bold body caps, tracked. (Tried and set aside the same night: the heatmap's 13px condensed face on
-   both — harder to read; this face at 13px — "RANK" 37.8px in a 35px column of the then 8-column
-   3P% table at 320px.) The table's column headers only (thead): its row headers, the years, look like
-   body cells (below). */
+/* One header style for the heatmap's stat and year labels and the table's column headers. */
 .table thead th,
 .hm-colhead,
 .hm-rowhead {
@@ -840,27 +712,19 @@ select.select-reset {
   padding: var(--space-2);
   border-bottom: 1px solid color-mix(in srgb, var(--color-text) 8%, transparent);
 }
-/* A row header (the year, <th scope="row"> — so a screen reader names the season as it moves down a
-   column) is drawn exactly like the body cells beside it: the browser's own th look (bold, centered)
-   undone. The selected row's bold year is below. */
+/* The year is a <th scope="row">, so a screen reader names the season as it moves down a column. It's
+   drawn like the body cells beside it. */
 .table tbody th {
   font-weight: inherit;
   text-align: left;
 }
-/* Every column but the first (the Season label) holds a number → right-aligned.
-   :not(:first-child) outweighs the base `.table th`'s left-align, so order-independent. */
+/* Every column but the first (the season) holds a number. */
 .table th:not(:first-child),
 .table td:not(:first-child) {
   text-align: right;
 }
-/* Column dividers between the body cells: a hairline so the columns' equal widths are visible.
-   Without them the right-aligned numbers read as unevenly spaced (the gaps vary with each word's
-   width — the columns are equal-width `<col>`s). Lighter than the row rules (5% vs 8%);
-   the zebra stays for row tracking; none in the header row (the labels sit on one clean line).
-   Drawn as a 1px background line inside the cell, NOT a border, stopping 1px short of the top and
-   bottom: as a translucent border it crossed the (translucent) row rules and every intersection
-   stacked into a darker dot — and the user wants the row and header rules exactly as they were.
-   The line never touches the row rules, so nothing stacks. (User's idea, 2026-09-24.) */
+/* Column dividers, drawn as a 1px background line that stops 1px short of the row rules: as translucent
+   borders they stacked into darker dots where they crossed. */
 .table td:not(:last-child),
 .table tbody th:not(:last-child) {
   background-image: linear-gradient(color-mix(in srgb, var(--color-text) 5%, transparent), color-mix(in srgb, var(--color-text) 5%, transparent));
@@ -868,19 +732,15 @@ select.select-reset {
   background-size: 1px calc(100% - 2px);
   background-position: right 1px;
 }
-/* Zebra striping — aids row-tracking on the wide drill-down table. */
 .table tbody tr:nth-child(even) {
   background: color-mix(in srgb, var(--color-text) 3.5%, transparent);
 }
-/* Hover wash only where hovering exists: on a touch screen a row touched while scrolling keeps
-   :hover until the next tap, which looked like a second "selected" row next to the real one. */
 @media (hover: hover) {
   .table tbody tr:hover {
     background: color-mix(in srgb, var(--color-text) 7%, transparent);
   }
 }
-/* The row a chart column was clicked for: a heavier wash than hover/zebra (same specificity as
-   both, so it must come after them) and a bold year. Neutral, not a color — color means data. */
+/* The row a chart column was clicked for. Same specificity as hover and zebra, so it comes after them. */
 .table tbody tr.is-selected {
   background: color-mix(in srgb, var(--color-neutral-900) 10%, transparent);
 }
@@ -888,31 +748,21 @@ select.select-reset {
   font-weight: 700;
 }
 
-/* — deviation heatmap (the top of the player page) — see components/DeviationHeatmap.tsx. Cells
-     are <button>s in a roving-tabindex ARIA grid; backgrounds are a diverging color-mix computed
-     inline (vs a neutral base token), the season's value inside. */
-/* Scroll wrapper: when the grid can't fit, it scrolls sideways in here instead of pushing the page
-   (WCAG 1.4.10 lets a data grid scroll) — on a phone, where the 8 stat columns can't fit 320px, and at
-   any width when the reader's text size is up (the columns grow with it, below). It was on phones only,
-   when desktop needed visible overflow for the header tooltips — they are portaled now (InfoTip.tsx).
-   4px of padding, taken back by the margin, keep the focus ring of an edge cell (3px out) and of a
-   header (4px out) inside the box, which a scroller would clip; the grid doesn't move. Keyboard focus
-   into an off-screen cell auto-scrolls it into view. */
+/* — heatmap (components/DeviationHeatmap.tsx): cells are <button>s in an ARIA grid; each background is a
+   color-mix set inline. — */
+/* Scrolls sideways when the grid can't fit (a phone, or enlarged text); WCAG 1.4.10 allows it for a data
+   grid. The 4px padding, taken back by the margin, keeps the edge cells' focus rings from being clipped. */
 .hm-scroll {
   overflow-x: auto;
   padding: 4px;
   margin: -4px;
 }
-/* Column widths in rem, so they grow with the reader's text size: in px, text at 175% ran over the
-   cells into their neighbours ("26.29.43.2…") and past the year column (a11y review P8, 2026-09-27).
-   The same widths at the default 16px (2.5rem = 40px). */
 .heatmap {
   display: grid;
   gap: 2px;
   --hm-yearcol: 2.5rem;
-  --hm-cellmin: 2.5rem; /* a cell's minimum width (the column template reads it) */
+  --hm-cellmin: 2.5rem;
 }
-/* Full 4-digit year by default; 2-digit + narrower year column on mobile. */
 .hm-year-short {
   display: none;
 }
@@ -927,33 +777,25 @@ select.select-reset {
     display: inline;
   }
 }
-/* Phones under 400px (iPhone SE / mini 375, 14 / 15 390, 16 393): with 40px cells the eight stat
-   columns need 362px and the column has 335–353, so TS% scrolled off the screen. 36px cells + a 24px
-   year column need 328 — every stat on screen at 375 — and a cell still clears the 24px WCAG target
-   minimum by a wide margin (measured 2026-09-24; DECISIONS). */
+/* Phones under 400px: 36px cells and a 24px year column fit all eight stats on a 375px screen, and a
+   cell stays well above the 24px minimum target size. */
 @media (max-width: 400px) {
   .heatmap {
     --hm-yearcol: 1.5rem; /* 24px */
     --hm-cellmin: 2.25rem; /* 36px */
   }
 }
-/* Column headers = the 8 stats (short label, full name in a tooltip). Type: the shared header rule.
-   The label's text sits as far above the cells as the drill-down table's header text sits above its
-   rule (user, 2026-09-26): measured 9.55px there, so 5.5px here (+ the grid's own spacing = 9.55px). */
+/* 5.5px plus the grid's own spacing puts the label as far above the cells (9.55px) as the table's header
+   text sits above its rule. */
 .hm-colhead {
   text-align: center;
   padding-bottom: 5.5px;
 }
-/* Row headers = seasons, down the left edge — left-aligned so they line up with the
-   section heading above (not indented by a right-aligned label column). Type: the shared header rule. */
 .hm-rowhead {
   display: flex;
   align-items: center;
   justify-content: flex-start;
 }
-/* Cells are <button>s (a roving-tabindex grid) — reset the native chrome, keep the tile look.
-   One number per cell (the value); the gap and rank live in the cell's popover. Every cell is
-   interactive (tap / hover / focus reveals it), so all get the pointer + hover ring. */
 .hm-cell {
   position: relative;
   display: flex;
@@ -967,20 +809,15 @@ select.select-reset {
   color: inherit;
   font-family: inherit;
   font-size: var(--fs-sm);
-  /* 500, not 600: the numbers read harsh in bold on the saturated cells. Softened via WEIGHT
-     rather than opacity — the heat colors are tuned so this text only clears 4.53:1 on the worst
-     cell (a full-red cell in dark mode, measured 2026-09-27), and a visible opacity drop (measured: 0.85 → 4.02–4.32:1) breaks AA. Weight leaves the
-     contrast ratio untouched. */
+  /* Softened with weight, not opacity: the heat colors are tuned so this text just clears 4.5:1 on the
+     worst cell (4.53:1, full red in dark mode), and an opacity of 0.85 dropped it to 4.02–4.32:1. */
   font-weight: 500;
   font-variant-numeric: tabular-nums;
-  /* The caveat marks — a hollow cell's outline and the asterisk — share this hue (user, 2026-09-25:
-     outline 25%, the asterisk a touch stronger below). Defined here, not on :root, so it resolves
-     against the theme's --color-text wherever the cell is. 1.68:1 light / 2.01:1 dark against the page:
-     under the 3:1 non-text bar on purpose — the user chose quieter marks (50% passed but read too
-     strong); the same caveat is in every cell's spoken name and popover. */
+  /* The caveat marks: a hollow cell's outline and the asterisk. Below the 3:1 non-text minimum on
+     purpose (1.68:1 light, 2.01:1 dark) so they stay quiet; every caveat is also in the cell's spoken
+     name and its popover. Defined here so it resolves against the theme's text color. */
   --hm-mark: color-mix(in srgb, var(--color-text) 25%, transparent);
-  /* The asterisk's glyph, a touch stronger (user, 2026-09-25): at the outline's strength its thin strokes
-     read lighter than the outline does. 2.40:1 light / 3.20:1 dark. */
+  /* A touch stronger: the asterisk's thin strokes read lighter than the outline. */
   --hm-mark-glyph: color-mix(in srgb, var(--color-text) 40%, transparent);
   cursor: pointer;
   appearance: none;
@@ -990,11 +827,8 @@ select.select-reset {
 .hm-cell:hover {
   box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--color-text) 32%, transparent);
 }
-/* Cell popover: the hovered / tapped / focused cell's full line (value · gap · rank) plus a link
-   to that stat's history, anchored to the cell. `fixed` (viewport coords set inline from the
-   cell's rect) so it's never clipped by the mobile horizontal-scroll wrapper and always lands
-   where the finger/pointer is — not in a strip that may be a screen away on a long career.
-   z-index 20: above the sticky compare bar (10), level with the InfoTip bubbles. */
+/* The cell popover is fixed, placed from the cell's rectangle, so the phone's scroller can't clip it.
+   z-index 20: over the sticky compare bar (10). */
 .hm-popover {
   position: fixed;
   z-index: 20;
@@ -1013,9 +847,6 @@ select.select-reset {
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-md);
 }
-/* The stat as the title, then one tier of quiet label/value rows (the season's value, the
-   reference avg, the difference, the rank) → the link. No eyebrow, no hero number: tighter, and
-   the season's value sits in the same table as the numbers it's compared to. */
 .hm-popover-stat {
   font-size: var(--fs-lg);
   line-height: 1.1;
@@ -1037,7 +868,7 @@ select.select-reset {
   font-variant-numeric: tabular-nums;
 }
 .hm-popover-delta {
-  /* Same weight as the other rows on purpose (uniform rows); direction is carried by its color. */
+  /* The same weight as the other rows; its color carries the direction. */
   font-weight: inherit;
 }
 .hm-popover-note {
@@ -1046,8 +877,6 @@ select.select-reset {
 .hm-popover-link {
   padding-inline: 0;
   margin-top: var(--space-1);
-  /* The body face, not the condensed heading face .btn uses: Barlow Condensed is a display cut
-     and is hard to read this small. One step above the rows so the action stands out. */
   font-family: var(--font-body);
   font-weight: 500;
   font-size: var(--fs-sm);
@@ -1059,38 +888,30 @@ select.select-reset {
 }
 .hm-empty {
   background: color-mix(in srgb, var(--color-text) 5%, transparent);
-  /* The "—" is the cell's only content, so it's text a reader needs: the secondary-text grey (-600 was
-     3.48 / 4.34:1 — a11y review P4, 2026-09-27). */
   color: var(--color-text-muted);
   font-weight: 400;
 }
-/* Small-sample season: shown (with its value) but HOLLOW — no fill, a hairline outline — never
-   heat-colored. Hollow is the chart's word for the same thing (a shown-but-not-compared season is
-   a hollow dot), and it is categorical: a 6% grey wash (until 2026-09-25) read as "a shade below
-   average" beside the scale's near-white midpoint. neutral-700 (not -600) keeps the value at
-   ≥4.5:1 AA in both themes (a11y audit 2026-08-27: -600 was 3.39:1 light / 4.22:1 dark). */
+/* A small-sample season: shown with its value but hollow, never heat-colored (the chart draws the same
+   season as a hollow dot). */
 .hm-muted {
   background: transparent;
   box-shadow: inset 0 0 0 1.5px var(--hm-mark);
   color: var(--color-text-muted);
   font-weight: 400;
 }
-/* The "there's a note" mark on a not-normal cell: an asterisk in the top-right corner (was a 5px
-   dot until 2026-09-25 — the user: an asterisk says "more information on hover" where a dot reads
-   as a status light). Same hue as the hollow outline, a little stronger (--hm-mark-glyph) so the
-   thin strokes read at the same weight; kept light because a partial-season row carries one per cell. */
+/* The asterisk on a cell with a note. Kept light: a partial season has one on every cell. */
 .hm-ss::after {
   content: '*';
   position: absolute;
   top: 2px;
   right: 5px;
-  font-size: var(--fs-base); /* rem, like all type: grows with the reader's browser font size */
+  font-size: var(--fs-base);
   line-height: 1;
   font-weight: 400;
   color: var(--hm-mark-glyph);
 }
-/* Diverging scale key above the heatmap (components/ScaleKey.tsx). End labels + arrows are the
-   non-color cue for the encoding (1.4.1). .scale-legend is its full-width wrapper. */
+/* The color key above the heatmap (components/ScaleKey.tsx). Its end labels and arrows are the cue that
+   doesn't rely on color (WCAG 1.4.1). */
 .scale-legend {
   width: 100%;
 }
@@ -1103,9 +924,8 @@ select.select-reset {
     var(--hm-base),
     var(--hm-above)
   );
-  /* Hairline border so the near-transparent midpoint doesn't fade into the page.
-     Clip the gradient to the padding box so it doesn't bleed under the (semi-transparent)
-     border and show stray colors at the edges/rounded corners. */
+  /* A hairline so the pale midpoint doesn't fade into the page, with the gradient clipped to the padding
+     box so it doesn't bleed under the translucent border. */
   border: 1px solid var(--color-divider);
   background-clip: padding-box;
 }
@@ -1119,29 +939,18 @@ select.select-reset {
 .scale-ends b {
   font-weight: 600;
 }
-/* — feedback & a11y widgets: loading spinner, info tooltip, skip link — */
-/* Loading indicator — three basketballs dribbling (the user's pick, 2026-09-25, from a preview of
-   seven basketball loaders; replaced the outlined "wave" of five blocks left over from the deviation
-   bars). Drawn in ink — outline + seams in currentColor — not orange: color here means data or team
-   identity, and orange sits beside the heatmap's "above" red. Decorative (aria-hidden); the status
-   text beside it is what assistive tech announces.
 
-   The motion is gravity-shaped, not a symmetric ease: floor at 0% / 100%, apex at 50%; the up leg
-   decelerates (ease-out-quad), the down leg accelerates (ease-in-quad), so the ball hangs at the top,
-   is fastest at the floor, and reverses in an instant. The squash lives only in the first and last 6%
-   of the cycle — the moment it is on the floor. One bounce = 0.95s; the three balls trail by 0.16s.
-   --spinner-ball sizes the ball; --spinner-hop is the height of the bounce (both in px). 22 / 18 on
-   the loading screen (user: larger, 2026-09-25); the inline variant below is smaller. */
+/* — loading indicator: three bouncing basketballs, drawn in ink, since orange would read as the
+   heatmap's red. — */
 .spinner {
   --spinner-ball: 22px;
   --spinner-hop: -18px;
   display: inline-flex;
   gap: 10px;
   align-items: flex-end;
-  /* Room for the hop above the resting balls, so the row's box never changes size. */
+  /* Room for the hop, so the row's box never changes size. */
   height: calc(var(--spinner-ball) - var(--spinner-hop));
 }
-/* Inline beside small text ("Loading players…"): a smaller ball and a shorter hop. */
 .spinner.spinner-sm {
   --spinner-ball: 11px;
   --spinner-hop: -8px;
@@ -1192,27 +1001,20 @@ select.select-reset {
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  /* No indicator at all — just the "Loading…" text (user's call, 2026-09-25). Hidden, not
-     stilled: three motionless balls beside the word read as decoration with no job. */
+  /* Hidden, not stilled: three motionless balls beside "Loading…" would be decoration with no job. */
   .spinner {
     display: none;
   }
 }
 
-/* Info tooltip: a focusable term with a bubble shown on hover/focus/tap. The bubble is NOT a
-   DOM child of the trigger: InfoTip.tsx portals it to the end of <main> as an ordinary absolutely
-   positioned element, placed in page coordinates from the trigger's rectangle (rules in the
-   component). Why not simpler things: a child bubble is clipped by the phone heatmap's horizontal
-   scroller (a box that scrolls one way clips the other); a `popover` / `position: fixed` bubble
-   makes iOS 26 Safari tint its bottom toolbar from it (black, every time a tip opened — WebKit bug,
-   no workaround found, 2026-09-24). Absolute flow content is ignored by Safari's sampler, is clipped
-   by nothing, and scrolls with the page. */
+/* — tooltips (components/InfoTip.tsx) —
+   The bubble is portaled to the end of <main> and absolutely positioned from the trigger's rectangle.
+   Not a child of the trigger: the phone heatmap's scroller would clip it. Not a `popover` or
+   `position: fixed`: iOS 26 Safari tints its toolbar from fixed and top-layer elements. */
 .infotip {
-  /* A <button> drawn as the plain term it labels (it was a focusable span — craftsmanship review 3.3):
-     the button's own look undone, and the type of the text around it inherited — a button doesn't
-     inherit font, tracking or capitals by default. `line-height: normal` after `font: inherit` keeps
-     the box — and so the keyboard focus ring — the text's height, as the span's was, not the whole
-     line's (a button is an inline-block). */
+  /* A <button> drawn as the plain term it labels, taking the surrounding text's type (a button doesn't
+     inherit font, tracking or capitals). `line-height: normal` keeps its box, and so its focus ring,
+     the text's height. */
   appearance: none;
   margin: 0;
   padding: 0;
@@ -1229,7 +1031,6 @@ select.select-reset {
   text-decoration: underline dotted;
   text-underline-offset: 3px;
 }
-/* The look — shared by every bubble (the compare bar's `.seg-tip` reuses it as a child bubble). */
 .infotip-bubble {
   display: none;
   position: absolute;
@@ -1251,19 +1052,18 @@ select.select-reset {
   box-shadow: var(--shadow-md);
   white-space: normal;
 }
-/* Open state is JS-driven (see InfoTip.tsx) so only one bubble shows at a time. */
+/* Opened from InfoTip.tsx, so only one bubble shows at a time. */
 .infotip-bubble.is-open {
   display: block;
 }
-/* InfoTip's own bubble, in <body>: top/left are set inline by the component (page coordinates). */
+/* top and left are set inline by InfoTip.tsx. */
 .infotip-floating {
   top: 0;
   left: 0;
 }
 
-/* Skip-to-content link: off-screen until focused (WCAG 2.4.1) — moved up by its own height (+ its 8px
-   offset and a spare pixel), so it stays hidden at any text size: a fixed -48px let a box sized in rem
-   peek in at 150% text (a11y review O5, 2026-09-27). Focused, it sits 8px from the top, as before. */
+/* Off-screen until focused (WCAG 2.4.1): moved up by its own height plus its offset, so it stays hidden
+   at any text size. */
 .skip-link {
   position: absolute;
   left: 8px;
@@ -1285,9 +1085,8 @@ select.select-reset {
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
-   THEME FRAME OVERRIDE — the "Industry" look: square, transparent, hairline-
-   bordered frames on the boxy components. Re-opens the component classes above,
-   so it MUST stay last to win the cascade.
+   FRAMES: square, transparent, hairline-bordered boxes. This re-opens the component classes above,
+   so it must stay after them.
    ══════════════════════════════════════════════════════════════════════ */
 .card,
 .btn,
@@ -1306,16 +1105,12 @@ select.select-reset {
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
-   STAT DRILL-DOWN — the career summary plates, the dumbbell chart, and the
-   stat picker as the title. (See components/StatDrilldownView.tsx.)
+   STAT DETAIL: the career summary plates, the chart and the stat picker
+   (components/StatDrilldownView.tsx).
    ══════════════════════════════════════════════════════════════════════ */
 
-/* — career summary: a row of "plates" — equal columns however many facts there are (3 or 4),
-   each a bordered cell whose label sits ON the border like a fieldset legend. The border is the
-   chart card's (`--color-divider`, 2026-09-23 — the two frames sit a few lines apart and read as one
-   set); the label stays neutral-700, the lightest grey that passes as text on both grounds; the number
-   is the only ink. Chosen over tiles/lines on a side-by-side
-   preview (DECISIONS, 2026-09-18). */
+/* — career summary: equal columns of bordered plates, each label sitting on its border like a
+   fieldset legend. — */
 .cs {
   display: grid;
   grid-auto-flow: column;
@@ -1326,15 +1121,13 @@ select.select-reset {
 }
 .cs-plate {
   position: relative;
-  border: 1px solid var(--color-divider); /* the chart card's border, so the two frames match */
+  border: 1px solid var(--color-divider);
   padding: var(--space-4) var(--space-2) var(--space-3);
   text-align: center;
   display: flex;
   flex-direction: column;
   min-width: 0;
 }
-/* The page's small-caps label look (.kicker: "Stat detail", the team line), not the condensed display
-   face — at 11px it was narrow and tight (user, 2026-09-27). */
 .cs-k {
   position: absolute;
   top: -7px;
@@ -1349,12 +1142,11 @@ select.select-reset {
   color: var(--color-text-muted);
   white-space: nowrap;
 }
-/* The label's spoken copy (CareerSummary.tsx) keeps its own case: Safari hands VoiceOver the capitals, and it spelled
-   "LOW" out letter by letter (2026-09-29). */
+/* The label's spoken copy keeps its own case: Safari hands VoiceOver the capitals, and it spelled "LOW"
+   out letter by letter. */
 .cs-k .sr-only {
   text-transform: none;
 }
-/* The one value — number, then note — stacked as the plate stacked them when they were two <dd>s. */
 .cs-d {
   margin: 0;
   display: flex;
@@ -1370,8 +1162,7 @@ select.select-reset {
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
-/* The word after the number — the stat's box-score code ("1.9 STL") or a qualifier ("1st of 158"): one
-   quiet treatment for both, muted; the gap is the word space alone (none before a "%"). */
+/* The word after the number: the stat's code ("1.9 STL") or a qualifier ("1st of 158"). */
 .cs-q {
   font-size: var(--fs-sm);
   font-weight: 500;
@@ -1382,11 +1173,8 @@ select.select-reset {
   font-size: var(--fs-xs);
   color: var(--color-text-muted);
 }
-/* A narrow section: four equal columns of a ~280px row would be ~60px each, too narrow for "36th of
-   186". Four plates go two and two; three (no ranked season, so no Best-rank plate) stay on one row. The number steps down one size so "36th of 186" still fits. The section's
-   width in em (its text size), not the screen's in px: 30em is the old 520px-screen breakpoint at the
-   default size (a 480px column), and it also catches a desktop column whose text is enlarged — at 200%
-   four plates overflowed into each other there ("26.9 PTS" 136px in 78px; a11y review P8, 2026-09-27). */
+/* A narrow section: four plates go two and two (four across is too narrow for "36th of 186"); three stay
+   in one row. In em, the section's text size, so it also catches enlarged text on a desktop. */
 .dd-section {
   container-type: inline-size;
 }
@@ -1407,12 +1195,9 @@ select.select-reset {
     font-size: var(--fs-xl);
   }
 }
-/* A plate's label sits on its border and never wraps, so it needs its plate wide enough (measured
-   2026-09-27; the a11y review's text-size check only asked whether text overflowed its own box, which a
-   label that grows to fit never does). Three across ran "CAREER AVG" past its plate's edge below ~16em
-   (a 390px phone at 150% text; a desktop column at 200%): there, two and one — the third plate grows
-   to the full row. Two across ran out below ~10.4em (a 320px phone at 175%, a 390px one at 200%):
-   there, one plate per row. At the default size even a 320px phone is 17.5em, so neither applies. */
+/* A plate's label sits on its border and never wraps, so the plate must be wide enough for it. Three
+   across ran "CAREER AVG" past its plate below about 16em, and two across below about 10.4em. Neither
+   applies at the default text size. */
 @container (max-width: 16.5em) {
   .cs-plate:first-child:nth-last-child(3),
   .cs-plate:first-child:nth-last-child(3) ~ .cs-plate {
@@ -1429,12 +1214,8 @@ select.select-reset {
   }
 }
 
-/* — the chart's frame: a fixed y-axis column beside a scroller. The scroller only scrolls on a
-   phone (like .hm-scroll): a long career keeps every season at least COL_MIN wide (set inline)
-   and slides sideways under the fixed axis labels. Both columns carry the same top clearance so
-   a value label above the topmost dot has room INSIDE the scroller — a scroller clips on both
-   axes, and the card's own padding is outside it. (A floor-level label to the right of the LAST
-   column's dot would reach past the plot's edge — the view adds .dd-edge-label for that case.) */
+/* — the chart: a fixed y-axis column beside a scroller that only scrolls on a phone. Both carry the same
+   top clearance, so a label above the top dot stays inside the scroller (a scroller clips both axes). — */
 .dd-card {
   padding: 6px var(--space-5) var(--space-3);
 }
@@ -1460,7 +1241,7 @@ select.select-reset {
 }
 .dd-inner {
   padding-top: 14px;
-  box-sizing: content-box; /* the inline min-width is the PLOT's width; the paddings sit outside it */
+  box-sizing: content-box; /* the inline min-width is the plot's width; the paddings sit outside it */
 }
 @media (max-width: 480px) {
   .dd-card {
@@ -1470,18 +1251,16 @@ select.select-reset {
   .dd-scroll {
     overflow-x: auto;
   }
-  /* Only when the last column's label sits to the right of its dot: room for it inside the scroller. */
+  /* Room for a label to the right of the last column's dot. */
   .dd-inner.dd-edge-label {
     padding-right: var(--space-6);
   }
-  /* Denser columns (COL_MIN 24px): a 10px label is 15–17px wide, so neighbours at the same height
-     keep 7–9px of air; at 11px in 22px columns they were 3px apart and near-equal values ran together ("51%51%").
-     Scoped under .dd-scroll to outrank the base .dd-value rule, which comes later in this file. */
+  /* 10px labels in the denser phone columns, so near-equal values at the same height don't run together.
+     Scoped under .dd-scroll to outrank the base .dd-value rule, which comes later. */
   .dd-scroll .dd-value {
     font-size: var(--fs-3xs);
   }
 }
-/* The chart's legend: a wrapping row of swatch + words (the swatch is `.legend-dot`). */
 .dd-legend {
   display: flex;
   flex-wrap: wrap;
@@ -1493,16 +1272,13 @@ select.select-reset {
   align-items: center;
   gap: var(--space-2);
 }
-/* A season that is shown but not compared — a small sample, or a year with no reference: a ring,
-   not a filled dot. The same class draws the legend's swatch. -600, the reference dot's grey (hollow,
-   so the two still differ): the ring is the whole mark, and -500 was 2.57 / 2.31:1 against the card
-   (a11y review P7, 2026-09-27). */
+/* A season shown but not compared (a small sample, or no reference that year): a ring, not a dot. The
+   ring is the whole mark, so it uses -600 to clear 3:1. */
 .dd-hollow {
   background: transparent;
   border: 2px solid var(--color-neutral-600);
   box-sizing: border-box;
 }
-/* A season column: the click target for the row highlight. */
 .dd-col {
   cursor: pointer;
   border-radius: 4px;
@@ -1510,18 +1286,13 @@ select.select-reset {
 .dd-col.is-selected {
   background-color: color-mix(in srgb, var(--color-neutral-900) 8%, transparent);
 }
-/* A missed year: a faint diagonal hatch — the chart's "no season here" mark. A "—" glyph in the
-   column sat by the middle gridline and read as a stray mark; a hatch is texture, not a value.
-   Thin 1px lines every 6px at 10% ink, so the band and gridlines still show through. Set as a
-   background-image so the selection wash (a background-color) can sit under it. */
+/* A missed season: a faint hatch, which reads as texture rather than a value. A background-image, so the
+   selection wash (a background-color) can sit under it. */
 .dd-col.dd-missed {
   background-image: repeating-linear-gradient(-45deg, transparent 0 5px, color-mix(in srgb, var(--color-text) 10%, transparent) 5px 6px);
 }
 
-/* — the chart's value labels: each season's number printed beside the player's dot (the chart
-   had none once the clickable subject season went, and its only readout was a mouse-only title).
-   Condensed face + tabular figures so a label fits a ~40px column; ink, not the dot's color —
-   10–11px red or blue text on the band fails as readable. */
+/* Each season's number beside its dot, in ink: small red or blue text on the band isn't readable. */
 .dd-value {
   position: absolute;
   font-family: var(--font-heading);
@@ -1536,13 +1307,9 @@ select.select-reset {
 }
 
 
-/* — a <select> as a section title (components/TitleSelect.tsx; the drill-down's stat
-   picker, which doubles as its heading). The visible title is a span in the heading face (type set
-   inline in the component); the native select lies over it invisible at the normal size, so the
-   browser's popup menu is normal-sized (Safari sizes the menu by the select's font and ignores
-   <option> styling) and the box is exactly the text's width. No box until the pointer or focus is on
-   it — a boxed headline read as an input; the chevron says "control" — and it hangs out to the left by
-   its own padding + hairline so the text lines up with the column. — */
+/* — a <select> as a section title (components/TitleSelect.tsx): the visible title is a span, and the real
+   select lies over it, invisible, so the browser's menu stays normal-sized (Safari sizes the menu by the
+   select's font). It hangs left by its padding and border so the text lines up with the column. — */
 .select-wrap.is-title {
   padding: var(--space-1) 34px var(--space-1) var(--space-2);
   margin-left: calc(-1 * (var(--space-2) + 1px));
@@ -1552,11 +1319,11 @@ select.select-reset {
 .select-wrap.is-title:hover {
   border-color: var(--color-divider);
 }
-/* The ring the global :focus-visible rule would draw on the (invisible) select, drawn on the wrapper. */
+/* The focus ring, drawn on the wrapper because the select is invisible. */
 .select-wrap.is-title:has(select:focus-visible) {
   outline: 2px solid var(--color-text);
   outline-offset: 2px;
-  border-color: var(--color-divider); /* the hairline, as on hover — a dark border + the ring read as a double frame */
+  border-color: var(--color-divider);
 }
 .select-title-label {
   display: inline-block;
@@ -1578,22 +1345,14 @@ select.select-reset {
   width: 14px;
   height: 8px;
   right: 10px;
-  top: calc(50% + 2px); /* a couple of px below center (user's tuning) */
+  top: calc(50% + 2px);
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
-   HIGH CONTRAST (Windows forced colors) — the data keeps its colors.
-   Forced colors swap every author color for the user's palette: measured 2026-09-26, the heatmap
-   went all one fill, the chart's dots and the legend swatches vanished, the color key emptied and
-   the hollow cells lost their outline (a box-shadow, which forced colors drop). Here the color IS
-   the content — "the colors are the whole point" (user, 2026-09-26) — so only the pieces whose color
-   is the data opt out (`forced-color-adjust: none`, which does nothing outside forced colors);
-   text, grounds, rules and controls still follow the user's palette. A cell keeps its own tested
-   pairing (its value on its fill). The dots and swatches sit on the user's ground, which can be any
-   color: against black or white they clear 3:1 in both themes (lowest 3.63), but a dark-grey ground
-   like #2d3236 drops the dark theme's blue to 2.62 (computed) — so in forced colors each dot and
-   swatch gets a 1px ring in the user's text color, and the key a border in it, which contrast with
-   that ground whatever it is. (The compare bar's pressed segment has its own rule, above.)
+   HIGH CONTRAST (Windows forced colors). Forced colors replace every color with the user's palette,
+   but here the color is the data, so the pieces whose color is data opt out; text, backgrounds, rules
+   and controls still follow the palette. The dots, swatches and key get an edge in the user's text
+   color, so they contrast with any background the user picks.
    ══════════════════════════════════════════════════════════════════════ */
 .hm-cell:not(.hm-muted):not(.hm-empty),
 .dd-dot,
@@ -1602,30 +1361,26 @@ select.select-reset {
   forced-color-adjust: none;
 }
 @media (forced-colors: active) {
-  /* An exempt cell would draw its focus ring in the theme's ink, outside the cell on the user's
-     ground (dark ink on a black ground = no ring): the ring takes the system highlight instead. */
+  /* An opted-out cell would draw its ring in the theme's ink on the user's background (dark on black:
+     invisible). */
   .hm-cell:focus-visible {
     outline-color: Highlight;
   }
-  /* A hollow (small-sample) cell follows the user's palette; its outline, a box-shadow elsewhere,
-     is redrawn as an inset outline in the user's text color so the cell still reads as hollow. */
+  /* Forced colors drop box-shadows, so the hollow outline and the hover ring become outlines. */
   .hm-muted {
     outline: 1.5px solid CanvasText;
     outline-offset: -1.5px;
   }
-  /* The hover ring is a box-shadow too; cells that follow the palette get an outline instead. */
   .hm-muted:hover,
   .hm-empty:hover {
     outline: 2px solid Highlight;
     outline-offset: -2px;
   }
-  /* The exempt dots, swatches and key, edged in the user's text color (see the banner). */
   .dd-dot,
   .legend-dot:not(.dd-hollow) {
     box-shadow: 0 0 0 1px CanvasText;
   }
-  /* The stat picker's ▾ is a background color through a mask, which forced colors swap for the ground
-     — it vanished. It is a control's cue, not data: drawn in the user's text color (a11y review P9). */
+  /* The chevron is a background seen through a mask, which forced colors would erase. */
   .select-wrap::after {
     forced-color-adjust: none;
     background: CanvasText;

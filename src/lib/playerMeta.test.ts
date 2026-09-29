@@ -39,7 +39,7 @@ describe("playerMeta", () => {
     const cooper = summary({ active: false, firstYear: 1997, lastYear: 2003 }); // no position on record
     expect(playerMeta(cooper, true)).toEqual({ shown: "1997–2003", spoken: "1997–2003" });
     // ESPN's `active` is an on-a-roster flag, not a retirement record: a player waived mid-2026 is
-    // inactive with a 2026 season. The line must not call them retired (user, 2026-09-25).
+    // inactive with a 2026 season. The line must not call them retired.
     const waived = summary({ active: false, pos: "G", firstYear: 2020, lastYear: 2026 });
     expect(playerMeta(waived, true).shown).toBe("2020–2026 · G");
     expect(Object.values(playerMeta(waived, true)).join(" ")).not.toMatch(/retired/i);
@@ -47,7 +47,7 @@ describe("playerMeta", () => {
   });
 });
 
-describe("the spoken line (screen-reader review, 2026-09-29)", () => {
+describe("the spoken line", () => {
   it("speaks the position as its word, and an unknown code as written", () => {
     expect(positionPart("F")).toEqual({ shown: "F", spoken: "forward" });
     expect(positionPart("X")).toEqual({ shown: "X", spoken: "X" });

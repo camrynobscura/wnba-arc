@@ -2,7 +2,7 @@ import { ordinal, type CareerSummary as Summary } from "../lib/deviation";
 
 interface CareerSummaryProps {
   summary: Summary;
-  /** The word after the number, in full ("points"; "%" for a shooting %) — what a screen reader hears. */
+  /** The word after the number, in full ("points"; "%" for a shooting %): what a screen reader hears. */
   unit: string;
   /** The same word as printed ("PTS"). When it differs from `unit`, the short form is shown and
       hidden from assistive tech, and the full word is given to it instead: "14.3 PTS" on screen,
@@ -13,13 +13,11 @@ interface CareerSummaryProps {
 }
 
 /**
- * The career at a glance for one stat: a row of "plates" — high, low, career average, best league
- * rank — each a bordered cell with its label sitting on the border. A description list: the label is the name, and
- * the number WITH its note ("26.9 points", "2024") is the one value. They were two <dd>s until 2026-09-29, but the
- * spec says "the values within a group are alternatives" — the year isn't another answer to "High", it's part of
- * the answer (and VoiceOver counted every <dt> and <dd>: "High, 1 of 12").
- * Chosen over tiles, stat lines, a range strip and prose on a side-by-side preview (DECISIONS,
- * 2026-09-18); the plates are equal-width and the labels are kept short enough never to wrap.
+ * The career at a glance for one stat: high, low, career average and best rank, as a row of bordered
+ * plates with each label sitting on its border. A description list with one value per label: the number
+ * with its note ("26.9 points, 2024"). The year isn't a second answer to "High" but part of the answer,
+ * and the HTML spec says the values in a group are alternatives. The labels are kept short enough never
+ * to wrap.
  */
 export function CareerSummary({ summary: s, unit, unitShort, rankAmong }: CareerSummaryProps) {
   // `said`: the label as a screen reader should say it, where the short printed one reads badly ("avg").
@@ -28,22 +26,21 @@ export function CareerSummary({ summary: s, unit, unitShort, rankAmong }: Career
     { k: "Low", v: s.low.fmt, u: unit, n: String(s.low.year) },
     { k: "Career avg", said: "Career average", v: s.careerAvg, u: unit, n: `${s.seasons} season${s.seasons === 1 ? "" : "s"}` },
   ];
-  // "WNBA 2026" / "Forwards 2026", not "2026 in the league": the plate is ~100px wide and the long
-  // form wrapped; the crowd is still named — the rank follows the compare mode.
+  // "WNBA 2026" / "Forwards 2026": a plate is ~100px wide and a longer form wrapped. The crowd is named
+  // because the rank follows the comparison mode.
   if (s.bestRank) plates.push({ k: "Best rank", v: ordinal(s.bestRank.rank), q: `of ${s.bestRank.pool}`, n: `${rankAmong} ${s.bestRank.year}` });
 
   return (
     <>
-      {/* Names the plates for screen readers: a heading they can jump to (a native element — the
-          aria-label this list used to carry is ignored on a <dl>, which has no role that takes a
-          name). Hidden: on screen the plates speak for themselves. */}
+      {/* A heading for screen readers to jump to (an aria-label is ignored on a <dl>, which has no role that
+          takes a name). Hidden: on screen the plates speak for themselves. */}
       <h3 className="sr-only">Career summary</h3>
       <dl className="cs">
         {plates.map((p) => (
           <div className="cs-plate" key={p.k}>
-            {/* The label is drawn in capitals (CSS), and Safari hands VoiceOver the capitals: "LOW" was spelled
-                out letter by letter (user, 2026-09-29). So the drawn label is hidden from it and a plain copy
-                is read instead ("Low", "Career average"). */}
+            {/* The label is drawn in capitals (CSS), and Safari hands VoiceOver the capitals, so "LOW" was
+                spelled out letter by letter. The drawn label is hidden from it and a plain copy is read
+                instead ("Low", "Career average"). */}
             <dt className="cs-k">
               <span aria-hidden="true">{p.k}</span>
               <span className="sr-only">{p.said ?? p.k}</span>

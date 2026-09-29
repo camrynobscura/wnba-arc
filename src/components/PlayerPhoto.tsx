@@ -2,14 +2,12 @@ import { useState, type CSSProperties } from "react";
 import { photoUrls } from "../data/stats";
 
 interface PlayerPhotoProps {
-  /** The player's ESPN id — the headshot is looked up by it. */
+  /** The player's ESPN id, which the headshot is looked up by. */
   espn: string;
-  /** Player name — used only for the initials fallback. The photo is decorative
-      (the name always appears as adjacent text), so it's hidden from the a11y tree. */
+  /** Used only for the initials fallback. */
   name: string;
   size: number;
-  /** Team overlay color (`teamTint()` in data/teams.ts). Null/undefined → the CSS falls back
-      to the neutral overlay (`--duotone-neutral`) — an off-roster player, or a team the table doesn't know. */
+  /** The team's tint (`teamTint()` in data/teams.ts). Without one the CSS uses `--duotone-neutral`. */
   tint?: string | null;
 }
 
@@ -26,8 +24,8 @@ export function PlayerPhoto({ espn, name, size, tint }: PlayerPhotoProps) {
     .slice(0, 2)
     .toUpperCase();
 
-  // The team color rides on a custom property the .duotone::after overlay reads
-  // (theme.css); React's CSSProperties doesn't type custom properties, hence the cast.
+  // The team color rides on a custom property the .duotone::after overlay reads (theme.css); React's
+  // CSSProperties doesn't type custom properties, hence the cast.
   const style: CSSProperties = {
     width: size,
     height: size,
@@ -43,8 +41,7 @@ export function PlayerPhoto({ espn, name, size, tint }: PlayerPhotoProps) {
   return (
     <div
       className="duotone player-photo"
-      // Decorative: the name is always shown as text beside the photo, so an alt
-      // here would just duplicate it (WCAG 1.1.1). Hide the whole avatar from SR.
+      // Decorative: the name is always shown as text beside the photo, so alt text would repeat it.
       aria-hidden="true"
       style={style}
     >

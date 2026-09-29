@@ -89,8 +89,6 @@ describe("toMode — the heatmap's reference mode from ?vs=", () => {
   });
 
   it("is the ONE reader of ?vs= — the drill-down follows the same mode, self included", () => {
-    // There used to be a second reader (toTarget) that mapped self → league for the drill-down,
-    // which made the two views on the page disagree by default. Gone: one param, one meaning.
     expect(toMode("self")).toBe("self");
   });
 });

@@ -20,12 +20,11 @@ import { TitleSelect } from "./TitleSelect";
 interface StatDrilldownViewProps {
   player: PlayerDetail;
   stat: StatDetail;
-  /** Which stat is shown — drives the section's stat dropdown. */
+  /** Which stat is shown; drives the section's stat picker. */
   statKey: StatKey;
-  /** The stat's one-line description (STATS[].desc); shown under its name without the lead-in. */
+  /** The stat's one-line description (STATS[].desc), shown under its name without the lead-in. */
   desc: string;
-  /** The page's reference mode — set in the sticky CompareBar, which stays in reach while the
-      reader is down here (it replaced a synced second dropdown in this header). */
+  /** The page's reference mode, set in the sticky CompareBar, which stays in reach down here. */
   mode: HeatmapMode;
   onStatChange: (key: StatKey) => void;
 }
@@ -33,34 +32,29 @@ interface StatDrilldownViewProps {
 const PLOT_H = 220; // px
 const LABEL_GAP = 12; // px from a dot's center to its value label
 // The narrowest a season column gets before the plot scrolls sideways (phones). A column is a click
-// target (it highlights its table row), so 24 — WCAG 2.5.8's minimum; at 22 neighbouring targets touched
-// (a11y review O6, 2026-09-27). A phone's 10px value label is 15–17px wide, leaving neighbours 7–9px
-// apart. Nine columns fit a 320px phone; more scroll.
+// target (it highlights its table row), so 24px, WCAG 2.5.8's minimum. Nine columns fit a 320px phone.
 const COL_MIN = 24; // px
-// A dot in the bottom 12% of the plot (~26px of PLOT_H) has no room for its value label below it —
-// the label would land on the year axis — so the label goes to the dot's right instead.
+// A dot in the bottom 12% of the plot (~26px of PLOT_H) has no room for its value label below it (it
+// would land on the year axis), so the label goes to the dot's right instead.
 const FLOOR_LABEL_ZONE = 12; // % of the plot's height
 
 /**
- * One stat's year-by-year history — the career at a glance (plates), a per-season dumbbell chart
- * (the season's value vs. its reference), and the full yearly table. A **section of the player page**, below the heatmap, not its
- * own route: the heatmap is the overview, this is the detail for the one stat in the dropdown
- * (or reached via a heatmap cell's "See … history" link / Enter). The heading has tabIndex=-1 so
- * that link can move focus here for keyboard/screen-reader users.
+ * One stat's history: the career at a glance (plates), a chart of each season's value against its
+ * reference, and the yearly table. A section of the player page below the heatmap, not its own route.
+ * The heading has tabIndex=-1 so the heatmap's "See … history" link (or Enter on a cell) can move
+ * focus here.
  */
 export function StatDrilldownView({ player, stat, statKey, desc, mode, onStatChange }: StatDrilldownViewProps) {
   const bars = stat.bars;
   const n = bars.length;
-  // Click a chart column → that year's row lights up in the table (and the column itself), so a
-  // reader can find one season's numbers without counting rows. Transient (not in the URL), a
-  // second click clears it, and it survives a stat change (every stat has the same years). Pointer
-  // only, on purpose: the chart is aria-hidden and its columns are not focusable, so keyboard and
-  // screen-reader users — who read the table directly — see no change.
+  // Clicking a chart column highlights that year's table row (and the column), so a reader can find one
+  // season's numbers without counting rows. Not in the URL; a second click clears it, and it survives a
+  // stat change. Pointer only, on purpose: the chart is hidden from screen readers and its columns aren't
+  // focusable, and keyboard and screen-reader users read the table directly.
   const [selectedYear, setSelectedYear] = useState<number | null>(null);
   const toggleYear = (year: number) => setSelectedYear((cur) => (cur === year ? null : year));
-  // Bring the highlighted row into view when it isn't already (on a phone the table is a screen
-  // below the chart). Left alone when the row is fully visible, as on a desktop; otherwise centered
-  // — "nearest" would park it on the viewport's bottom edge, under a phone browser's toolbar.
+  // Bring the highlighted row into view when it isn't (on a phone the table is a screen below the
+  // chart). Centered: "nearest" would park it on the bottom edge, under a phone browser's toolbar.
   const tableRef = useRef<HTMLTableElement | null>(null);
   useEffect(() => {
     if (selectedYear == null) return;
@@ -71,13 +65,10 @@ export function StatDrilldownView({ player, stat, statKey, desc, mode, onStatCha
     row.scrollIntoView({ block: "center", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
   }, [selectedYear]);
   const colX = (i: number) => ((i + 0.5) / n) * 100; // column center, % from left
-  // The rank column shows whenever the API sent a rank, or a compared season has a reason it has none
-  // ("Needs 19 games to rank", "Needs 55 attempts from three or 19 made to rank"). A small-sample row's
-  // note never adds the column on its own: a page where every season is hollow keeps its table as it
-  // was (user, 2026-09-25). No percentile column: it sat beside Rank as a second ordinal running the
-  // other way, and the cell popover has it.
+  // The rank column shows when any season has a rank, or a compared season has a reason it has none. A
+  // small-sample row's note doesn't add the column on its own.
   const showRank = stat.tableRows.some((r) => r.rank != null || r.unranked != null);
-  // Year · value · GP · Min · [Rank] · Diff — for the equal-width <col>s.
+  // Year · value · GP · Min · [Rank] · Diff, for the equal-width <col>s.
   const colCount = 5 + (showRank ? 1 : 0);
   // The crowd a rank is among: the player's position in position mode, otherwise the league.
   const rankNoun = mode === "position" ? positionNoun(player.pos) : "players";
@@ -87,60 +78,51 @@ export function StatDrilldownView({ player, stat, statKey, desc, mode, onStatCha
   // A hollow dot on the chart (a small sample, or a full season with no reference) needs its
   // legend entry; most players have none.
   const anyNotCompared = bars.some((b) => b.kind === "small" || (b.kind === "full" && b.up == null));
-  // Where a column's value label sits relative to its dot (see the column render below). Computed
-  // here as well for the last column: a label to the RIGHT of the last dot reaches past the plot's
-  // edge, which a phone's scroller clips — so the inner keeps a right margin in that one case.
+  // Where a column's value label sits relative to its dot (see the column render below). Also needed
+  // here for the last column: a label to the right of the last dot reaches past the plot's edge, which a
+  // phone's scroller clips, so the plot keeps a right margin in that one case.
   const sideFor = (b: (typeof bars)[number]): "above" | "below" | "right" => (b.up !== false ? "above" : b.hPct != null && b.hPct < FLOOR_LABEL_ZONE ? "right" : "below");
   const lastLabelRight = n > 0 && bars[n - 1].kind !== "missed" && sideFor(bars[n - 1]) === "right";
 
   const renderRow = (r: StatTableRow) => (
     <tr key={r.year} className={r.year === selectedYear ? "is-selected" : undefined}>
       {/* The year is the row's header, so a screen reader moving down a column says which season each
-          number belongs to ("2024, 1st of 123"). Styled exactly like the other body cells (theme.css). */}
+          number belongs to ("2024, 1st of 123"). */}
       <th scope="row">
         {r.year}
-        {/* A missed season is a row of dashes on screen; say why for a screen reader, which
-            doesn't see the heatmap's gap. (The page no longer carries a separate note.) */}
+        {/* A missed season is a row of dashes on screen; say why for a screen reader. */}
         {r.missed && <span className="sr-only">, {(r.reason || "did not play").toLowerCase()}</span>}
         {/* No visible small-sample marker on the year: the rank column's dash carries the note as a
-            tip. Spoken here, with its count, because the rank column isn't always shown (a page where
-            every season is hollow has none) and so the rank cell can skip saying it twice. */}
+            tooltip. Spoken here because the rank column isn't always shown. */}
         {r.note && !r.missed && <span className="sr-only">, {lowerFirst(r.note)}</span>}
         {r.partial && !r.missed && <span className="sr-only">, partial season</span>}
       </th>
-      {/* The stat's own value, first after the year. A shooting % used to add made/attempted
-          columns here (3PM/3PA, FGM/FGA); cut 2026-09-26 (user): they crowded a phone's table into
-          overlapping cells, and a thin season's count is in its rank dash's tip now. */}
       <td className={r.missed ? "text-muted" : undefined}>{r.valFmt}</td>
       <td className="text-muted">{r.gp ?? "—"}</td>
       <td className="text-muted">{r.min != null ? r.min.toFixed(1) : "—"}</td>
       {showRank && (
         <td>
-          {/* The rank column's tips are NOT Tab stops (tabIndex −1; user, 2026-09-27 — a11y review O7):
-              one per season made the table most of the page's stops (14 of 25 on A'ja's). Nothing is
-              lost: hover and tap still open them, a screen reader gets the text in the cell, and the
-              keyboard reaches the same rank + pool / reason in the heatmap cell's popover. */}
+          {/* The rank tooltips aren't Tab stops: one per season made the table most of the page's stops.
+              Hover and tap still open them, a screen reader gets the text in the cell, and the keyboard
+              reaches the same rank in the heatmap cell's popover. */}
           {r.rank != null && r.pool != null ? (
-            // The place alone, so the column skims as one number per row; the pool is in the tooltip —
-            // hover or tap. "34th of 187" on every row right-aligned on the pool and left the ranks
-            // ragged. The tooltip repeats the place ("34th of 187 players.", as the popover's Rank row):
-            // "of 187 players." read as a broken sentence (user, 2026-09-27). The visually hidden copy
-            // keeps the pool in the cell's own text for a screen reader moving through the table cell by
-            // cell, where a tooltip description isn't reliably spoken.
+            // The place alone, so the column skims as one number per row; the pool is in the tooltip. The
+            // hidden copy keeps the pool in the cell's own text for a screen reader moving cell by cell,
+            // where a tooltip description isn't reliably spoken.
             <>
               <InfoTip label={ordinal(r.rank)} tip={`${ordinal(r.rank)} of ${r.pool} ${rankNoun}`} tabIndex={-1} />
               <span className="sr-only"> of {r.pool}</span>
             </>
           ) : r.unranked ? (
-            // Compared but under the rank floor: the dash carries the reason the same way a
-            // rank carries its pool, and says it outright for a screen reader.
+            // Compared but under the rank floor: the dash carries the reason the way a rank carries its
+            // pool, and says it outright for a screen reader.
             <>
               <InfoTip label="—" name="Not ranked" tip={r.unranked} tabIndex={-1} />
               <span className="sr-only"> {r.unranked}</span>
             </>
           ) : r.note ? (
-            // A small sample (hollow cell): the dash carries the heatmap footnote's first sentence
-            // ("Small sample: 9 of 44 games"). The year cell already spoke it.
+            // A small sample: the dash carries the note ("Small sample: 9 of 44 games"). The year cell
+            // already spoke it.
             <InfoTip label="—" name="Not ranked" tip={r.note} tabIndex={-1} />
           ) : (
             <span className="text-muted">—</span>
@@ -158,16 +140,10 @@ export function StatDrilldownView({ player, stat, statKey, desc, mode, onStatCha
       className="dd-section"
       style={{ marginTop: "var(--space-8)", paddingTop: "var(--space-6)", borderTop: "2px solid var(--color-divider)" }}
     >
-      {/* Header: the stat picker IS the title — a <select> set in the heading face ("Blocks ▾"),
-          the one-line description under it. Until 2026-09-23 this was an <h2> "Blocks", the
-          description, and then a labelled "Stat" dropdown reading "Blocks" again 60px below: the same
-          fact twice, plus a row. The real heading is visually hidden — it keeps the section in the
-          outline / heading navigation and stays the focus target for the heatmap's "See … history"
-          link (tabIndex=-1). The description stays: for the shooting %s it is the only always-visible
-          explanation on the page (the column InfoTips need a hover / tap). */}
+      {/* The stat picker is the title: a <select> in the heading face ("Blocks ▾"), with the description
+          under it. The real heading is visually hidden; it keeps the section in the heading outline and
+          is the focus target for the heatmap's "See … history" link. */}
       <div>
-        {/* A kicker names the section — without it a lone "Blocks ▾" had no context (user). Plain
-            text for sighted readers; the hidden heading below carries the section's name for AT. */}
         <div className="kicker" style={{ marginBottom: "var(--space-1)" }}>
           Stat detail
         </div>
@@ -180,7 +156,7 @@ export function StatDrilldownView({ player, stat, statKey, desc, mode, onStatCha
           options={STATS.map((s) => ({ value: s.key, label: s.label }))}
           onChange={(v) => onStatChange(v as StatKey)}
         />
-        {/* The description without its "Points — " lead-in: the title already says the name. */}
+        {/* The description without its "Points — " lead-in; the title already says the name. */}
         <div className="text-muted" style={{ fontSize: "var(--fs-sm)", marginTop: "var(--space-1)" }}>
           {statDescBody(desc)}
         </div>
@@ -188,13 +164,7 @@ export function StatDrilldownView({ player, stat, statKey, desc, mode, onStatCha
 
       {stat.summary && <CareerSummary summary={stat.summary} unit={stat.unit} unitShort={stat.unitShort} rankAmong={rankAmong} />}
 
-      {/* No caption naming the reference here: the "Compare to" control above and the legend below
-          both say it ("League avg"), and the sentence was a third copy. No note for position-years
-          with no bucket either: those cells' popover says "No forward avg that season", the chart
-          draws a neutral dot, the table a "—". */}
-
-      {/* Legend for the chart — hidden from assistive tech with the chart it explains (below): a
-          screen reader gets every number from the table, so the legend was a key to nothing. */}
+      {/* The chart's legend, hidden from screen readers along with the chart: the table has every number. */}
       <div aria-hidden="true" style={{ margin: "var(--space-5) 0 var(--space-3)" }}>
         <div className="dd-legend">
           <span className="dd-legend-item">
@@ -218,10 +188,8 @@ export function StatDrilldownView({ player, stat, statKey, desc, mode, onStatCha
         </div>
       </div>
 
-      {/* The plot is decorative for assistive tech: every number it draws is in the table below.
-          Hover titles serve mouse users. Layout: a fixed y-axis column on the left, then the plot
-          in a scroller — on a phone a long career (each season at least COL_MIN wide) scrolls
-          sideways while the axis labels stay put; on desktop nothing scrolls. */}
+      {/* Hidden from screen readers: every number it draws is in the table below. A fixed y-axis column,
+          then the plot in a scroller; on a phone a long career scrolls sideways under the axis labels. */}
       <div className="card dd-card" aria-hidden="true">
         {stat.chartFallback ? (
           <div className="text-muted" style={{ padding: "var(--space-12) var(--space-2)", textAlign: "center", fontSize: "var(--fs-sm)" }}>
@@ -238,10 +206,8 @@ export function StatDrilldownView({ player, stat, statKey, desc, mode, onStatCha
                 ))}
               </div>
             </div>
-            {/* Out of the Tab order: on a phone this scrolls, and Chromium and Firefox then make a
-                scroller a Tab stop of its own — inside the hidden chart, so a screen reader said nothing
-                there, and in Firefox the sticky bar could cover it (user, 2026-09-27: skip it; every
-                number is in the table). */}
+            {/* Out of the Tab order: Chromium and Firefox make a scroller a Tab stop of its own, and this
+                one is inside the hidden chart, so a screen reader said nothing there. */}
             <div className="dd-scroll" tabIndex={-1}>
               <div className={"dd-inner" + (lastLabelRight ? " dd-edge-label" : "")} style={{ minWidth: n * COL_MIN }}>
                 <div style={{ position: "relative", height: PLOT_H }}>
@@ -250,7 +216,7 @@ export function StatDrilldownView({ player, stat, statKey, desc, mode, onStatCha
                     <div key={t.label + t.yPct} style={{ position: "absolute", left: 0, right: 0, top: `${100 - t.yPct}%`, borderTop: "1px solid var(--color-divider)" }} />
                   ))}
 
-                  {/* Vertical column dividers between seasons */}
+                  {/* Column dividers between seasons */}
                   {bars.map((_, i) =>
                     i > 0 ? (
                       <div
@@ -260,14 +226,11 @@ export function StatDrilldownView({ player, stat, statKey, desc, mode, onStatCha
                     ) : null,
                   )}
 
-                  {/* One column per season on the timeline. A full season: the value dot and the
-                      reference dot, joined by a connector (the gap = that season's deviation). A small
-                      sample: a hollow dot with its value, nothing to compare to. A missed year: a
-                      hatched column (the heatmap row and the table row show it as "—"). */}
+                  {/* One column per season. A full season: the value dot and the reference dot, joined
+                      by a connector. A small sample: a hollow dot with its value. A missed year: a
+                      hatched column. */}
                   {bars.map((b, i) => {
                     const colStyle = { position: "absolute" as const, left: `${colX(i)}%`, top: 0, height: "100%", width: `${100 / n}%`, transform: "translateX(-50%)", zIndex: 3 };
-                    // .dd-col: the click target; .is-selected = a wash over the whole column (not resized
-                    // dots); .dd-missed = a faint diagonal hatch, the chart's "no season" mark.
                     const colClass = "dd-col" + (b.year === selectedYear ? " is-selected" : "") + (b.kind === "missed" ? " dd-missed" : "");
                     const onClick = () => toggleYear(b.year);
                     if (b.kind === "missed") return <div key={b.year} className={colClass} title={`${b.year}: did not play`} style={colStyle} onClick={onClick} />;
@@ -275,11 +238,9 @@ export function StatDrilldownView({ player, stat, statKey, desc, mode, onStatCha
                     const yVal = 100 - b.hPct;
                     const yBase = b.basePct != null ? 100 - b.basePct : null;
                     const dot = 10;
-                    // The value is printed beside the player's dot, on the side AWAY from the reference
-                    // dot (above when at/above it, below when under it) so it never sits on the
-                    // connector, LABEL_GAP px from the dot's center (the dot's radius is 5, so ~7px of
-                    // air — at 8 it read as cramped). A dot within FLOOR_LABEL_ZONE of the plot's floor has no room
-                    // below — the label would land on the year axis — so there it goes to the dot's right.
+                    // The value sits beside the player's dot on the side away from the reference dot, so
+                    // it never sits on the connector. A dot within FLOOR_LABEL_ZONE of the floor has no
+                    // room below, so its label goes to the right.
                     const labelSide = sideFor(b);
                     const notCompared = b.kind === "small" || b.up == null;
                     const title =
@@ -324,7 +285,7 @@ export function StatDrilldownView({ player, stat, statKey, desc, mode, onStatCha
                             height: dot,
                             borderRadius: "50%",
                             // Red above the reference, blue below. Not compared (a small sample, or a
-                            // position-year with no bucket): a hollow ring — a value, but no verdict.
+                            // position-year with no group): a hollow ring, a value with no verdict.
                             background: notCompared ? undefined : b.up ? "var(--hm-above)" : "var(--hm-below)",
                             transform: "translate(-50%, -50%)",
                           }}
@@ -362,16 +323,12 @@ export function StatDrilldownView({ player, stat, statKey, desc, mode, onStatCha
         )}
       </div>
 
-      {/* Yearly table — one full-width table, zebra-striped, in equal columns (the <col>s) while they
-          fit. A column never shrinks below its widest cell: when the columns can't fit, the table
-          scrolls sideways in its own box instead of letting text run into the next column (user,
-          2026-09-26 — a fixed layout let "42.0%" spill into its neighbor at 390px). Missed seasons
-          show as "—" rows (the reason is in the season cell for screen readers). */}
+      {/* The yearly table: equal columns while they fit. A column never shrinks below its widest cell, so
+          when they can't fit, the table scrolls sideways instead of text running into the next column. */}
       <div className="table-scroll" style={{ marginTop: "var(--space-6)" }}>
-        {/* Named by the section's hidden heading ("Points, year by year"), so a screen reader landing on
-            the table hears which stat it holds — it was aria-label="Season stats" for every stat. Not a
-            <caption>, the native way: WebKit repaints the header rule lighter under every column but the
-            first when the table has a visually hidden caption (measured 2026-09-26; the user saw it in Safari). */}
+        {/* Named by the section's hidden heading ("Points, year by year"), so a screen reader hears which
+            stat the table holds. Not a <caption>: WebKit repaints the header rule lighter under every
+            column but the first when a table has a visually hidden caption. */}
         <table ref={tableRef} className="table" aria-labelledby="drilldown-title">
           <colgroup>
             {Array.from({ length: colCount }, (_, i) => (
@@ -380,11 +337,9 @@ export function StatDrilldownView({ player, stat, statKey, desc, mode, onStatCha
           </colgroup>
           <thead>
             <tr>
-              {/* "Year", not "Season": at 46px the longer word overran its 40px phone column and
-                  touched the next header. The cells are years, so nothing is lost. */}
+              {/* "Year", not "Season": the longer word overran its 40px phone column. */}
               <th scope="col">Year</th>
-              {/* The heatmap column header's tip, word for word (STATS[].desc), so every header in
-                  the table explains itself the same way (user, 2026-09-26). */}
+              {/* The heatmap header's tooltip, word for word (STATS[].desc). */}
               <th scope="col">
                 <InfoTip label={stat.short} tip={desc} />
               </th>
@@ -398,16 +353,13 @@ export function StatDrilldownView({ player, stat, statKey, desc, mode, onStatCha
                 <th scope="col">
                   <InfoTip
                     label="Rank"
-                    // "Qualified … in this dataset" until 2026-09-27 (user: no jargon) — the crowd is the
-                    // players over the games bar, and for a shooting % the shot floor too (lib/deviation).
                     tip={`Rank among ${mode === "position" ? rankNoun : "all players"} ${stat.pct ? "with enough games and shots" : "who played enough games"} that season (1st = best)`}
                   />
                 </th>
               )}
               <th scope="col">
-                {/* "Diff", as the popover's "Difference" row: "vs avg" (with its space) wrapped to two
-                    lines in a phone column and lifted the whole header row. A shooting %'s cells drop
-                    their " pp" for the same reason; the unit lives here instead. */}
+                {/* "Diff": "vs avg" wrapped to two lines in a phone column. A shooting %'s cells drop their
+                    " pp" for the same reason, so the unit is in this tooltip. */}
                 <InfoTip label="Diff" tip={`How far above or below ${referencePhrase(mode, player.pos)} that season${stat.pct ? ", in percentage points" : ""}`} />
               </th>
             </tr>

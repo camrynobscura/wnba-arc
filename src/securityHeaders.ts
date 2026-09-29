@@ -1,22 +1,19 @@
 /**
  * The site's security headers, as Netlify's `_headers` file. vite.config.ts builds it into dist from the finished
- * index.html, so the two things that would otherwise go stale on their own can't: the hashes of the page's inline
- * scripts (the theme script, the analytics loader) and the API's address (VITE_API_BASE). Security review F1,
- * 2026-09-28. Everything the page loads, and from where:
+ * index.html, so the two things that would otherwise go stale can't: the hashes of the page's inline scripts (the
+ * theme script, the analytics loader) and the API's address (VITE_API_BASE). Everything the page loads, and from
+ * where:
  *   scripts  — our bundle, the two inline scripts (by hash), Cloudflare's analytics beacon (live site only);
  *   styles   — our stylesheet (React's style props go through the CSSOM, which a CSP doesn't restrict);
  *   images   — ours, `data:` (the stat picker's ▾ in theme.css), ESPN's headshots;
  *   fonts    — ours (bundled Barlow);
  *   connects — ours, the API, Cloudflare's beacon reports.
- * The policy is ENFORCED. It shipped report-only first, and the live site (3 engines × 5 pages, the Cloudflare beacon
- * on) flagged nothing while a deliberate violation was flagged in all three (2026-09-28). A new outside host or
- * inline script must be added here, or the browser blocks it. X-Frame-Options: DENY says the same as frame-ancestors
- * for older browsers (the site is never embedded — the portfolio uses a screenshot, user 2026-09-28). HSTS comes
- * from Netlify.
+ * The policy is enforced: a new outside host or inline script must be added here, or the browser blocks it.
+ * X-Frame-Options: DENY says what frame-ancestors does, for older browsers. HSTS comes from Netlify.
  *
  * The same file carries one caching rule (`ASSET_CACHE`): Netlify's default makes a browser re-check every file with
- * the server on every visit, and Safari does it on every refresh — the fonts included, so the page drew its text in
- * the stand-in font until the answer came (measured 2026-09-28, fonts.css).
+ * the server on every visit, and Safari on every refresh, fonts included, so the page drew its text in the stand-in
+ * font until the answer came.
  */
 
 /** The bodies of the inline (no `src`) `<script>` elements, exactly as a browser hashes them for a CSP. */
@@ -52,10 +49,10 @@ export function contentSecurityPolicy({ apiOrigin, scriptHashes }: HeaderInputs)
 }
 
 /**
- * The built files under /assets/ keep for a year, without a re-check. Safe because Vite names every one of them by a
- * hash of its contents: a changed file is a new name, and index.html — which names them, and keeps Netlify's
- * re-check-every-time default — always points at the current ones. `immutable` is what stops Safari re-checking on
- * a refresh (WebKit honors it for https responses; Chrome no longer re-checks subresources on a refresh at all).
+ * The built files under /assets/ keep for a year, without a re-check. Safe because Vite names each one by a hash of
+ * its contents: a changed file gets a new name, and index.html (which keeps Netlify's re-check-every-time default)
+ * always points at the current ones. `immutable` is what stops Safari re-checking on a refresh (WebKit honors it for
+ * https responses; Chrome no longer re-checks subresources on a refresh at all).
  */
 export const ASSET_CACHE = { path: "/assets/*", value: "public, max-age=31536000, immutable" };
 

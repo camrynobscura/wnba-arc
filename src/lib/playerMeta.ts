@@ -4,8 +4,7 @@ import { positionName } from "./deviation";
 /**
  * A player's line both ways: `shown` as drawn ("Las Vegas Aces · C · #22"), `spoken` as a screen reader should say it
  * ("Las Vegas Aces, center, #22"). Read aloud, a lone "C" is unclear (it sounds like "see"), and VoiceOver says
- * nothing for the "·", so the parts ran together. The spoken line uses the position's word and commas
- * (screen-reader review, user 2026-09-29). `MetaLine` draws the one and speaks the other.
+ * nothing for the "·", so the parts ran together. `MetaLine` draws the one and speaks the other.
  */
 export interface MetaText {
   shown: string;
@@ -36,19 +35,15 @@ export function careerSpan(p: Pick<PlayerSummary, "firstYear" | "lastYear">): st
 }
 
 /**
- * The line under a player's name: what they are now, then only the parts we actually know —
- * never a separator with nothing on one side (the old fixed template printed " · · #" for a
- * player with no team, often no position, and no meaningful number).
- *   On a roster:  "Las Vegas Aces · C · #22" — a team-less active player (international duty,
- *                 say) just loses the team.
- *   Off a roster: "1997–2003 · G" — the career span stands in for the team, the position only
- *                 when ESPN has one (most players from before 2012 have none), no number (it's
- *                 their last, not theirs).
- * The off-roster line does NOT say "Retired" (it did until 2026-09-25). `active` is ESPN's
- * "on a roster" flag, not a retirement record: 24 players with a 2026 season were already
- * inactive in September — Chennedy Carter, Teaira McCowan, Lexie Brown — waived, not retired.
- * The span says what we know ("played 2019 to 2026") without claiming why it ended.
- * `withJersey` is for the page header; search rows leave the number out.
+ * The line under a player's name: only the parts we know, never a separator with nothing on one side.
+ *   On a roster:  "Las Vegas Aces · C · #22" (a team-less active player just loses the team).
+ *   Off a roster: "1997–2003 · G": the career span stands in for the team, the position only when ESPN
+ *                 has one (most players from before 2012 don't), and no number (it's their last, not
+ *                 theirs).
+ * The off-roster line doesn't say "Retired": `active` is ESPN's "on a roster" flag, not a retirement
+ * record, and 24 players with a 2026 season were already inactive in September (waived, not retired).
+ * The span says what we know without claiming why it ended. `withJersey` is for the page header;
+ * search rows leave the number out.
  */
 export function playerMeta(p: PlayerSummary, withJersey = false): MetaText {
   return joinMeta(

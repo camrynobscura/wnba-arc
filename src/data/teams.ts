@@ -1,19 +1,16 @@
 /**
- * Current WNBA teams, keyed by the abbreviation our API sends as `teamAbbr` (which is what
- * the DB stores — note it says `PHO` for Phoenix where ESPN's own team endpoint says `PHX`).
+ * Current WNBA teams, keyed by the abbreviation the API sends as `teamAbbr` (it says `PHO` for Phoenix
+ * where ESPN's own team endpoint says `PHX`).
  *
  * `tint` is the headshot overlay color for that team. The overlay is a `mix-blend-mode: color`
- * layer (theme.css `.duotone::after`): it takes ONLY hue and saturation from this color and
- * keeps the photo's own lightness, at `--duotone-alpha` opacity. Consequences worth knowing:
- *   - one hex works in both themes (lightness comes from the photo, not from here);
- *   - a grey/black tint has no hue, so the photo goes greyscale — the Aces' grey is deliberate;
- *   - the four navies and the reds land in shared families; they were picked by eye anyway.
+ * layer (theme.css `.duotone::after`): it takes only hue and saturation from this color and keeps the
+ * photo's own lightness, at `--duotone-alpha` opacity. So one hex works in both themes, and a grey or
+ * black tint has no hue and turns the photo greyscale (the Aces' grey is deliberate).
  *
  * Sources: ESPN's team endpoint (`site.api.espn.com/apis/site/v2/sports/basketball/wnba/teams`,
  * `color` / `alternateColor`, fetched 2026-09-18) except Portland, whose pink is from the team's
- * logo sheet (ESPN lists a pale teal and black). Chosen per team on a side-by-side preview of
- * every candidate under real headshots; record in DECISIONS.md. Colors are data, not tokens:
- * they belong to teams, not to the design system.
+ * logo sheet (ESPN lists a pale teal and black). Colors are data, not design tokens: they belong to
+ * the teams.
  */
 export interface TeamInfo {
   name: string;
@@ -40,20 +37,17 @@ export const TEAMS: Record<string, TeamInfo> = {
 };
 
 /**
- * Headshot overlay color for a team, or null when we don't know the team — an off-roster
- * player (`teamAbbr` is null while they're e.g. on international duty) or an abbreviation
- * this table hasn't caught up with (a new franchise). Null means "use the neutral overlay"
- * (`--duotone-neutral`), which is what the CSS falls back to when no `--duotone-color` is set.
+ * The headshot tint for a team, or null when the team is unknown: an off-roster player (`teamAbbr` is
+ * null) or an abbreviation this table hasn't caught up with. Null means the CSS's neutral overlay.
  */
 export function teamTint(teamAbbr: string | null | undefined): string | null {
   if (!teamAbbr) return null;
   return TEAMS[teamAbbr]?.tint ?? null;
 }
 
-/** The same lookup by full team name ("Las Vegas Aces") — for the featured list, whose static
-    entries carry the name (pulled from the DB) but no abbreviation. Resolving from the one string
-    that is already hand-maintained beats adding a second field that could drift from it; an
-    unmatched name (a rebrand the table hasn't caught up with) degrades to the neutral overlay. */
+/** The same lookup by full team name ("Las Vegas Aces"), for the featured list, whose static entries
+    carry the name but no abbreviation. An unmatched name (a rebrand this table hasn't caught up with)
+    gets the neutral overlay. */
 const BY_NAME = new Map(Object.values(TEAMS).map((t) => [t.name, t.tint]));
 export function teamTintByName(teamName: string | null | undefined): string | null {
   if (!teamName) return null;

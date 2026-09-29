@@ -5,16 +5,14 @@ interface AboutViewProps {
   onBack: () => void;
 }
 
-// Rewritten 2026-09-27 (user): plain, spoken wording and short lists instead of dense paragraphs; the
-// intro sits under the title (no "What ARC shows" heading); "Arc", not "ARC". Every rule it states is
-// the code's — the games and shots minimums are lib/deviation's QUALIFYING_GAMES, COLOR_GAMES_FRACTION,
-// TINT_FLOOR and RANK_FLOOR, scaled to the player's own team's games — so change them together.
+// The games and shots minimums this page states are lib/deviation's QUALIFYING_GAMES,
+// COLOR_GAMES_FRACTION, TINT_FLOOR and RANK_FLOOR: change them together.
 const sectionStyle: React.CSSProperties = {
   marginTop: "var(--space-10)",
   paddingTop: "var(--space-8)",
   borderTop: "1px solid var(--color-divider)",
 };
-// A step under the title (32px, as the landing page's): section headings, not a second title.
+// A step under the title: section headings, not a second title.
 const h2Style: React.CSSProperties = {
   fontSize: "var(--fs-xl)",
   letterSpacing: "-0.01em",
@@ -22,10 +20,9 @@ const h2Style: React.CSSProperties = {
 };
 
 /**
- * Static "about" page: what Arc shows, how to read it, and where the data comes from. A top-level
- * view (not a modal) so the content has room and needs no focus-trap handling. Reachable from every
- * page's footer; "Back" returns the reader to where they came from (history back — AboutRoute; the
- * landing page for a cold link).
+ * The About page: what Arc shows, how to read it, and where the data comes from. Reached from every
+ * page's footer; "Back" returns to where the reader came from (AboutRoute: history back, or the landing
+ * page for a link opened directly).
  */
 export function AboutView({ onBack }: AboutViewProps) {
   // The heading takes focus when the page arrives by a page change (pageArrival.ts).
@@ -34,8 +31,8 @@ export function AboutView({ onBack }: AboutViewProps) {
   return (
     <main id="main" className="view-main" style={{ padding: "var(--space-10) var(--space-5) var(--space-12)" }}>
       <button className="btn btn-ghost" style={{ marginBottom: "var(--space-5)", paddingInline: 0 }} onClick={onBack}>
-        {/* The arrow is decoration — hidden, or it's read out ("left arrow Back"). One wrapping span:
-            `.btn` is a flex box, and the arrow as its own flex item would sit a 6px gap away, not a space. */}
+        {/* The arrow is decoration, hidden or it's read out ("left arrow Back"). One wrapping span: `.btn`
+            is a flex box, and the arrow as its own flex item would sit a 6px gap away, not a space. */}
         <span>
           <span aria-hidden="true">←</span> Back
         </span>
@@ -93,8 +90,6 @@ export function AboutView({ onBack }: AboutViewProps) {
         </ul>
       </section>
 
-      {/* Sections of their own, not 18px subheadings under "The data" (user, 2026-09-27: too small; the
-          page is short enough to need only two heading levels). */}
       <section style={sectionStyle}>
         <h2 style={h2Style}>How many games count</h2>
         <p>It depends on how many games the player's team played. In a 44-game season:</p>

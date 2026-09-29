@@ -10,35 +10,35 @@ import { PlayerTopBar } from "../components/PlayerTopBar";
 import { espnForSlug, playerPath } from "../lib/routes";
 import { OFFLINE_HINT, RETRY_HINT, useOnline } from "../lib/loadFailure";
 
-/** What the player subtree (summary + stat routes) reads from the layout via <Outlet>. By the
- *  time a child renders, detail + league are guaranteed present (the gate below waits for them). */
+/** What the player routes read from the layout through <Outlet>. By the time a child renders, detail and
+ *  league are present (the gate below waits for them). */
 export interface PlayerOutletCtx {
   detail: PlayerDetail;
   league: League;
   positions: PositionLookup | null;
 }
 
-/** "/player/:slug" — resolves the slug to a player, fetches its full history, and gates the
- *  summary/stat children behind loading / error / not-found. Keyed on the URL, so navigating
- *  between players (or landing on a deep link cold) drives the fetch. */
+/** "/player/:slug": resolves the slug to a player, fetches their full history, and shows the page, or
+ *  loading, error or not-found. Keyed on the URL, so moving between players (or opening a link directly)
+ *  drives the fetch. */
 export function PlayerLayout() {
   const { slug } = useParams();
   const { players, loadFailed, league, positions, meta } = useAppData();
   const online = useOnline();
   const navigate = useNavigate();
-  // Name-slugs resolve against the roster (so the id stays out of the URL); the id-form resolves
-  // without it. Null while the roster is still loading OR when nothing matches — the gates below
-  // tell those apart (loading vs. not-found) so a name-slug never flashes a false "not found".
+  // Name slugs resolve against the player list (so the id stays out of the URL); the id form resolves
+  // without it. Null while the list is loading or when nothing matches; the gates below tell those apart,
+  // so a name slug never flashes a false "not found".
   const espn = useMemo(() => espnForSlug(slug, players), [slug, players]);
 
-  // The player's DB id, once the espn resolves and the roster (which maps espn → DB id) is in. Null
-  // for a bad slug, a roster still loading, or no such player — the gates below tell those apart.
+  // The player's database id, once the ESPN id resolves and the list (which maps one to the other) is in.
+  // Null for a bad slug, a list still loading, or no such player.
   const id = useMemo(() => (espn == null || players == null ? null : (players.find((p) => p.espn === espn)?.id ?? null)), [espn, players]);
 
-  // The player on screen. One fetched earlier this visit is read from memory during the FIRST
-  // render (`cachedPlayer`), so coming back — About's Back, the browser's Back/Forward, a search —
-  // shows the page at once, with no "Loading…" frame (user, 2026-09-26). A fresh player is fetched
-  // below. Both are keyed by id, so switching players can never show the previous one for a frame.
+  // The player on screen. One fetched earlier this visit is read from memory during the first render
+  // (`cachedPlayer`), so coming back (Back, a search) shows the page at once, with no "Loading…" frame.
+  // A new player is fetched below. Both are keyed by id, so switching players never shows the previous
+  // one for a frame.
   const [fetched, setFetched] = useState<{ id: string; detail: PlayerDetail } | null>(null);
   const [failedId, setFailedId] = useState<string | null>(null);
   const detail = id == null ? null : (cachedPlayer(id) ?? (fetched?.id === id ? fetched.detail : null));
@@ -60,13 +60,12 @@ export function PlayerLayout() {
     };
   }, [id]);
 
-  // Picking a new player is a fresh navigation — reset to the default mode + stat (no query).
+  // Picking a new player is a fresh navigation: the default mode and stat.
   const pick = (espn: string) => navigate(playerPath(players?.find((p) => p.espn === espn)?.name ?? "", espn, players));
 
-  // Which screen this is. Order matters. A name-slug can't resolve until the roster is in, so "loading
-  // roster" must win over "not found" — otherwise a valid deep link flashes not-found on a cold load. And
-  // surfacing a real not-found/error (vs. the old App's infinite spinner) is the point.
-  // Either load failing is the same thing to the visitor — this player didn't load — and the same fix.
+  // Which screen this is. Order matters: a name slug can't resolve until the list is in, so loading must
+  // win over "not found", or a valid link flashes not-found on a cold load. Either load failing is the
+  // same thing to the visitor (this player didn't load), with the same fix.
   const failure = { title: "Couldn't load this player", detail: online ? RETRY_HINT : OFFLINE_HINT, error: true };
   const notice: { title: string; detail?: string; error?: boolean } | null = loadFailed
     ? failure
@@ -76,25 +75,23 @@ export function PlayerLayout() {
         ? { title: "Player not found", detail: "No player matches this link.", error: true }
         : detailFailed
           ? failure
-          : // Same title as the roster/league gate above so a hard refresh shows one steady
-            // "Loading…" instead of switching text between the two sequential load phases.
+          : // The same title as the list and league gate above, so a refresh shows one steady
+            // "Loading…" across the two load phases.
             detail == null
             ? { title: "Loading…" }
             : null;
-  // The loaded page's data — there exactly when there's no notice.
+  // The loaded page's data: there exactly when there's no notice.
   const loaded = notice == null && detail != null && league != null ? { detail, league } : null;
 
   // The tab: the player's name, the error, or the site's name alone while loading.
   usePageTitle(loaded ? pageTitle(loaded.detail.name) : notice?.error ? pageTitle(notice.title) : SITE_NAME);
 
-  // The page frame around every state — loading, error, not-found and the loaded page (user,
-  // 2026-09-26: keep the top row). The top row is its own <header>, ahead of <main>, so "Skip to main
-  // content" skips it (a11y review O5, 2026-09-27); the column's padding is split between the two boxes
-  // (theme.css .view-top), so the page looks as it did with the row inside <main>. Every state renders
-  // the same elements in the same places, so React keeps the row mounted from "Loading…" to the page —
-  // it doesn't blink, and a search typed during the load survives. Its "All players" is the way back
-  // from an error, so a Notice has no button of its own. No Footer on the near-empty notice screens —
-  // the freshness chip there reads as a glitch.
+  // The frame around every state (loading, error, not-found and the loaded page). The top row is a
+  // <header> ahead of <main>, so "Skip to main content" skips it. Every state renders the same elements
+  // in the same places, so React keeps the row mounted from "Loading…" to the page: it doesn't blink, and
+  // a search typed during the load survives. Its "All players" is the way back from an error, so a Notice
+  // has no button of its own. No footer on the near-empty notice screens, where the freshness line reads
+  // as a glitch.
   return (
     <>
       <a href="#main" className="skip-link">

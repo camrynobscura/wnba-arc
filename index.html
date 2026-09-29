@@ -37,9 +37,9 @@
     <!-- The browser bar's color (Chrome, Android; Safari 26 ignores it) matches the page: light here, switched
          by the script below and by src/lib/theme.ts applyTheme. src/lib/theme.test.ts checks both values. -->
     <meta name="theme-color" content="#f2f2f3" />
-    <!-- Apply the theme before first paint (stored choice, else OS) to avoid a flash. Storage is read in
-         its own try: a browser that blocks site storage throws on the read, and that must not skip the
-         stamp — the page would sit on the light palette whatever the OS said (craftsmanship review 2.7). -->
+    <!-- Apply the theme before the first paint (the stored choice, else the OS setting) to avoid a flash.
+         Storage is read in its own try: a browser that blocks site storage throws on the read, and that must
+         not skip the stamp. -->
     <script>
       (function () {
         var t = null;
@@ -62,11 +62,10 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
-    <!-- Cloudflare Web Analytics: page-view counts. No cookies or local storage; it counts the app's in-page route
-         changes on its own. Loaded only on the live site, so local dev, previews and tests never contact it (from
-         localhost Cloudflare refuses every report, each one a console error; a Netlify deploy preview's address
-         would be counted as the site). A custom domain needs adding here. The tag is Cloudflare's snippet, built
-         in script: the same src, type and data-cf-beacon. -->
+    <!-- Cloudflare Web Analytics: page-view counts, with no cookies or local storage. Loaded only on the live
+         site, so local dev, previews and tests never contact it (Cloudflare refuses every report from localhost,
+         each a console error, and a deploy preview would be counted as the site). A custom domain needs adding
+         here. The tag is Cloudflare's snippet, built in script with the same src, type and data-cf-beacon. -->
     <script>
       if (location.hostname === "wnba-arc.netlify.app") {
         var beacon = document.createElement("script");

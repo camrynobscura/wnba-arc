@@ -1,14 +1,13 @@
 /**
- * The app's typefaces: one entry per face the pages draw. Found 2026-09-28 by opening every page and state (home,
- * search open, About, player pages incl. a pre-2012 player, not-found) and listing the font files the browser used:
- * these six, no others (Barlow Condensed 400, bundled until then, was never drawn). src/styles/fonts.css declares
- * exactly these (fonts.test.ts checks); a new weight goes in both.
+ * The app's typefaces: one entry per face the pages draw (found by opening every page and state and listing the
+ * font files the browser used). src/styles/fonts.css declares exactly these (fonts.test.ts checks); a new weight
+ * goes in both.
  *
  * `preload`: the first screen of every page draws it (the home page's heading and names, the player page's top row),
  * so index.html preloads its Latin file (vite.config.ts) and it's there when the app first draws. The rest show up
- * later — a player's stats, the search results, the About page — so the app asks for them as it starts
+ * later (a player's stats, the search results, the About page), so the app asks for them as it starts
  * (`loadLaterFonts`, main.tsx). Preloading all six made a slow phone's first paint ~370 ms later than preloading
- * these three, for no gain (Lighthouse's mobile profile, 2026-09-28).
+ * these three, for no gain (Lighthouse's mobile profile).
  *
  * Plain TypeScript, no browser globals: the build config imports it too.
  */
@@ -34,7 +33,7 @@ export function fontFile(font: AppFont, subset: "latin" | "latin-ext" | "vietnam
 }
 
 /**
- * Starts downloading the faces that aren't preloaded (their Latin files — the space a `load()` measures with is
+ * Starts downloading the faces that aren't preloaded (their Latin files: the space a `load()` measures with is
  * Latin), so they're ready before the text that uses them appears. Pass `document.fonts`. A face that fails to
  * load isn't an error here: its text shows in the stand-in after 3 s (fonts.css), as it would without this.
  */
