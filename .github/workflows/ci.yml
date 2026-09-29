@@ -1,6 +1,6 @@
 name: CI
 
-# Type check, formatting, tests and the production build, on every push and pull request.
+# Lint, type check, formatting, tests and the production build, on every push and pull request.
 on:
   push:
   pull_request:
@@ -30,6 +30,7 @@ jobs:
 
       - run: npm ci
       - run: npm run lint
+      - run: npm run typecheck
       - run: npm run format:check
       - run: npm test
       - run: npm run build

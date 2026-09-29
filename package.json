@@ -7,11 +7,12 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
-    "lint": "tsc -b --noEmit",
+    "lint": "oxlint",
+    "typecheck": "tsc -b --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "format": "prettier --write src scripts index.html vite.config.ts tsconfig.json tsconfig.app.json tsconfig.node.json .github",
-    "format:check": "prettier --check src scripts index.html vite.config.ts tsconfig.json tsconfig.app.json tsconfig.node.json .github",
+    "format": "prettier --write src scripts index.html vite.config.ts tsconfig.json tsconfig.app.json tsconfig.node.json .github .oxlintrc.json",
+    "format:check": "prettier --check src scripts index.html vite.config.ts tsconfig.json tsconfig.app.json tsconfig.node.json .github .oxlintrc.json",
     "assets": "node scripts/make-assets.mjs"
   },
   "dependencies": {
@@ -27,6 +28,7 @@
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.4",
     "@vitejs/plugin-react": "^6.0.5",
+    "oxlint": "1.86.0",
     "prettier": "3.9.9",
     "typescript": "^7.0.2",
     "vite": "^8.2.1",

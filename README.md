@@ -24,7 +24,7 @@ small read-only API. This README covers both.
 | Database | Postgres, 9 plain-SQL migrations | Supabase |
 | Ingest | TypeScript scripts over ESPN's public JSON | GitHub Actions, daily |
 | Tests | Vitest: 155 frontend, 72 backend | |
-| CI | Type check, Prettier, tests and build on every push | GitHub Actions |
+| CI | oxlint, type check, Prettier, tests and build on every push | GitHub Actions |
 
 ## Architecture
 
@@ -206,7 +206,8 @@ cross-origin request, and a phone on the same wifi works too (`npm run dev -- --
 ```bash
 npm run build         # type-check + production build
 npm run preview       # serve the production build
-npm run lint          # type-check only
+npm run lint          # oxlint
+npm run typecheck     # type-check only
 npm run test          # unit tests, once
 npm run test:watch    # re-run on change
 npm run format        # format with Prettier
