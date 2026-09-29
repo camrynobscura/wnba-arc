@@ -189,6 +189,27 @@ Built to **WCAG 2.2 AA**:
 - **Shared constants.** The games threshold, the shot floors and the team game counts are defined
   once in each repo, with matching names and comments that point to the other repo.
 
+## Testing
+
+Each layer is tested where its bugs would show up: the logic in unit tests, the SQL on a real Postgres, the
+interface in three real browsers.
+
+- **Frontend unit tests (157, 14 files):** the grid, references, games and shots minimums, pooled averages, number
+  formatting, the comparison buttons, the chart axis and best-rank rule, arrow-key movement, URL slugs, search
+  ranking, the header line, the footer's freshness line, tooltip placement, the player cache, headshot addresses,
+  the API address, the browser bar color, the security and caching headers, and the font setup.
+- **Browser tests (34, each run in Chromium, Firefox and WebKit; `e2e/`):** the production build under its real
+  security headers, with the API answered from recorded responses for six players picked for their edge cases. They
+  cover search, the heatmap's keyboard grid and popover, the comparison bar (unavailable modes, and never covering
+  what has focus), the stat history, load errors and not-found, two players with the same name, the theme switch,
+  the 320px layout, and the axe scans above. Any uncaught error, console error or blocked resource fails a test.
+- **Backend unit tests (95, 9 files):** ESPN parsing, team game counts, schedule reading, role rates, the change
+  alerts, the database connection's encryption settings, player id checks, and the API's routes (bad input, errors,
+  CORS, headers, the rate limit).
+- **Database tests (26):** run on a throwaway Postgres 17 with Supabase's settings: ingest, who qualifies, the
+  league and position averages, ranks and ties, the shooting floors, and the player list. Their data is a small
+  made-up league, so every expected number can be checked by hand.
+
 ## Running locally
 
 The frontend needs Node 20.19+ or 22.12+ and the data API running on port 3001 (setup is in the
@@ -214,24 +235,6 @@ npm run test:e2e      # browser tests (first time: npx playwright install)
 npm run format        # format with Prettier
 npm run format:check  # check formatting (CI runs this)
 ```
-
-**Tests.** Frontend unit tests (157, 14 files): the grid, references, games and shots minimums, pooled averages,
-number formatting, the comparison buttons, the chart axis and best-rank rule, arrow-key movement, URL slugs,
-search ranking, the header line, the footer's freshness line, tooltip placement, the player cache,
-headshot addresses, the API address, the browser bar color, the security and caching headers, and the font setup.
-
-Browser tests (34, each run in Chromium, Firefox and WebKit; `e2e/`): the production build under its real
-security headers, with the API answered from recorded responses for six players picked for their edge cases.
-They cover search, the heatmap's keyboard grid and popover, the comparison bar (unavailable modes, and never
-covering what has focus), the stat history, load errors and not-found, two players with the same name, the
-theme switch, the 320px layout, and the axe scans above. Any uncaught error, console error or blocked resource
-fails a test.
-
-Backend unit tests (95, 9 files): ESPN parsing, team game counts, schedule reading, role rates, the change
-alerts, the database connection's encryption settings, player id checks, and the API's routes (bad input,
-errors, CORS, headers, the rate limit). Database tests (26) run on a throwaway Postgres 17 with Supabase's
-settings: ingest, who qualifies, the league and position averages, ranks and ties, the shooting floors, and
-the player list. Their data is a small made-up league, so every expected number can be checked by hand.
 
 ## Data source
 
