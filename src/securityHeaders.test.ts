@@ -36,11 +36,29 @@ describe("contentSecurityPolicy", () => {
 });
 
 describe("headersFile", () => {
-  it("applies every header to every path, the policy enforced", () => {
-    const lines = headersFile({ apiOrigin: null, scriptHashes: [] }).split("\n");
-    expect(lines[1]).toBe("/*");
-    expect(lines.slice(2).filter(Boolean).every((l) => /^ {2}[A-Za-z-]+: \S/.test(l))).toBe(true);
-    expect(lines[2]).toMatch(/^ {2}Content-Security-Policy: default-src 'self'; /);
-    expect(lines).toContain("  X-Frame-Options: DENY");
+  // Netlify's format: a path on its own line, then its headers indented two spaces.
+  const blocks = (file: string) => {
+    const out = new Map<string, string[]>();
+    let path = "";
+    for (const l of file.split("\n").slice(1).filter(Boolean)) {
+      if (l.startsWith("/")) out.set((path = l), []);
+      else out.get(path)!.push(l);
+    }
+    return out;
+  };
+  const file = headersFile({ apiOrigin: null, scriptHashes: [] });
+
+  it("applies the security headers to every path, the policy enforced", () => {
+    const all = blocks(file).get("/*")!;
+    expect(all.every((l) => /^ {2}[A-Za-z-]+: \S/.test(l))).toBe(true);
+    expect(all[0]).toMatch(/^ {2}Content-Security-Policy: default-src 'self'; /);
+    expect(all).toContain("  X-Frame-Options: DENY");
+    expect(all).toContain("  X-Content-Type-Options: nosniff");
+  });
+
+  it("caches the hashed build files for a year without a re-check, and nothing else", () => {
+    expect([...blocks(file).keys()]).toEqual(["/*", "/assets/*"]);
+    expect(blocks(file).get("/assets/*")).toEqual(["  Cache-Control: public, max-age=31536000, immutable"]);
+    expect(blocks(file).get("/*")!.some((l) => l.includes("Cache-Control"))).toBe(false);
   });
 });

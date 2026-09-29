@@ -23,7 +23,7 @@ small read-only API. This README covers both.
 | API | Node, TypeScript, Express 5, raw `pg` (no ORM) | Render |
 | Database | Postgres, 9 plain-SQL migrations | Supabase |
 | Ingest | TypeScript scripts over ESPN's public JSON | GitHub Actions, daily |
-| Tests | Vitest: 143 frontend, 72 backend | |
+| Tests | Vitest: 152 frontend, 72 backend | |
 
 ## Architecture
 
@@ -210,10 +210,10 @@ npm run test        # unit tests, once
 npm run test:watch  # re-run on change
 ```
 
-**Tests.** Frontend (143, 13 files): the grid, references, games and shots minimums, pooled averages, number
+**Tests.** Frontend (152, 14 files): the grid, references, games and shots minimums, pooled averages, number
 formatting, the comparison buttons, the chart axis and best-rank rule, arrow-key movement, URL slugs,
 search ranking, the header line, the footer's freshness line, tooltip placement, the player cache,
-headshot addresses, the API address, the browser bar color and the security headers.
+headshot addresses, the API address, the browser bar color, the security and caching headers, and the font setup.
 Backend (72, 8 files): ESPN parsing, team game counts, schedule reading, role rates, the change
 alerts, the database connection's encryption settings and player id checks.
 

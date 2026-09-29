@@ -3,6 +3,7 @@ import { defineConfig, type Plugin } from "vite";
 import react from "@vitejs/plugin-react";
 import { createHash } from "node:crypto";
 import { apiBase, PLAYER_LIST_PATH } from "./src/data/apiUrls";
+import { APP_FONTS, fontFile, fontPackage } from "./src/fonts";
 import { headersFile, inlineScripts } from "./src/securityHeaders";
 
 /**
@@ -24,6 +25,42 @@ function preloadPlayerList(): Plugin {
     },
     transformIndexHtml() {
       return [{ tag: "link", attrs: { rel: "preload", as: "fetch", href, crossorigin: true }, injectTo: "head" }];
+    },
+  };
+}
+
+/**
+ * Puts `<link rel="preload" as="font" …>` into index.html for the faces every page's first screen draws (src/fonts.ts,
+ * `preload`), so they download alongside the app's code instead of after it has drawn its text — the app draws
+ * after the first paint, so the browser can't find a font any sooner on its own. Only the Latin file: the
+ * others (Latin Extended, Vietnamese) download only for a character in their range, and no player's name has one
+ * (0 of 1,218, 2026-09-28). The files are found in the bundle by the path they came from, since their names carry
+ * a hash; a face that isn't in the bundle fails the build rather than ship a preload for nothing. `crossorigin`
+ * because fonts are always fetched in CORS mode, so a preload without it isn't used (MDN, rel=preload).
+ */
+function preloadFonts(): Plugin {
+  let base = "/";
+  return {
+    name: "preload-fonts",
+    apply: "build",
+    configResolved(config) {
+      base = config.base;
+    },
+    transformIndexHtml: {
+      order: "post",
+      handler(_html, ctx) {
+        const assets = Object.values(ctx.bundle ?? {}).filter((a) => a.type === "asset");
+        return APP_FONTS.filter((f) => f.preload).map((font) => {
+          const source = `/@fontsource/${fontPackage(font)}/files/${fontFile(font, "latin", "woff2")}`;
+          const asset = assets.find((a) => a.originalFileNames.some((p) => p.endsWith(source)));
+          if (!asset) throw new Error(`preload-fonts: ${source} is not in the build`);
+          return {
+            tag: "link",
+            attrs: { rel: "preload", href: base + asset.fileName, as: "font", type: "font/woff2", crossorigin: true },
+            injectTo: "head" as const,
+          };
+        });
+      },
     },
   };
 }
@@ -95,10 +132,11 @@ const DEV_SERVER_DENY = [
 ];
 
 export default defineConfig({
-  plugins: [react(), preloadPlayerList(), securityHeaders()],
+  plugins: [react(), preloadPlayerList(), preloadFonts(), securityHeaders()],
   server: { proxy: apiProxy, fs: { deny: DEV_SERVER_DENY } },
   preview: { proxy: apiProxy },
   // Vitest stubs CSS imports to "" — even `?raw` — unless the file is listed here. theme.test.ts reads
-  // theme.css's --color-bg values to check the browser bar's theme-color against them.
-  test: { css: { include: [/src\/styles\/theme\.css/] } },
+  // theme.css's --color-bg values to check the browser bar's theme-color against them; fonts.test.ts reads both
+  // stylesheets (the faces in fonts.css, the heading rules' stand-in in theme.css).
+  test: { css: { include: [/src\/styles\/(theme|fonts)\.css/] } },
 });

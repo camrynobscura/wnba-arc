@@ -10,6 +10,7 @@ interface TitleSelectProps {
     because a class would lose to the `font: inherit` the select styles need. */
 const TITLE_FONT: React.CSSProperties = {
   fontFamily: "var(--font-heading)",
+  fontStretch: "condensed", // the stand-in's width, as in every heading rule (theme.css, --font-heading)
   fontWeight: "var(--font-heading-weight)" as React.CSSProperties["fontWeight"],
   fontSize: "var(--fs-2xl)",
   lineHeight: 1.1,

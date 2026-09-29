@@ -62,6 +62,10 @@
   /* Max content width for every page. */
   --app-width: 600px;
 
+  /* Every rule that sets the heading face also sets `font-stretch: condensed` (fonts.test.ts checks). It changes
+     nothing while Barlow Condensed is drawn (one width only: 208px either way for "A'ja Wilson · All players" at
+     26px, 3 engines, 2026-09-28); it's for the stand-in, which shows only if Barlow hasn't arrived after 3 s
+     (fonts.css): on Apple devices the system font then takes its condensed width, 237px instead of 270px. */
   --font-heading: 'Barlow Condensed', system-ui, sans-serif;
   --font-heading-weight: 600;
   --font-body: 'Barlow', system-ui, sans-serif;
@@ -173,6 +177,7 @@ h4,
 h5,
 h6 {
   font-family: var(--font-heading);
+  font-stretch: condensed;
   font-weight: var(--font-heading-weight);
   line-height: 1.12;
   letter-spacing: -0.015em;
@@ -239,6 +244,7 @@ img {
    heavier weight (e.g. 700) can still be set inline to override. */
 .text-heading {
   font-family: var(--font-heading);
+  font-stretch: condensed;
   font-weight: var(--font-heading-weight);
 }
 /* A kicker: the small tracked caps line above a title — the player's team · position · number, the
@@ -683,6 +689,7 @@ select.select-reset {
   width: 100%;
   padding: var(--space-3) var(--space-4);
   font-family: var(--font-heading);
+  font-stretch: condensed;
   font-weight: var(--font-heading-weight);
   font-size: var(--fs-md);
   line-height: 1.2;
@@ -1269,6 +1276,7 @@ select.select-reset {
   border: 1px solid var(--color-text);
   border-radius: var(--radius-md);
   font-family: var(--font-heading);
+  font-stretch: condensed;
   font-weight: 600;
   text-decoration: none;
 }
@@ -1344,6 +1352,7 @@ select.select-reset {
 .cs-v {
   margin: 0;
   font-family: var(--font-heading);
+  font-stretch: condensed;
   font-weight: var(--font-heading-weight);
   font-size: var(--fs-2xl);
   line-height: 1;
@@ -1505,6 +1514,7 @@ select.select-reset {
 .dd-value {
   position: absolute;
   font-family: var(--font-heading);
+  font-stretch: condensed;
   font-weight: 500;
   font-size: var(--fs-2xs);
   line-height: 1;

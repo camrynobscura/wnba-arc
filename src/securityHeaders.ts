@@ -13,6 +13,10 @@
  * inline script must be added here, or the browser blocks it. X-Frame-Options: DENY says the same as frame-ancestors
  * for older browsers (the site is never embedded — the portfolio uses a screenshot, user 2026-09-28). HSTS comes
  * from Netlify.
+ *
+ * The same file carries one caching rule (`ASSET_CACHE`): Netlify's default makes a browser re-check every file with
+ * the server on every visit, and Safari does it on every refresh — the fonts included, so the page drew its text in
+ * the stand-in font until the answer came (measured 2026-09-28, fonts.css).
  */
 
 /** The bodies of the inline (no `src`) `<script>` elements, exactly as a browser hashes them for a CSP. */
@@ -47,7 +51,15 @@ export function contentSecurityPolicy({ apiOrigin, scriptHashes }: HeaderInputs)
   return directives.map((d) => d.join(" ")).join("; ");
 }
 
-/** Netlify `_headers`: every path gets the same headers. */
+/**
+ * The built files under /assets/ keep for a year, without a re-check. Safe because Vite names every one of them by a
+ * hash of its contents: a changed file is a new name, and index.html — which names them, and keeps Netlify's
+ * re-check-every-time default — always points at the current ones. `immutable` is what stops Safari re-checking on
+ * a refresh (WebKit honors it for https responses; Chrome no longer re-checks subresources on a refresh at all).
+ */
+export const ASSET_CACHE = { path: "/assets/*", value: "public, max-age=31536000, immutable" };
+
+/** Netlify `_headers`: the security headers on every path; the long cache on the hashed build files as well. */
 export function headersFile(inputs: HeaderInputs): string {
   return [
     "# Built by vite.config.ts from src/securityHeaders.ts — edit there, not here.",
@@ -57,6 +69,8 @@ export function headersFile(inputs: HeaderInputs): string {
     "  X-Content-Type-Options: nosniff",
     "  Referrer-Policy: strict-origin-when-cross-origin",
     "  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=()",
+    ASSET_CACHE.path,
+    `  Cache-Control: ${ASSET_CACHE.value}`,
     "",
   ].join("\n");
 }
