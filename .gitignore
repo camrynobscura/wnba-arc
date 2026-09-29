@@ -14,3 +14,7 @@ dist-ssr
 # Misc
 *.local
 .DS_Store
+
+# Playwright (npm run test:e2e)
+test-results
+playwright-report

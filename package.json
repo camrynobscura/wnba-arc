@@ -12,8 +12,9 @@
     "typecheck": "tsc -b --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "format": "prettier --write src scripts index.html vite.config.ts tsconfig.json tsconfig.app.json tsconfig.node.json .github .oxlintrc.json",
-    "format:check": "prettier --check src scripts index.html vite.config.ts tsconfig.json tsconfig.app.json tsconfig.node.json .github .oxlintrc.json",
+    "test:e2e": "playwright test",
+    "format": "prettier --write src e2e scripts index.html vite.config.ts playwright.config.ts tsconfig.json tsconfig.app.json tsconfig.node.json tsconfig.e2e.json .github .oxlintrc.json",
+    "format:check": "prettier --check src e2e scripts index.html vite.config.ts playwright.config.ts tsconfig.json tsconfig.app.json tsconfig.node.json tsconfig.e2e.json .github .oxlintrc.json",
     "assets": "node scripts/make-assets.mjs"
   },
   "dependencies": {
@@ -24,6 +25,8 @@
     "react-router-dom": "^7.18.2"
   },
   "devDependencies": {
+    "@axe-core/playwright": "4.13.0",
+    "@playwright/test": "1.63.0",
     "@resvg/resvg-js": "^2.6.2",
     "@types/node": "^22.20.4",
     "@types/react": "^19.2.18",

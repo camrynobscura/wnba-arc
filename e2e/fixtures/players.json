@@ -1,0 +1,74 @@
+[
+  {
+    "id": "3",
+    "espn": "3149391",
+    "name": "A'ja Wilson",
+    "team": "Las Vegas Aces",
+    "teamAbbr": "LV",
+    "pos": "C",
+    "jersey": 22,
+    "active": true,
+    "firstYear": 2018,
+    "lastYear": 2026
+  },
+  {
+    "id": "11134",
+    "espn": "4065692",
+    "name": "Aaliyah Wilson",
+    "team": null,
+    "teamAbbr": null,
+    "pos": "G",
+    "jersey": 1,
+    "active": false,
+    "firstYear": 2021,
+    "lastYear": 2021
+  },
+  {
+    "id": "10138",
+    "espn": "141",
+    "name": "Cynthia Cooper",
+    "team": null,
+    "teamAbbr": null,
+    "pos": null,
+    "jersey": null,
+    "active": false,
+    "firstYear": 1997,
+    "lastYear": 2003
+  },
+  {
+    "id": "10893",
+    "espn": "2069162",
+    "name": "Michelle Campbell",
+    "team": null,
+    "teamAbbr": null,
+    "pos": "F",
+    "jersey": 23,
+    "active": false,
+    "firstYear": 2013,
+    "lastYear": 2013
+  },
+  {
+    "id": "10361",
+    "espn": "120",
+    "name": "Michelle Campbell",
+    "team": null,
+    "teamAbbr": null,
+    "pos": null,
+    "jersey": null,
+    "active": false,
+    "firstYear": 1999,
+    "lastYear": 2000
+  },
+  {
+    "id": "8",
+    "espn": "4433730",
+    "name": "Paige Bueckers",
+    "team": "Dallas Wings",
+    "teamAbbr": "DAL",
+    "pos": "G",
+    "jersey": 5,
+    "active": true,
+    "firstYear": 2025,
+    "lastYear": 2026
+  }
+]
