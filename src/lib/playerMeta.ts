@@ -38,7 +38,7 @@ export function careerSpan(p: Pick<PlayerSummary, "firstYear" | "lastYear">): st
  * The line under a player's name: only the parts we know, never a separator with nothing on one side.
  *   On a roster:  "Las Vegas Aces · C · #22" (a team-less active player just loses the team).
  *   Off a roster: "1997–2003 · G": the career span stands in for the team, the position only when ESPN
- *                 has one (most players from before 2012 don't), and no number (it's their last, not
+ *                 has one (most players from before 2009 don't), and no number (it's their last, not
  *                 theirs).
  * The off-roster line doesn't say "Retired": `active` is ESPN's "on a roster" flag, not a retirement
  * record, and 24 players with a 2026 season were already inactive in September (waived, not retired).

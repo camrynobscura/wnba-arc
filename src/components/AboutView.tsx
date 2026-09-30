@@ -94,7 +94,8 @@ export function AboutView({ onBack }: AboutViewProps) {
           </li>
           <li>
             <strong>Positions:</strong> ESPN only lists each player's current position, so that's used for their whole
-            career. Most players before 2012 don't have one, so position comparisons start in 2012.
+            career. ESPN has none for most players before 2012; the 2009 to 2011 gaps were filled by hand from the
+            league's own listings, so position comparisons start in 2009.
           </li>
         </ul>
       </section>

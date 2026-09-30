@@ -72,7 +72,8 @@ instead of a shared package, and the database stays private behind the API.
   once per position. Shooting percentages rank in their own pool: seasons that also cleared an
   attempts-or-makes floor, scaled to the team's games.
 - A position average needs at least 8 qualified players. Position ranks exist only for years where
-  every qualified player has a position on record (2012 on; ESPN has none for most earlier players).
+  every qualified player has a position on record (2009 on: ESPN has none for most players before 2012, and
+  the 2009 to 2011 gaps are filled by a hand-checked list in the API).
 
 **Daily refresh**
 - A scheduled GitHub Actions job (on Eastern time) runs each morning and re-ingests only the current

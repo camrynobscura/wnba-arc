@@ -669,7 +669,7 @@ export interface CompareSegment {
 /**
  * The three "Compare to" segments, always all three so the bar never changes shape between players. A
  * mode the page can't offer is disabled with its reason: "Self" needs two seasons, and the position mode
- * needs a position on record (ESPN has none for most players before 2012) and the /positions data. The
+ * needs a position on record (none for most players before 2009) and the /positions data. The
  * position segment names the crowd ("Centers"), or "Position" when there's none to name.
  */
 export function compareSegments(canSelf: boolean, position: string | null, positionsLoaded: boolean): CompareSegment[] {

@@ -12,7 +12,8 @@ export interface PlayerSummary {
   name: string;
   team: string | null; // null when the player is off a roster (waived, international duty, or retired)
   teamAbbr: string | null;
-  pos: string | null; // null for most players from before 2012: ESPN has no position on record
+  pos: string | null; // null for most players from before 2009: ESPN has no position on record before 2012,
+  // and the API fills 2009–2011 by hand
   jersey: number | null;
   active: boolean; // ESPN's "on a roster" flag: false when waived or retired, so not a retirement record
   firstYear: number | null; // first and last regular season on record: the career span
