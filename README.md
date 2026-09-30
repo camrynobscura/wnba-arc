@@ -23,7 +23,7 @@ small read-only API. This README covers both.
 | API | Node, TypeScript, Express 5, raw `pg` (no ORM) | Render |
 | Database | Postgres, 9 plain-SQL migrations | Supabase |
 | Ingest | TypeScript scripts over ESPN's public JSON | GitHub Actions, daily |
-| Tests | Frontend: 157 unit, 34 browser tests in Chromium, Firefox and WebKit. Backend: 95 unit, 26 on a real Postgres | Vitest, Playwright |
+| Tests | Frontend: 160 unit, 37 browser tests in Chromium, Firefox and WebKit. Backend: 95 unit, 26 on a real Postgres | Vitest, Playwright |
 | CI | oxlint, type check, Prettier, the build and all four test suites on every push | GitHub Actions |
 
 ## Architecture
@@ -157,8 +157,8 @@ counts.
   average, marked with an asterisk, not ranked.
 - Career shooting percentages pool makes over attempts across seasons (`SUM(made) / SUM(att)`),
   never an average of season percentages.
-- The best-rank plate picks the season by its share of the pool, not the raw place, because the
-  number of players has grown over time (27th of 106 ranks above 18th of 65).
+- The best-rank plate shows the lowest rank with the size of that year's pool beside it ("1st of 75"), and
+  counts the other seasons at the same rank; the count's tooltip names them.
 
 ## Accessibility
 
@@ -175,7 +175,7 @@ Built to **WCAG 2.2 AA**:
   reader's text size, not just the screen width. Checked from 320px to desktop at 100 to 200% text.
 - In Windows High Contrast mode, the heatmap keeps its colors and everything else uses the user's
   palette.
-- axe scans nine page states, popups and error screens included, on every push, in Chromium, Firefox and
+- axe scans ten page states, popups and error screens included, on every push, in Chromium, Firefox and
   WebKit and both themes: 0 violations. Also checked by hand with VoiceOver in Safari on a Mac.
 
 ## Engineering notes
@@ -194,15 +194,16 @@ Built to **WCAG 2.2 AA**:
 Each layer is tested where its bugs would show up: the logic in unit tests, the SQL on a real Postgres, the
 interface in three real browsers.
 
-- **Frontend unit tests (157, 14 files):** the grid, references, games and shots minimums, pooled averages, number
+- **Frontend unit tests (160, 14 files):** the grid, references, games and shots minimums, pooled averages, number
   formatting, the comparison buttons, the chart axis and best-rank rule, arrow-key movement, URL slugs, search
   ranking, the header line, the footer's freshness line, tooltip placement, the player cache, headshot addresses,
   the API address, the browser bar color, the security and caching headers, and the font setup.
-- **Browser tests (34, each run in Chromium, Firefox and WebKit; `e2e/`):** the production build under its real
+- **Browser tests (37, each run in Chromium, Firefox and WebKit; `e2e/`):** the production build under its real
   security headers, with the API answered from recorded responses for six players picked for their edge cases. They
   cover search, the heatmap's keyboard grid and popover, the comparison bar (unavailable modes, and never covering
-  what has focus), the stat history, load errors and not-found, two players with the same name, the theme switch,
-  the 320px layout, and the axe scans above. Any uncaught error, console error or blocked resource fails a test.
+  what has focus), the stat history and its best-rank plate, load errors and not-found, two players with the same
+  name, the theme switch, the 320px layout, and the axe scans above. Any uncaught error, console error or blocked
+  resource fails a test.
 - **Backend unit tests (95, 9 files):** ESPN parsing, team game counts, schedule reading, role rates, the change
   alerts, the database connection's encryption settings, player id checks, and the API's routes (bad input, errors,
   CORS, headers, the rate limit).

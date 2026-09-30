@@ -1,4 +1,5 @@
-import { ordinal, type CareerSummary as Summary } from "../lib/deviation";
+import { ordinal, yearList, type CareerSummary as Summary } from "../lib/deviation";
+import { InfoTip } from "./InfoTip";
 
 interface CareerSummaryProps {
   summary: Summary;
@@ -21,7 +22,16 @@ interface CareerSummaryProps {
  */
 export function CareerSummary({ summary: s, unit, unitShort, rankAmong }: CareerSummaryProps) {
   // `said`: the label as a screen reader should say it, where the short printed one reads badly ("avg").
-  const plates: { k: string; said?: string; v: string; u?: string; q?: string; n: string }[] = [
+  // `more`: a tooltip after the note, for what the plate has no room to list.
+  const plates: {
+    k: string;
+    said?: string;
+    v: string;
+    u?: string;
+    q?: string;
+    n: string;
+    more?: { label: string; tip: string };
+  }[] = [
     { k: "High", v: s.high.fmt, u: unit, n: String(s.high.year) },
     { k: "Low", v: s.low.fmt, u: unit, n: String(s.low.year) },
     {
@@ -33,14 +43,20 @@ export function CareerSummary({ summary: s, unit, unitShort, rankAmong }: Career
     },
   ];
   // "WNBA 2026" / "Forwards 2026": a plate is ~100px wide and a longer form wrapped. The crowd is named
-  // because the rank follows the comparison mode.
-  if (s.bestRank)
+  // because the rank follows the comparison mode. The same rank in other seasons is a count ("+5") whose
+  // tooltip names the years.
+  if (s.bestRank) {
+    const { rank, pool, year, alsoYears } = s.bestRank;
     plates.push({
       k: "Best rank",
-      v: ordinal(s.bestRank.rank),
-      q: `of ${s.bestRank.pool}`,
-      n: `${rankAmong} ${s.bestRank.year}`,
+      v: ordinal(rank),
+      q: `of ${pool}`,
+      n: `${rankAmong} ${year}`,
+      more: alsoYears.length
+        ? { label: `+${alsoYears.length}`, tip: `Also ${ordinal(rank)} in ${yearList(alsoYears)}` }
+        : undefined,
     });
+  }
 
   return (
     <>
@@ -87,7 +103,15 @@ export function CareerSummary({ summary: s, unit, unitShort, rankAmong }: Career
                 )}
               </span>
               <span className="sr-only">, </span>
-              <span className="cs-n">{p.n}</span>
+              <span className="cs-n">
+                {p.n}
+                {p.more && (
+                  <>
+                    {" "}
+                    <InfoTip label={p.more.label} tip={p.more.tip} />
+                  </>
+                )}
+              </span>
             </dd>
           </div>
         ))}

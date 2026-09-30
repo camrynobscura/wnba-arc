@@ -35,6 +35,14 @@ const STATES: [name: string, reach: (page: Page, api: Api, errors: Errors) => Pr
       await expect(page.getByRole("tooltip")).toBeVisible();
     },
   ],
+  [
+    "the best-rank plate's other seasons",
+    async (page) => {
+      await openPlayer(page, "aja-wilson/blk");
+      await page.getByRole("button", { name: "+5" }).focus();
+      await expect(page.getByRole("tooltip", { name: "Also 1st in 2020, 2022, 2023, 2024, and 2025." })).toBeVisible();
+    },
+  ],
   ["the About page", (page) => page.goto("/about").then(() => expect(heading(page)).toHaveText("About Arc"))],
   [
     "a player that didn't load",

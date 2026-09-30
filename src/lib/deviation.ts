@@ -527,6 +527,15 @@ export function ordinal(n: number): string {
   return `${n}${s[(v - 20) % 10] || s[v] || s[0]}`;
 }
 
+/** Years as a phrase, oldest first, every year named: [2019, 2021] → "2019 and 2021",
+    [2020, 2022, 2023] → "2020, 2022, and 2023". No ranges: a list reads the same however the years fall. */
+export function yearList(years: number[]): string {
+  const parts = [...years].sort((a, b) => a - b).map(String);
+  if (parts.length < 2) return parts[0] ?? "";
+  if (parts.length === 2) return `${parts[0]} and ${parts[1]}`;
+  return `${parts.slice(0, -1).join(", ")}, and ${parts.at(-1)}`;
+}
+
 // ── Stat detail ───────────────────────────────────────────────────────────────
 // One stat's season-by-season history under the heatmap: the chart (each season's value against its
 // reference), a career summary and the yearly table. It follows the heatmap's reference switch, so the
@@ -585,10 +594,12 @@ export interface CareerSummary {
   high: { fmt: string; year: number };
   low: { fmt: string; year: number };
   careerAvg: string;
-  /** Best league rank, shown as a rank ("27th of 106") but chosen by its share of the pool (27/106 beats
-      18/65): the league keeps growing, so a bare rank means something different every year. Equal shares
-      go to the larger pool, then the later year. Null when no season qualified. */
-  bestRank: { rank: number; pool: number; year: number } | null;
+  /** Best rank: the lowest rank number, with its pool ("1st of 157"). The lowest number rather than the
+      smallest share of the pool, so the plate always matches a rank in the table and a league leader is
+      never shown as 2nd; the pool beside it says how big the league was that year. Equal ranks go to the
+      most recent season. `alsoYears`: the player's other seasons at that same rank, oldest
+      first. Null when no season was ranked. */
+  bestRank: { rank: number; pool: number; year: number; alsoYears: number[] } | null;
 }
 
 export interface StatDetail {
@@ -863,24 +874,30 @@ export function buildStatDetail(
     const high = chartable.reduce((a, s) => (val(s) > val(a) ? s : a));
     const low = chartable.reduce((a, s) => (val(s) < val(a) ? s : a));
     const ranked = chartable.filter((s) => rankOf(s) != null && poolOf(s) != null);
-    // Best = the smallest share of the pool (rank ÷ pool), compared by cross-multiplying so equal shares
-    // are exactly equal. Ties go to the larger pool, then the later year.
+    // Best = the lowest rank; equal ranks go to the most recent season, so league and position mode headline
+    // the same year for the same seasons.
     const best = ranked.reduce<SeasonPlayed | null>((a, s) => {
       if (a == null) return s;
       const r = rankOf(s) as number,
         ra = rankOf(a) as number;
-      const p = poolOf(s) as number,
-        pa = poolOf(a) as number;
-      const lhs = r * pa,
-        rhs = ra * p;
-      return lhs < rhs || (lhs === rhs && (p > pa || (p === pa && s.year > a.year))) ? s : a;
+      return r < ra || (r === ra && s.year > a.year) ? s : a;
     }, null);
     summary = {
       seasons: chartable.length,
       high: { fmt: plateFmt(val(high)), year: high.year },
       low: { fmt: plateFmt(val(low)), year: low.year },
       careerAvg: plateFmt(careerAvg),
-      bestRank: best ? { rank: rankOf(best) as number, pool: poolOf(best) as number, year: best.year } : null,
+      bestRank: best
+        ? {
+            rank: rankOf(best) as number,
+            pool: poolOf(best) as number,
+            year: best.year,
+            alsoYears: ranked
+              .filter((s) => s !== best && rankOf(s) === rankOf(best))
+              .map((s) => s.year)
+              .sort((a, b) => a - b),
+          }
+        : null,
     };
   }
 

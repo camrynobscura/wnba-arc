@@ -27,6 +27,7 @@ import {
   smallSampleReason,
   spokenValue,
   upperFirst,
+  yearList,
   type HeatmapCell,
   type HeatmapGrid,
   type League,
@@ -352,7 +353,7 @@ describe("games tiers — a quarter of the team's games to be colored, 20 of 44 
     expect(dq.tableRows.find((r) => r.year === 2022)).toMatchObject({ smallSample: false, note: null });
     expect(d.summary!.careerAvg).toBe("14.0"); // (10 + 20 + 12) / 3 — the partial season counts
     expect(d.summary!.seasons).toBe(3); // and is charted
-    expect(d.summary!.bestRank).toEqual({ rank: 30, pool: 120, year: 2022 });
+    expect(d.summary!.bestRank).toEqual({ rank: 30, pool: 120, year: 2022, alsoYears: [] });
     // Self mode: the partial season is in the career average the cells are measured against.
     const self = buildHeatmapGrid(p, "self", L3, POS, "F");
     expect(self.rows.find((r) => r[0].year === 2021)![0].refValue).toBeCloseTo(14, 5);
@@ -677,6 +678,18 @@ describe("ordinal", () => {
   });
 });
 
+describe("yearList", () => {
+  it("joins years with 'and', oldest first", () => {
+    expect(yearList([2024])).toBe("2024");
+    expect(yearList([2021, 2019])).toBe("2019 and 2021");
+    expect(yearList([2019, 2021, 2023])).toBe("2019, 2021, and 2023");
+  });
+  it("names every year, never a range", () => {
+    expect(yearList([2020, 2022, 2023, 2024, 2025])).toBe("2020, 2022, 2023, 2024, and 2025");
+    expect(yearList([2024, 2025])).toBe("2024 and 2025");
+  });
+});
+
 describe("buildStatDetail — the reference follows the page's mode", () => {
   const pts = STATS.find((s) => s.key === "pts")!;
   const bar = (d: ReturnType<typeof buildStatDetail>, year: number) => d.bars.find((b) => b.year === year)!;
@@ -759,45 +772,79 @@ describe("buildStatDetail — career summary plates", () => {
     expect(s.high).toEqual({ fmt: "20.0", year: 2022 });
     expect(s.low).toEqual({ fmt: "8.0", year: 2019 });
     expect(s.careerAvg).toBe("14.0"); // mean of 8, 14, 20 — the 4-game season excluded
-    expect(s.bestRank).toEqual({ rank: 3, pool: 100, year: 2022 }); // the 1st-of-80 was a small sample
+    expect(s.bestRank).toEqual({ rank: 3, pool: 100, year: 2022, alsoYears: [] }); // the 1st-of-80 was a small sample
   });
 
-  it("best rank is chosen by share of the pool, not by the rank number", () => {
-    // Gabby Williams' rebounds, measured 2026-09-21: 18th of 65 (top 28%) vs 27th of 106 (top 25%).
-    const L = league([2018, 2022]);
-    const p = player([playedSeason(2018, 40, { ...rk(18, 65) }), playedSeason(2022, 40, { ...rk(27, 106) })]);
+  it("best rank is the lowest rank number, whatever the pool", () => {
+    // Teresa Weatherspoon's assists, live API 2026-09-29: 1st of 75 in 1997 (an 8-team league), 2nd of 168 in 2001.
+    const L = league([1997, 2001]);
+    const p = player([playedSeason(1997, 28, { ...rk(1, 75) }), playedSeason(2001, 32, { ...rk(2, 168) })]);
     expect(buildStatDetail(p, pts, "league", L, POS, "F").summary!.bestRank).toEqual({
-      rank: 27,
-      pool: 106,
-      year: 2022,
+      rank: 1,
+      pool: 75,
+      year: 1997,
+      alsoYears: [],
     });
-    // Even a 1st place loses to a smaller share of a much larger pool: 1/65 = 1.5% vs 2/158 = 1.3%.
-    const q = player([playedSeason(2018, 40, { ...rk(1, 65) }), playedSeason(2022, 40, { ...rk(2, 158) })]);
-    expect(buildStatDetail(q, pts, "league", L, POS, "F").summary!.bestRank).toEqual({
-      rank: 2,
-      pool: 158,
-      year: 2022,
-    });
-    // Exactly equal shares (5/50 = 10/100) → the larger pool.
-    const e = player([playedSeason(2018, 40, { ...rk(5, 50) }), playedSeason(2022, 40, { ...rk(10, 100) })]);
-    expect(buildStatDetail(e, pts, "league", L, POS, "F").summary!.bestRank).toEqual({
-      rank: 10,
-      pool: 100,
-      year: 2022,
-    });
+    // A lower number in a smaller pool still wins: 18th of 65 over 27th of 106.
+    const q = player([playedSeason(1997, 28, { ...rk(18, 65) }), playedSeason(2001, 32, { ...rk(27, 106) })]);
+    expect(buildStatDetail(q, pts, "league", L, POS, "F").summary!.bestRank).toMatchObject({ rank: 18, year: 1997 });
   });
 
-  it("a tied best rank goes to the larger pool, then the later year", () => {
-    const L = league([2018, 2025, 2026]);
+  it("equal best ranks: the most recent season, whatever the pools, and the other years listed", () => {
+    // A'ja Wilson's blocks, live API 2026-09-29: 1st in 2020 and 2022–2026, 11th in 2021.
+    const L = league([2020, 2021, 2022, 2023, 2024, 2025, 2026]);
     const p = player([
-      playedSeason(2018, 40, { ...rk(1, 65) }),
-      playedSeason(2025, 40, { ...rk(1, 158) }),
-      playedSeason(2026, 40, { ...rk(1, 158) }),
+      playedSeason(2020, 22, { ...rk(1, 128) }),
+      playedSeason(2021, 32, { ...rk(11, 122) }),
+      playedSeason(2022, 36, { ...rk(1, 121) }),
+      playedSeason(2023, 40, { ...rk(1, 122) }),
+      playedSeason(2024, 38, { ...rk(1, 123) }),
+      playedSeason(2025, 40, { ...rk(1, 136) }),
+      playedSeason(2026, 41, { ...rk(1, 157) }),
     ]);
     expect(buildStatDetail(p, pts, "league", L, POS, "F").summary!.bestRank).toEqual({
       rank: 1,
-      pool: 158,
+      pool: 157,
       year: 2026,
+      alsoYears: [2020, 2022, 2023, 2024, 2025],
+    });
+    // A larger pool in the earlier season doesn't win: the headline year is the same in every mode.
+    const q = player([playedSeason(2025, 40, { ...rk(3, 160) }), playedSeason(2026, 40, { ...rk(3, 140) })]);
+    expect(buildStatDetail(q, pts, "league", L, POS, "F").summary!.bestRank).toEqual({
+      rank: 3,
+      pool: 140,
+      year: 2026,
+      alsoYears: [2025],
+    });
+  });
+
+  it("the other years at the best rank follow the mode, and leave out seasons that weren't ranked", () => {
+    const L = league([2021, 2022, 2023]);
+    const at = (rank: number, posRank: number) => ({
+      rank: ranks({ pts: rank }),
+      pool: 120,
+      posRank: ranks({ pts: posRank }),
+      posPool: 20,
+    });
+    const p = player(
+      [
+        playedSeason(2021, 40, { ...at(5, 1) }),
+        playedSeason(2022, 4, { ...at(1, 1) }), // a small sample: not a ranked season
+        playedSeason(2023, 40, { ...at(2, 1) }),
+      ],
+      "F",
+    );
+    expect(buildStatDetail(p, pts, "league", L, POS, "F").summary!.bestRank).toEqual({
+      rank: 2,
+      pool: 120,
+      year: 2023,
+      alsoYears: [],
+    });
+    expect(buildStatDetail(p, pts, "position", L, POS, "F").summary!.bestRank).toEqual({
+      rank: 1,
+      pool: 20,
+      year: 2023,
+      alsoYears: [2021],
     });
   });
 
@@ -807,11 +854,11 @@ describe("buildStatDetail — career summary plates", () => {
     const p = player([playedSeason(2021, 40, { pts: 10 }), playedSeason(2022, 40, { pts: 18, ...both })], "F");
     const pos = buildStatDetail(p, pts, "position", L, POS, "F");
     expect(pos.tableRows.find((r) => r.year === 2022)).toMatchObject({ rank: 3, pool: 20 });
-    expect(pos.summary!.bestRank).toEqual({ rank: 3, pool: 20, year: 2022 });
+    expect(pos.summary!.bestRank).toEqual({ rank: 3, pool: 20, year: 2022, alsoYears: [] });
     for (const mode of ["league", "self"] as const) {
       const d = buildStatDetail(p, pts, mode, L, POS, "F");
       expect(d.tableRows.find((r) => r.year === 2022)).toMatchObject({ rank: 30, pool: 100 });
-      expect(d.summary!.bestRank).toEqual({ rank: 30, pool: 100, year: 2022 });
+      expect(d.summary!.bestRank).toEqual({ rank: 30, pool: 100, year: 2022, alsoYears: [] });
     }
     // No position bucket that year → no position rank, even though the league rank exists.
     const q = player([playedSeason(2021, 40), playedSeason(2022, 40, { ...both, posRank: null, posPool: null })], "F");
@@ -838,7 +885,7 @@ describe("buildStatDetail — career summary plates", () => {
     ]);
     const d = buildStatDetail(p, tpp, "league", L, POS, "F");
     const s = d.summary!;
-    expect(s.bestRank).toEqual({ rank: 4, pool: 65, year: 2022 }); // the 3P% pool, not the points pool of 122
+    expect(s.bestRank).toEqual({ rank: 4, pool: 65, year: 2022, alsoYears: [] }); // the 3P% pool, not the points pool of 122
     expect(d.tableRows.find((r) => r.year === 2022)).toMatchObject({ rank: 4, pool: 65, unranked: null });
     expect(s.high).toEqual({ fmt: "44", year: 2022 }); // 44.0% → "44" (the plate adds the sign)
     expect(s.careerAvg).toBe("40"); // pooled 79/200 = 39.5% → rounds to 40
@@ -867,7 +914,7 @@ describe("buildStatDetail — career summary plates", () => {
       unranked: "Needs 55 attempts from three or 19 made to rank",
     });
     expect(d.bars.find((b) => b.year === 2022)!.kind).toBe("full"); // 50 attempts clear the tint floor
-    expect(d.summary!.bestRank).toEqual({ rank: 30, pool: 65, year: 2021 });
+    expect(d.summary!.bestRank).toEqual({ rank: 30, pool: 65, year: 2021, alsoYears: [] });
   });
 
   it("career % pools every season over the GAMES gate — an attempt-thin season stays in the pool, out of the chart", () => {

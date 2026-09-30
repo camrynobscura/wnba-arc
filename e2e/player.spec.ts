@@ -49,6 +49,47 @@ test.describe("the heatmap", () => {
   });
 });
 
+test.describe("the best-rank plate", () => {
+  const plate = (page: Page) => page.locator(".cs-plate", { hasText: "Best rank" });
+
+  test("shows the lowest rank with its year, and a count whose tooltip names the other seasons at that rank", async ({
+    page,
+  }) => {
+    await openPlayer(page, "aja-wilson/blk?vs=league"); // 1st in blocks six times: 2020 and 2022–2026
+    await expect(plate(page)).toContainText("1st");
+    await expect(plate(page)).toContainText("of 157");
+    await expect(plate(page)).toContainText("WNBA 2026");
+    const more = plate(page).getByRole("button", { name: "+5" });
+    const tip = page.getByRole("tooltip", { name: "Also 1st in 2020, 2022, 2023, 2024, and 2025." });
+
+    await more.focus(); // the keyboard
+    await expect(tip).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(tip).toBeHidden();
+    await expect(more).toBeFocused();
+
+    await page.mouse.move(0, 0);
+    await more.hover(); // a mouse
+    await expect(tip).toBeVisible();
+    await page.mouse.move(0, 0);
+    await expect(tip).toBeHidden();
+
+    await more.click(); // a tap
+    await expect(tip).toBeVisible();
+
+    // The same six seasons among centers: the same headline year, though 2025's pool (20) was larger than 2026's (19).
+    await openPlayer(page, "aja-wilson/blk?vs=position");
+    await expect(plate(page)).toContainText("of 19");
+    await expect(plate(page)).toContainText("Centers 2026");
+    await plate(page).getByRole("button", { name: "+5" }).focus();
+    await expect(page.getByRole("tooltip", { name: "Also 1st in 2020, 2022, 2023, 2024, and 2025." })).toBeVisible();
+
+    await openPlayer(page, "aja-wilson/ast"); // a best rank reached once: no count
+    await expect(plate(page)).toBeVisible();
+    await expect(plate(page).getByRole("button")).toHaveCount(0);
+  });
+});
+
 test.describe("the comparison bar", () => {
   test("switches the reference for the whole page, and the address keeps it", async ({ page }) => {
     await openPlayer(page, "aja-wilson");
