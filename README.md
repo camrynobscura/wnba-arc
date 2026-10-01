@@ -21,9 +21,9 @@ small read-only API. This README covers both.
 | --- | --- | --- |
 | Frontend | React 19, TypeScript, Vite, react-router 7, plain CSS design tokens | Netlify (static build) |
 | API | Node, TypeScript, Express 5, raw `pg` (no ORM) | Render |
-| Database | Postgres, 9 plain-SQL migrations | Supabase |
+| Database | Postgres, 10 plain-SQL migrations | Supabase |
 | Ingest | TypeScript scripts over ESPN's public JSON | GitHub Actions, daily |
-| Tests | Frontend: 160 unit, 37 browser tests in Chromium, Firefox and WebKit. Backend: 95 unit, 26 on a real Postgres | Vitest, Playwright |
+| Tests | Frontend: 164 unit, 39 browser tests in Chromium, Firefox and WebKit. Backend: 134 unit, 27 on a real Postgres | Vitest, Playwright |
 | CI | oxlint, type check, Prettier, the build and all four test suites on every push | GitHub Actions |
 
 ## Architecture
@@ -195,20 +195,20 @@ Built to **WCAG 2.2 AA**:
 Each layer is tested where its bugs would show up: the logic in unit tests, the SQL on a real Postgres, the
 interface in three real browsers.
 
-- **Frontend unit tests (160, 14 files):** the grid, references, games and shots minimums, pooled averages, number
+- **Frontend unit tests (164, 14 files):** the grid, references, games and shots minimums, pooled averages, number
   formatting, the comparison buttons, the chart axis and best-rank rule, arrow-key movement, URL slugs, search
   ranking, the header line, the footer's freshness line, tooltip placement, the player cache, headshot addresses,
   the API address, the browser bar color, the security and caching headers, and the font setup.
-- **Browser tests (37, each run in Chromium, Firefox and WebKit; `e2e/`):** the production build under its real
-  security headers, with the API answered from recorded responses for six players picked for their edge cases. They
+- **Browser tests (39, each run in Chromium, Firefox and WebKit; `e2e/`):** the production build under its real
+  security headers, with the API answered from recorded responses for seven players picked for their edge cases. They
   cover search, the heatmap's keyboard grid and popover, the comparison bar (unavailable modes, and never covering
   what has focus), the stat history and its best-rank plate, load errors and not-found, two players with the same
   name, the theme switch, the 320px layout, and the axe scans above. Any uncaught error, console error or blocked
   resource fails a test.
-- **Backend unit tests (95, 9 files):** ESPN parsing, team game counts, schedule reading, role rates, the change
+- **Backend unit tests (134, 12 files):** ESPN parsing, team game counts, schedule reading, role rates, the change
   alerts, the database connection's encryption settings, player id checks, and the API's routes (bad input, errors,
   CORS, headers, the rate limit).
-- **Database tests (26):** run on a throwaway Postgres 17 with Supabase's settings: ingest, who qualifies, the
+- **Database tests (27):** run on a throwaway Postgres 17 with Supabase's settings: ingest, who qualifies, the
   league and position averages, ranks and ties, the shooting floors, and the player list. Their data is a small
   made-up league, so every expected number can be checked by hand.
 
