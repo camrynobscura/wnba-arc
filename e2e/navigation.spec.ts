@@ -55,6 +55,16 @@ test("two players with the same name each get an address with their ESPN id", as
   await expect(page.getByText("1999–2000")).toBeVisible();
 });
 
+test("a typed address two players share offers both instead of guessing", async ({ page }) => {
+  await page.goto("/player/michelle-campbell");
+  await expect(heading(page)).toHaveText("Two players are named Michelle Campbell");
+  await expect(page).toHaveTitle("Two players are named Michelle Campbell — WNBA Arc");
+  await expect(page.getByRole("main").getByRole("link")).toHaveCount(2);
+  await page.getByRole("link", { name: /1999–2000/ }).click();
+  await expect(page).toHaveURL("/player/michelle-campbell-120");
+  await expect(heading(page)).toHaveText("Michelle Campbell");
+});
+
 test("when the player list fails, the landing page and a player page say what to do", async ({ page, api, errors }) => {
   errors.allow(/500/);
   api.fail("/players");

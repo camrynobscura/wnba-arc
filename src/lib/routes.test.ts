@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { espnForSlug, playerPath, slugifyName, statPath, toMode, toStatKey } from "./routes";
+import { espnForSlug, matchesForSlug, playerPath, slugifyName, statPath, toMode, toStatKey } from "./routes";
 
 const roster = [
   { espn: "3149391", name: "A'ja Wilson" },
@@ -54,6 +54,15 @@ describe("espnForSlug", () => {
   it("round-trips playerPath through the roster", () => {
     const p = playerPath("Kelsey Mitchell", "3058901", roster);
     expect(espnForSlug(p.split("/").pop(), roster)).toBe("3058901");
+  });
+  it("never guesses between two players with the same name", () => {
+    const two = [...roster, { espn: "120", name: "Michelle Campbell" }, { espn: "2069162", name: "Michelle Campbell" }];
+    expect(espnForSlug("michelle-campbell", two)).toBeNull();
+    expect(matchesForSlug("michelle-campbell", two).map((p) => p.espn)).toEqual(["120", "2069162"]);
+    expect(espnForSlug("michelle-campbell-120", two)).toBe("120");
+    expect(matchesForSlug("michelle-campbell-120", two)).toEqual([]);
+    expect(matchesForSlug("aja-wilson", two)).toHaveLength(1);
+    expect(matchesForSlug("aja-wilson", null)).toEqual([]);
   });
   it("accepts the id-form (collision/legacy) without needing the roster", () => {
     expect(espnForSlug("alyssa-thomas-111", null)).toBe("111");

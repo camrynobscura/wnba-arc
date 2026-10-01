@@ -5,10 +5,12 @@ import type { League, PositionLookup } from "../lib/deviation";
 import { useAppData } from "../appData";
 import { pageTitle, SITE_NAME, usePageTitle } from "../pageArrival";
 import { Footer } from "../components/Footer";
-import { Notice } from "../components/Notice";
+import { MetaLine } from "../components/MetaLine";
+import { Notice, type NoticeChoice } from "../components/Notice";
 import { PlayerTopBar } from "../components/PlayerTopBar";
-import { espnForSlug, playerPath } from "../lib/routes";
+import { espnForSlug, matchesForSlug, playerPath } from "../lib/routes";
 import { OFFLINE_HINT, RETRY_HINT, useOnline } from "../lib/loadFailure";
+import { playerMeta } from "../lib/playerMeta";
 
 /** What the player routes read from the layout through <Outlet>. By the time a child renders, detail and
  *  league are present (the gate below waits for them). */
@@ -30,6 +32,9 @@ export function PlayerLayout() {
   // without it. Null while the list is loading or when nothing matches; the gates below tell those apart,
   // so a name slug never flashes a false "not found".
   const espn = useMemo(() => espnForSlug(slug, players), [slug, players]);
+  // A bare name two players share ("michelle-campbell", typed by hand — the app's own links carry the id)
+  // is never guessed at: the page offers both.
+  const namesakes = useMemo(() => matchesForSlug(slug, players), [slug, players]);
 
   // The player's database id, once the ESPN id resolves and the list (which maps one to the other) is in.
   // Null for a bad slug, a list still loading, or no such player.
@@ -76,24 +81,41 @@ export function PlayerLayout() {
   // win over "not found", or a valid link flashes not-found on a cold load. Either load failing is the
   // same thing to the visitor (this player didn't load), with the same fix.
   const failure = { title: "Couldn't load this player", detail: online ? RETRY_HINT : OFFLINE_HINT, error: true };
-  const notice: { title: string; detail?: string; error?: boolean } | null = loadFailed
+  const notice: { title: string; detail?: string; error?: boolean; choices?: NoticeChoice[] } | null = loadFailed
     ? failure
     : players == null || league == null
       ? { title: "Loading…" }
-      : espn == null || players.find((p) => p.espn === espn) == null
-        ? { title: "Player not found", detail: "No player matches this link.", error: true }
-        : detailFailed
-          ? failure
-          : // The same title as the list and league gate above, so a refresh shows one steady
-            // "Loading…" across the two load phases.
-            detail == null
-            ? { title: "Loading…" }
-            : null;
+      : namesakes.length > 1
+        ? {
+            title: `${namesakes.length === 2 ? "Two" : namesakes.length} players are named ${namesakes[0].name}`,
+            detail: "Which one?",
+            choices: namesakes.map((p) => ({
+              to: playerPath(p.name, p.espn, players),
+              // The name is the same on every line: the career span and position tell them apart, and are
+              // part of the link's name so no two links read alike.
+              label: (
+                <>
+                  {p.name}, <MetaLine text={playerMeta(p)} />
+                </>
+              ),
+            })),
+          }
+        : espn == null || players.find((p) => p.espn === espn) == null
+          ? { title: "Player not found", detail: "No player matches this link.", error: true }
+          : detailFailed
+            ? failure
+            : // The same title as the list and league gate above, so a refresh shows one steady
+              // "Loading…" across the two load phases.
+              detail == null
+              ? { title: "Loading…" }
+              : null;
   // The loaded page's data: there exactly when there's no notice.
   const loaded = notice == null && detail != null && league != null ? { detail, league } : null;
 
   // The tab: the player's name, the error, or the site's name alone while loading.
-  usePageTitle(loaded ? pageTitle(loaded.detail.name) : notice?.error ? pageTitle(notice.title) : SITE_NAME);
+  usePageTitle(
+    loaded ? pageTitle(loaded.detail.name) : notice?.error || notice?.choices ? pageTitle(notice.title) : SITE_NAME,
+  );
 
   // The frame around every state (loading, error, not-found and the loaded page). The top row is a
   // <header> ahead of <main>, so "Skip to main content" skips it. Every state renders the same elements
@@ -113,7 +135,7 @@ export function PlayerLayout() {
         {loaded ? (
           <Outlet context={{ detail: loaded.detail, league: loaded.league, positions } satisfies PlayerOutletCtx} />
         ) : (
-          notice && <Notice title={notice.title} detail={notice.detail} error={notice.error} />
+          notice && <Notice title={notice.title} detail={notice.detail} error={notice.error} choices={notice.choices} />
         )}
       </main>
       {loaded && <Footer meta={meta} />}
