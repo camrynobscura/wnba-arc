@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Outlet, useNavigate, useParams } from "react-router-dom";
+import { Outlet, useLocation, useNavigate, useParams } from "react-router-dom";
 import { cachedPlayer, getPlayer, type PlayerDetail } from "../data/api";
 import type { League, PositionLookup } from "../lib/deviation";
 import { useAppData } from "../appData";
@@ -8,7 +8,7 @@ import { Footer } from "../components/Footer";
 import { MetaLine } from "../components/MetaLine";
 import { Notice, type NoticeChoice } from "../components/Notice";
 import { PlayerTopBar } from "../components/PlayerTopBar";
-import { espnForSlug, matchesForSlug, playerPath } from "../lib/routes";
+import { espnForSlug, matchesForSlug, nameForSlug, playerPath } from "../lib/routes";
 import { OFFLINE_HINT, RETRY_HINT, useOnline } from "../lib/loadFailure";
 import { playerMeta } from "../lib/playerMeta";
 
@@ -35,6 +35,18 @@ export function PlayerLayout() {
   // A bare name two players share ("michelle-campbell", typed by hand — the app's own links carry the id)
   // is never guessed at: the page offers both.
   const namesakes = useMemo(() => matchesForSlug(slug, players), [slug, players]);
+
+  // An address built from a name the player no longer has ("nia-coffey") moves to their current one, the
+  // stat and comparison kept. Replaced, not pushed: Back shouldn't return to an address that forwards.
+  const location = useLocation();
+  useEffect(() => {
+    const p = namesakes.length === 1 ? namesakes[0] : null;
+    if (!slug || !p) return;
+    const canonical = playerPath(p.name, p.espn, players);
+    if (canonical === `/player/${slug}`) return;
+    const rest = location.pathname.slice(`/player/${slug}`.length);
+    navigate(canonical + rest + location.search + location.hash, { replace: true });
+  }, [slug, namesakes, players, location, navigate]);
 
   // The player's database id, once the ESPN id resolves and the list (which maps one to the other) is in.
   // Null for a bad slug, a list still loading, or no such player.
@@ -87,18 +99,22 @@ export function PlayerLayout() {
       ? { title: "Loading…" }
       : namesakes.length > 1
         ? {
-            title: `${namesakes.length === 2 ? "Two" : namesakes.length} players are named ${namesakes[0].name}`,
+            title: `${namesakes.length === 2 ? "Two" : namesakes.length} players are named ${nameForSlug(namesakes[0], slug ?? "") ?? namesakes[0].name}`,
             detail: "Which one?",
-            choices: namesakes.map((p) => ({
-              to: playerPath(p.name, p.espn, players),
-              // The name is the same on every line: the career span and position tell them apart, and are
-              // part of the link's name so no two links read alike.
-              label: (
-                <>
-                  {p.name}, <MetaLine text={playerMeta(p)} />
-                </>
-              ),
-            })),
+            choices: namesakes.map((p) => {
+              const asked = nameForSlug(p, slug ?? "");
+              return {
+                to: playerPath(p.name, p.espn, players),
+                // Each link names the player, the old name the address used if that is how it found them, and
+                // the career span or team that tells them apart — so no two links read alike.
+                label: (
+                  <>
+                    {p.name}, {asked && asked !== p.name ? `formerly ${asked}, ` : ""}
+                    <MetaLine text={playerMeta(p)} />
+                  </>
+                ),
+              };
+            }),
           }
         : espn == null || players.find((p) => p.espn === espn) == null
           ? { title: "Player not found", detail: "No player matches this link.", error: true }

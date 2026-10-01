@@ -18,6 +18,9 @@ export interface PlayerSummary {
   active: boolean; // ESPN's "on a roster" flag: false when waived or retired, so not a retirement record
   firstYear: number | null; // first and last regular season on record: the career span
   lastYear: number | null;
+  /** Names the player had before (a marriage, a corrected spelling), oldest first. Absent from an API
+   *  older than the field. */
+  formerNames?: string[];
 }
 
 export interface PlayerDetail extends PlayerSummary {

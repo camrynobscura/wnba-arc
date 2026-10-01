@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { PlayerSummary } from "../data/api";
-import { fold, foldWords, matchTier, rankPlayers } from "./search";
+import { fold, foldWords, formerNameMatch, matchTier, rankPlayers } from "./search";
 
 const mk = (name: string, over: Partial<PlayerSummary> = {}): PlayerSummary => ({
   id: name,
@@ -103,5 +103,23 @@ describe("rankPlayers", () => {
     const retiredStar = mk("Candace Parker", { active: false, lastYear: 2023 });
     const out = rankPlayers([retiredStar, waived], "c").map((p) => p.name);
     expect(out).toEqual(["Chennedy Carter", "Candace Parker"]);
+  });
+});
+
+describe("former names", () => {
+  const brodie = mk("Nia Brodie", { team: "Minnesota Lynx", formerNames: ["Nia Coffey"] });
+  const list = [...roster, brodie];
+
+  it("finds a player by the name they used to have, and says which", () => {
+    expect(rankPlayers(list, "coffey").map((p) => p.name)).toEqual(["Nia Brodie"]);
+    expect(formerNameMatch(brodie, foldWords("coffey"))).toBe("Nia Coffey");
+    expect(formerNameMatch(brodie, foldWords("coffey lynx"))).toBe("Nia Coffey");
+  });
+
+  it("says nothing when the current name already matches, or nothing does", () => {
+    expect(formerNameMatch(brodie, foldWords("nia"))).toBeNull();
+    expect(formerNameMatch(brodie, foldWords("brodie"))).toBeNull();
+    expect(formerNameMatch(brodie, foldWords("zzz"))).toBeNull();
+    expect(formerNameMatch(mk("A'ja Wilson"), foldWords("coffey"))).toBeNull();
   });
 });

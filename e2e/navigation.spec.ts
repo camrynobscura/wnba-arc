@@ -65,6 +65,20 @@ test("a typed address two players share offers both instead of guessing", async 
   await expect(heading(page)).toHaveText("Michelle Campbell");
 });
 
+test("a player's former name still finds them: the old address moves on, and search says which name", async ({
+  page,
+}) => {
+  await page.goto("/player/nia-coffey/reb?vs=league");
+  await expect(page).toHaveURL("/player/nia-brodie/reb?vs=league");
+  await expect(heading(page)).toHaveText("Nia Brodie");
+
+  await page.goto("/");
+  await search(page).fill("coffey");
+  await expect(page.getByRole("option")).toHaveCount(1);
+  await expect(page.getByRole("option")).toContainText("Nia Brodie");
+  await expect(page.getByRole("option")).toContainText("formerly Nia Coffey");
+});
+
 test("when the player list fails, the landing page and a player page say what to do", async ({ page, api, errors }) => {
   errors.allow(/500/);
   api.fail("/players");

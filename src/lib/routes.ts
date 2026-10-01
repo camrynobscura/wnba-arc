@@ -2,7 +2,7 @@ import { STATS } from "../data/stats";
 import type { HeatmapMode, StatKey } from "./deviation";
 
 /** The player-list shape the path helpers need, kept structural so tests can pass plain objects. */
-type RosterEntry = { espn: string; name: string };
+type RosterEntry = { espn: string; name: string; formerNames?: readonly string[] };
 
 /** "A'ja Wilson" → "aja-wilson": the readable slug that names a player in the URL. */
 export function slugifyName(name: string): string {
@@ -15,10 +15,17 @@ export function slugifyName(name: string): string {
     .replace(/^-+|-+$/g, ""); // trim leading/trailing hyphens
 }
 
-/** Does another player share this exact slug? The only case a bare name is ambiguous (the two Michelle
- *  Campbells, for one). */
+/** The name, current or former, that this slug stands for — null when it is neither. A former name counts
+ *  like a name: an address built from it still finds the player, and it can clash with someone else's. */
+export function nameForSlug(p: RosterEntry, slug: string): string | null {
+  if (slugifyName(p.name) === slug) return p.name;
+  return p.formerNames?.find((n) => slugifyName(n) === slug) ?? null;
+}
+
+/** Does another player answer to this slug, by their name or a former one? The only case a bare name is
+ *  ambiguous (the two Michelle Campbells, for one). */
 function slugCollides(slug: string, espn: string, roster: readonly RosterEntry[] | null | undefined): boolean {
-  return roster?.some((p) => p.espn !== espn && slugifyName(p.name) === slug) ?? false;
+  return roster?.some((p) => p.espn !== espn && nameForSlug(p, slug) != null) ?? false;
 }
 
 /** Path to a player's page, e.g. "/player/aja-wilson". By name: the ESPN id is added ("…-3149391") only
@@ -35,11 +42,12 @@ export function statPath(name: string, espn: string, stat: StatKey, roster?: rea
   return `${playerPath(name, espn, roster)}/${stat}`;
 }
 
-/** Every player a bare name slug names: one for nearly every name, two for the Michelle Campbells. Empty
+/** Every player a bare name slug names, by their name or a former one: one for nearly every name, two for
+ *  the Michelle Campbells. Empty
  *  for the id form (which needs no list), an unloaded list, or no such name. */
 export function matchesForSlug<T extends RosterEntry>(slug: string | undefined, roster: readonly T[] | null): T[] {
   if (!slug || !roster || /-\d+$/.test(slug) || /^\d+$/.test(slug)) return [];
-  return roster.filter((p) => slugifyName(p.name) === slug);
+  return roster.filter((p) => nameForSlug(p, slug) != null);
 }
 
 /** Resolve a URL slug to a player's ESPN id. A trailing "-<digits>" (the clash form, or a bare id)

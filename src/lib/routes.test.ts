@@ -1,5 +1,14 @@
 import { describe, it, expect } from "vitest";
-import { espnForSlug, matchesForSlug, playerPath, slugifyName, statPath, toMode, toStatKey } from "./routes";
+import {
+  espnForSlug,
+  matchesForSlug,
+  nameForSlug,
+  playerPath,
+  slugifyName,
+  statPath,
+  toMode,
+  toStatKey,
+} from "./routes";
 
 const roster = [
   { espn: "3149391", name: "A'ja Wilson" },
@@ -63,6 +72,24 @@ describe("espnForSlug", () => {
     expect(matchesForSlug("michelle-campbell-120", two)).toEqual([]);
     expect(matchesForSlug("aja-wilson", two)).toHaveLength(1);
     expect(matchesForSlug("aja-wilson", null)).toEqual([]);
+  });
+  it("finds a player by a former name, and treats it like a name when it clashes", () => {
+    const brodie = { espn: "3054590", name: "Nia Brodie", formerNames: ["Nia Coffey"] };
+    const withBrodie = [...roster, brodie];
+    expect(espnForSlug("nia-coffey", withBrodie)).toBe("3054590");
+    expect(espnForSlug("nia-brodie", withBrodie)).toBe("3054590");
+    expect(nameForSlug(brodie, "nia-coffey")).toBe("Nia Coffey");
+    expect(nameForSlug(brodie, "nia-brodie")).toBe("Nia Brodie");
+    expect(nameForSlug(brodie, "aja-wilson")).toBeNull();
+    expect(playerPath("Nia Brodie", "3054590", withBrodie)).toBe("/player/nia-brodie");
+
+    // A later player with the old name: the bare address names both, and her own links carry the id.
+    const rookie = { espn: "999", name: "Nia Coffey" };
+    const both = [...withBrodie, rookie];
+    expect(espnForSlug("nia-coffey", both)).toBeNull();
+    expect(matchesForSlug("nia-coffey", both).map((p) => p.espn)).toEqual(["3054590", "999"]);
+    expect(playerPath("Nia Coffey", "999", both)).toBe("/player/nia-coffey-999");
+    expect(playerPath("Nia Brodie", "3054590", both)).toBe("/player/nia-brodie");
   });
   it("accepts the id-form (collision/legacy) without needing the roster", () => {
     expect(espnForSlug("alyssa-thomas-111", null)).toBe("111");

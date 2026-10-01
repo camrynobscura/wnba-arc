@@ -60,6 +60,19 @@
     "lastYear": 2000
   },
   {
+    "id": "98",
+    "espn": "3054590",
+    "name": "Nia Brodie",
+    "team": "Minnesota Lynx",
+    "teamAbbr": "MIN",
+    "pos": "F",
+    "jersey": 12,
+    "active": true,
+    "firstYear": 2017,
+    "lastYear": 2026,
+    "formerNames": ["Nia Coffey"]
+  },
+  {
     "id": "8",
     "espn": "4433730",
     "name": "Paige Bueckers",

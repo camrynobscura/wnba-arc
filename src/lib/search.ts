@@ -63,12 +63,32 @@ function firstNameHit(p: Pick<PlayerSummary, "name">, queryWords: string[]): boo
   return first != null && queryWords.some((w) => first.startsWith(w));
 }
 
+type Searchable = Pick<PlayerSummary, "name" | "team" | "formerNames">;
+
+/**
+ * The former name a query finds the player by, when their current name doesn't match it: "coffey" finds
+ * Nia Brodie, and the result says "formerly Nia Coffey" so the match makes sense. Null when the current
+ * name matches, or nothing does.
+ */
+export function formerNameMatch(p: Searchable, queryWords: string[]): string | null {
+  if (queryWords.length === 0 || matchTier(p, queryWords) != null) return null;
+  return p.formerNames?.find((name) => matchTier({ name, team: p.team }, queryWords) != null) ?? null;
+}
+
+/** The player's tier by their current name, else by the former name the query found. */
+function bestTier(p: Searchable, queryWords: string[]): 0 | 1 | 2 | null {
+  const tier = matchTier(p, queryWords);
+  if (tier != null) return tier;
+  const former = formerNameMatch(p, queryWords);
+  return former == null ? null : matchTier({ name: former, team: p.team }, queryWords);
+}
+
 /**
  * Filter and rank the player list for a query. Tier first; within a tier, players from the latest season
  * on record ("current": the latest `lastYear` in the list, so it rolls forward each season and a player
  * waived mid-season still counts); then first-name matches, since most people search by first name ("sab"
- * puts Sabrina Ionescu above Nyara Sabally); then the list's own alphabetical order. An empty query has no
- * results.
+ * puts Sabrina Ionescu above Nyara Sabally); then the list's own alphabetical order. A former name finds
+ * its player too. An empty query has no results.
  */
 export function rankPlayers(players: readonly PlayerSummary[], query: string): PlayerSummary[] {
   const words = foldWords(query);
@@ -76,7 +96,7 @@ export function rankPlayers(players: readonly PlayerSummary[], query: string): P
   const latest = players.reduce((m, p) => (p.lastYear != null && p.lastYear > m ? p.lastYear : m), -Infinity);
   const scored: { p: PlayerSummary; tier: number; past: number; notFirst: number; i: number }[] = [];
   players.forEach((p, i) => {
-    const tier = matchTier(p, words);
+    const tier = bestTier(p, words);
     if (tier == null) return;
     scored.push({ p, tier, past: p.lastYear === latest ? 0 : 1, notFirst: firstNameHit(p, words) ? 0 : 1, i });
   });

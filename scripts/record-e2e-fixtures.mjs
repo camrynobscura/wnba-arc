@@ -19,6 +19,7 @@ const PLAYERS = {
   141: "Cynthia Cooper: no position on record (before 2012)",
   120: "Michelle Campbell (1999–2000): shares a name, so both addresses carry the ESPN id",
   2069162: "Michelle Campbell (2013)",
+  3054590: "Nia Brodie: formerly Nia Coffey, so her old address and a search for the old name still find her",
 };
 
 async function get(path) {

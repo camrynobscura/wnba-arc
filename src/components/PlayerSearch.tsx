@@ -3,7 +3,7 @@ import type { PlayerSummary } from "../data/api";
 import { Spinner } from "./Spinner";
 import { MetaLine } from "./MetaLine";
 import { playerMeta } from "../lib/playerMeta";
-import { fold, rankPlayers } from "../lib/search";
+import { fold, foldWords, formerNameMatch, rankPlayers } from "../lib/search";
 import { OFFLINE_HINT, RETRY_HINT, useOnline } from "../lib/loadFailure";
 
 interface PlayerSearchProps {
@@ -204,6 +204,8 @@ export function PlayerSearch({ players, listFailed, onPick, variant = "hero" }: 
                 minWidth: 0,
               }}
             >
+              {/* Found by a name the player no longer has: say so first, where it survives a tight row. */}
+              {formerNameMatch(p, foldWords(query)) && <>formerly {formerNameMatch(p, foldWords(query))} · </>}
               <MetaLine text={playerMeta(p)} />
             </span>
           </div>
