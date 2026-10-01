@@ -23,7 +23,7 @@ small read-only API. This README covers both.
 | API | Node, TypeScript, Express 5, raw `pg` (no ORM) | Render |
 | Database | Postgres, 10 plain-SQL migrations | Supabase |
 | Ingest | TypeScript scripts over ESPN's public JSON | GitHub Actions, daily |
-| Tests | Frontend: 164 unit, 39 browser tests in Chromium, Firefox and WebKit. Backend: 134 unit, 27 on a real Postgres | Vitest, Playwright |
+| Tests | Frontend: 164 unit, 39 browser tests in Chromium, Firefox and WebKit. Backend: 101 unit, 27 on a real Postgres | Vitest, Playwright |
 | CI | oxlint, type check, Prettier, the build and all four test suites on every push | GitHub Actions |
 
 ## Architecture
@@ -205,7 +205,7 @@ interface in three real browsers.
   what has focus), the stat history and its best-rank plate, load errors and not-found, two players with the same
   name, the theme switch, the 320px layout, and the axe scans above. Any uncaught error, console error or blocked
   resource fails a test.
-- **Backend unit tests (134, 12 files):** ESPN parsing, team game counts, schedule reading, role rates, the change
+- **Backend unit tests (101, 11 files):** ESPN parsing, team game counts, schedule reading, role rates, the change
   alerts, the database connection's encryption settings, player id checks, and the API's routes (bad input, errors,
   CORS, headers, the rate limit).
 - **Database tests (27):** run on a throwaway Postgres 17 with Supabase's settings: ingest, who qualifies, the
